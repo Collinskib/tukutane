@@ -1,11 +1,11 @@
 // Nipange service worker — static shell + offline fallback only.
 // NEVER caches API responses, messages, or account pages.
-const CACHE = 'nipange-v1';
+const CACHE = 'nipange-v2';
 const STATIC = [
-  'assets/style.css',
-  'assets/app.js',
-  'assets/icons/icon-192.png',
-  'offline.html',
+  '/assets/style.css?v=2',
+  '/assets/app.js?v=2',
+  '/assets/icons/icon-192.png',
+  '/offline.html',
 ];
 
 self.addEventListener('install', e => {
@@ -29,7 +29,7 @@ self.addEventListener('fetch', e => {
   // HTML navigations: network-first, offline fallback page
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('offline.html'))
+      fetch(e.request).catch(() => caches.match('/offline.html'))
     );
     return;
   }
