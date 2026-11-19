@@ -27,11 +27,11 @@ function keep(array $drop = [], array $add = []): string {
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tukutane · Nairobi gatherings</title>
+<title>Nipange · Nairobi gatherings</title>
 <link rel="stylesheet" href="assets/style.css">
 <header>
   <nav>
-    <span class="brand">Tukutane<i>.</i></span>
+    <span class="brand">Nipange<i>.</i></span>
     <a class="btn <?= $view === 'discover' ? 'active' : '' ?>" href="index.php">Discover</a>
     <a class="btn <?= $view === 'mine' ? 'active' : '' ?>" href="?view=mine">My plans</a>
     <button id="open" class="primary" type="button">+ Create plan</button>
@@ -148,7 +148,7 @@ function keep(array $drop = [], array $add = []): string {
     <p><?= e(price((int) $detail['cost'])) ?></p>
     <p><?= e($detail['description']) ?></p>
     <p><?= $detail['sample'] ? 'Sample gathering'
-        : ($detail['audience'] === 'friends' ? 'Only in My plans' : 'Created on Tukutane') ?></p>
+        : ($detail['audience'] === 'friends' ? 'Only in My plans' : 'Created on Nipange') ?></p>
     <?php if (!$detail['mine']): ?>
     <form method="post" action="rsvp.php">
       <input type="hidden" name="id" value="<?= (int) $detail['id'] ?>">
