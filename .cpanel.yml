@@ -1,0 +1,16 @@
+---
+# cPanel Git deployment — runs on each "Pull or Deploy" in
+# cPanel > Files > Git Version Control.
+#
+# Replace CPANELUSER with your cPanel username (shown top-right
+# in cPanel, and in the cPanel URL).
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/CPANELUSER/public_html/
+    - /bin/cp index.php $DEPLOYPATH
+    - /bin/cp create.php $DEPLOYPATH
+    - /bin/cp rsvp.php $DEPLOYPATH
+    - /bin/cp db.php $DEPLOYPATH
+    - /bin/cp config.example.php $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATH/assets
+    - /bin/cp assets/style.css $DEPLOYPATH/assets/
