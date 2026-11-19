@@ -1,53 +1,115 @@
 <?php
-// Create a plan — mirrors the sample's client-side validation.
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/layout.php';
+require_login('create.php');
 
-require_once __DIR__ . '/db.php';
+$err = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+    $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
+    $category = $_POST['category'] ?? '';
+    $area     = $_POST['area'] ?? '';
+    $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
+    $date     = trim($_POST['date'] ?? '');
+    $cost     = max(0, min(1000000, (int) ($_POST['cost'] ?? 0)));
+    $capacity = ($_POST['capacity'] ?? '') !== '' ? max(1, min(100000, (int) $_POST['capacity'])) : null;
+    $audience = in_array($_POST['audience'] ?? '', ['public', 'friends'], true) ? $_POST['audience'] : 'public';
+    $invite   = !empty($_POST['invite_only']) ? 1 : 0;
+    $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
-    exit;
+    if ($title === '' || $venue === '' || $desc === '')            $err = 'Fill in the name, venue and details.';
+    elseif (!isset(categories()[$category]))                        $err = 'Pick a category.';
+    elseif (!in_array($area, areas(), true))                        $err = 'Pick a neighbourhood.';
+    elseif (!strtotime($date) || strtotime($date) < time())         $err = 'Pick a future date and time.';
+    else {
+        $cover = upload_image('cover');
+        if (str_starts_with($cover, '!')) {
+            $err = substr($cover, 1);
+        } else {
+            db()->prepare('INSERT INTO gatherings
+                (title, category, area, venue, event_at, cost, audience, description,
+                 sample, creator, creator_id, capacity, invite_only, cover)
+                VALUES (:t, :c, :a, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv)')
+                ->execute([
+                    ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
+                    ':d' => date('Y-m-d H:i:s', strtotime($date)), ':k' => $cost,
+                    ':au' => $audience, ':ds' => $desc, ':sk' => SESSION_KEY,
+                    ':uid' => user_id(), ':cap' => $capacity, ':io' => $invite,
+                    ':cv' => $cover ?: null,
+                ]);
+            flash('Your plan is live! Share it with friends.');
+            redirect('event.php?id=' . db()->lastInsertId());
+        }
+    }
 }
 
-$back = $_POST['back'] ?? 'index.php';
-$fail = function (string $msg) use ($back) {
-    flash($msg);
-    header('Location: ' . $back);
-    exit;
-};
+page_head('Create a plan');
+site_header();
+?>
+<main>
+<div class="form rv in" style="max-width:520px">
+  <h2>Create a plan</h2>
+  <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
+  <form method="post" enctype="multipart/form-data">
+    <?= csrf_field() ?>
+    <div class="field"><label for="title">Event name</label>
+      <input id="title" name="title" required maxlength="80" value="<?= e($_POST['title'] ?? '') ?>"></div>
 
-$title       = trim($_POST['title'] ?? '');
-$category    = $_POST['category'] ?? '';
-$area        = $_POST['area'] ?? '';
-$venue       = trim($_POST['venue'] ?? '');
-$date        = trim($_POST['date'] ?? '');
-$cost        = (int) ($_POST['cost'] ?? 0);
-$audience    = ($_POST['audience'] ?? 'public') === 'friends' ? 'friends' : 'public';
-$description = trim($_POST['description'] ?? '');
+    <div class="grid2">
+      <div class="field"><label for="category">Interest</label>
+        <select id="category" name="category">
+          <?php foreach (array_keys(categories()) as $cat): ?>
+          <option<?= ($_POST['category'] ?? '') === $cat ? ' selected' : '' ?>><?= e($cat) ?></option>
+          <?php endforeach; ?>
+        </select></div>
+      <div class="field"><label for="area">Neighbourhood</label>
+        <select id="area" name="area">
+          <?php foreach (areas() as $a): ?>
+          <option<?= ($_POST['area'] ?? '') === $a ? ' selected' : '' ?>><?= e($a) ?></option>
+          <?php endforeach; ?>
+        </select></div>
+    </div>
 
-if ($title === '' || $venue === '' || $description === '') {
-    $fail('Enter a name, venue, and details.');
-}
-if (!isset(CATEGORIES[$category])) $fail('Pick a valid interest.');
-if (!in_array($area, AREAS, true)) $fail('Pick a valid neighbourhood.');
-if ($cost < 0 || $cost > 1000000) $fail('Cost must be between 0 and 1,000,000 KSh.');
+    <div class="field"><label for="venue">Venue</label>
+      <input id="venue" name="venue" required maxlength="80" value="<?= e($_POST['venue'] ?? '') ?>"
+             placeholder="e.g. rooftop lounge, sports café"></div>
 
-$eventAt = DateTimeImmutable::createFromFormat(
-    'Y-m-d\TH:i', $date, new DateTimeZone('Africa/Nairobi')
-);
-if (!$eventAt || $eventAt <= new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi'))) {
-    $fail('Choose a future date and time in Kenya.');
-}
+    <div class="grid2">
+      <div class="field"><label for="date">Date and time (Kenya)</label>
+        <input id="date" name="date" type="datetime-local" required
+               value="<?= e($_POST['date'] ?? '') ?>"></div>
+      <div class="field"><label for="cost">Cost in KSh (0 = free)</label>
+        <input id="cost" name="cost" type="number" min="0" max="1000000" value="<?= e($_POST['cost'] ?? '0') ?>"></div>
+    </div>
 
-db()->prepare(
-    'INSERT INTO gatherings
-     (title, category, area, venue, event_at, cost, audience, description, creator)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-)->execute([
-    mb_substr($title, 0, 80), $category, $area, mb_substr($venue, 0, 80),
-    $eventAt->format('Y-m-d H:i:s'), $cost, $audience,
-    mb_substr($description, 0, 300), SESSION_KEY,
-]);
+    <div class="grid2">
+      <div class="field"><label for="capacity">Capacity (blank = unlimited)</label>
+        <input id="capacity" name="capacity" type="number" min="1" max="100000"
+               value="<?= e($_POST['capacity'] ?? '') ?>" placeholder="e.g. 20"></div>
+      <div class="field"><label for="audience">Who can see it</label>
+        <select id="audience" name="audience">
+          <option value="public"<?= ($_POST['audience'] ?? '') === 'public' ? ' selected' : '' ?>>Discover feed</option>
+          <option value="friends"<?= ($_POST['audience'] ?? '') === 'friends' ? ' selected' : '' ?>>My friends only</option>
+        </select></div>
+    </div>
 
-flash('Your plan was saved.');
-// new plans land in "My plans", same as the sample
-header('Location: index.php?view=mine');
+    <div class="field">
+      <label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:400">
+        <input type="checkbox" name="invite_only" value="1" style="width:auto"<?= !empty($_POST['invite_only']) ? ' checked' : '' ?>>
+        Invite-only — people join by invitation, not the public feed
+      </label>
+    </div>
+
+    <div class="field"><label for="desc">Details</label>
+      <textarea id="desc" name="description" maxlength="300" rows="3" required
+                placeholder="What should people expect?"><?= e($_POST['description'] ?? '') ?></textarea></div>
+
+    <div class="field"><label for="cover">Cover image (optional, max 4 MB)</label>
+      <img id="coverprev" class="imgprev wide" hidden alt="">
+      <input id="cover" name="cover" type="file" accept="image/jpeg,image/png,image/webp" data-preview="#coverprev"></div>
+
+    <button class="btn-block" type="submit">Publish plan</button>
+  </form>
+</div>
+</main>
+<?php bottom_nav('plans'); site_footer(); ?>

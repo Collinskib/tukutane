@@ -1,0 +1,182 @@
+<?php
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/layout.php';
+require_login('index.php');
+
+$id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
+$ev = find_gathering($id);
+if (!$ev || (!$ev['mine'] && !is_admin())) {
+    http_response_code(403);
+    page_head('Not allowed'); site_header();
+    echo '<main><div class="empty"><p>You can only manage your own gatherings.</p><a class="primary btn" href="index.php">Back</a></div></main>';
+    bottom_nav(); site_footer(); exit;
+}
+$err = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+    switch ($_POST['do'] ?? '') {
+        case 'save':
+            $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
+            $category = $_POST['category'] ?? $ev['category'];
+            $area     = $_POST['area'] ?? $ev['area'];
+            $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
+            $date     = trim($_POST['date'] ?? '');
+            $cost     = max(0, min(1000000, (int) ($_POST['cost'] ?? 0)));
+            $capacity = ($_POST['capacity'] ?? '') !== '' ? max(1, min(100000, (int) $_POST['capacity'])) : null;
+            $audience = in_array($_POST['audience'] ?? '', ['public', 'friends'], true) ? $_POST['audience'] : 'public';
+            $invite   = !empty($_POST['invite_only']) ? 1 : 0;
+            $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
+            if ($title === '' || $venue === '' || $desc === '')        $err = 'Fill in name, venue and details.';
+            elseif (!isset(categories()[$category]))                    $err = 'Pick a category.';
+            elseif (!in_array($area, areas(), true))                    $err = 'Pick a neighbourhood.';
+            elseif (!strtotime($date))                                   $err = 'Invalid date.';
+            else {
+                $cover = upload_image('cover');
+                if (str_starts_with($cover, '!')) { $err = substr($cover, 1); break; }
+                $params = [
+                    ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
+                    ':d' => date('Y-m-d H:i:s', strtotime($date)), ':k' => $cost,
+                    ':au' => $audience, ':ds' => $desc, ':cap' => $capacity,
+                    ':io' => $invite, ':id' => $id,
+                ];
+                if ($cover) $params[':cv'] = $cover;
+                db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
+                               event_at=:d,cost=:k,audience=:au,description=:ds,
+                               capacity=:cap,invite_only=:io'
+                               . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
+                    ->execute($params);
+                flash('Saved.');
+                redirect('edit.php?id=' . $id);
+            }
+            break;
+        case 'cancel_event':
+            db()->prepare('UPDATE gatherings SET status = "cancelled" WHERE id = :i')->execute([':i' => $id]);
+            // notify attendees
+            foreach (attendees_of($id) as $a) {
+                if ($a['user_id']) notify((int) $a['user_id'], 'event_cancelled',
+                    '"' . $ev['title'] . '" was cancelled by the host.', 'index.php');
+            }
+            flash('Gathering cancelled — attendees have been notified.');
+            redirect('edit.php?id=' . $id);
+            break;
+        case 'invite':
+            $res = invite_user($id, (int) ($_POST['uid'] ?? 0), user_id());
+            flash($res === 'invited' ? 'Invitation sent.' : 'Already invited or going.', $res === 'invited' ? 'ok' : 'err');
+            redirect('edit.php?id=' . $id . '#attendees');
+            break;
+    }
+}
+
+$attendees = attendees_of($id);
+$friends   = user() ? my_friends(user_id()) : [];
+$goingIds  = array_map(fn($a) => (int) ($a['user_id'] ?? 0), $attendees);
+$invited   = db()->prepare('SELECT user_id, status FROM invites WHERE gathering_id = :g');
+$invited->execute([':g' => $id]);
+$invMap = array_column($invited->fetchAll(PDO::FETCH_ASSOC), 'status', 'user_id');
+
+page_head('Manage — ' . $ev['title']);
+site_header('plans');
+?>
+<main>
+<div class="form rv in" style="max-width:560px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <h2>Manage gathering</h2>
+    <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span><?php endif; ?>
+  </div>
+  <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
+
+  <form method="post" enctype="multipart/form-data">
+    <?= csrf_field() ?>
+    <input type="hidden" name="do" value="save">
+    <input type="hidden" name="id" value="<?= $id ?>">
+    <div class="field"><label>Event name</label><input name="title" required maxlength="80" value="<?= e($ev['title']) ?>"></div>
+    <div class="grid2">
+      <div class="field"><label>Interest</label>
+        <select name="category"><?php foreach (array_keys(categories()) as $cat): ?>
+          <option<?= $ev['category'] === $cat ? ' selected' : '' ?>><?= e($cat) ?></option><?php endforeach; ?></select></div>
+      <div class="field"><label>Neighbourhood</label>
+        <select name="area"><?php foreach (areas() as $a): ?>
+          <option<?= $ev['area'] === $a ? ' selected' : '' ?>><?= e($a) ?></option><?php endforeach; ?></select></div>
+    </div>
+    <div class="field"><label>Venue</label><input name="venue" required maxlength="80" value="<?= e($ev['venue']) ?>"></div>
+    <div class="grid2">
+      <div class="field"><label>Date and time</label>
+        <input name="date" type="datetime-local" required
+               value="<?= e(date('Y-m-d\TH:i', strtotime($ev['event_at']))) ?>"></div>
+      <div class="field"><label>Cost KSh</label>
+        <input name="cost" type="number" min="0" value="<?= (int) $ev['cost'] ?>"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Capacity</label>
+        <input name="capacity" type="number" min="1" value="<?= e($ev['capacity'] ?? '') ?>"></div>
+      <div class="field"><label>Audience</label>
+        <select name="audience">
+          <option value="public"<?= $ev['audience'] === 'public' ? ' selected' : '' ?>>Discover feed</option>
+          <option value="friends"<?= $ev['audience'] === 'friends' ? ' selected' : '' ?>>My friends only</option>
+        </select></div>
+    </div>
+    <div class="field"><label style="display:flex;gap:8px;align-items:center;font-weight:400">
+      <input type="checkbox" name="invite_only" value="1" style="width:auto"<?= $ev['invite_only'] ? ' checked' : '' ?>> Invite-only</label></div>
+    <div class="field"><label>Details</label>
+      <textarea name="description" maxlength="300" rows="3" required><?= e($ev['description']) ?></textarea></div>
+    <div class="field"><label>Cover image<?= $ev['cover'] ? ' (replace)' : '' ?></label>
+      <?php if ($ev['cover']): ?><img src="uploads/<?= e($ev['cover']) ?>" class="imgprev wide" alt=""><?php endif; ?>
+      <img id="coverprev" class="imgprev wide" hidden alt="">
+      <input name="cover" type="file" accept="image/jpeg,image/png,image/webp" data-preview="#coverprev"></div>
+    <button class="btn-block" type="submit">Save changes</button>
+  </form>
+</div>
+
+<section class="form rv in" style="max-width:560px" id="attendees">
+  <h2>Attendees (<?= count($attendees) ?>)</h2>
+  <?php if (!$attendees): ?><p style="color:var(--ink-soft)">Nobody has joined yet — share the link!</p><?php endif; ?>
+  <?php foreach ($attendees as $a): ?>
+  <div style="display:flex;gap:10px;align-items:center;padding:7px 0">
+    <?= avatar_html($a) ?>
+    <span><?= e($a['name'] ?? 'Guest (not signed up)') ?></span>
+    <small style="margin-left:auto;color:var(--ink-soft)"><?= e(time_ago($a['created_at'])) ?></small>
+  </div>
+  <?php endforeach; ?>
+
+  <?php if ($friends): ?>
+  <h3 style="font-family:var(--serif);font-weight:400;margin-top:20px">Invite friends</h3>
+  <?php foreach ($friends as $fr):
+      $already = in_array((int) $fr['id'], $goingIds, true) || isset($invMap[$fr['id']]); ?>
+  <div style="display:flex;gap:10px;align-items:center;padding:7px 0">
+    <?= avatar_html($fr) ?>
+    <span><?= e($fr['name']) ?></span>
+    <?php if (in_array((int) $fr['id'], $goingIds, true)): ?>
+      <span class="status-pill going" style="margin-left:auto">Going</span>
+    <?php elseif (isset($invMap[$fr['id']])): ?>
+      <span class="status-pill" style="margin-left:auto"><?= ucfirst($invMap[$fr['id']]) ?></span>
+    <?php else: ?>
+      <form method="post" style="margin-left:auto"><?= csrf_field() ?>
+        <input type="hidden" name="do" value="invite"><input type="hidden" name="id" value="<?= $id ?>">
+        <input type="hidden" name="uid" value="<?= (int) $fr['id'] ?>">
+        <button class="btn-mini solid" type="submit">Invite</button>
+      </form>
+    <?php endif; ?>
+  </div>
+  <?php endforeach; ?>
+  <?php endif; ?>
+
+  <div class="share-row">
+    <a class="btn-ghost" href="<?= e(whatsapp_share($ev['title'], absolute_url('event.php?id=' . $id))) ?>" target="_blank" rel="noopener">Share on WhatsApp</a>
+    <a class="btn-ghost" href="event.php?id=<?= $id ?>">View public page</a>
+  </div>
+</section>
+
+<?php if ($ev['status'] !== 'cancelled'): ?>
+<div class="form rv in" style="max-width:560px;border-color:#eccfc8">
+  <h2 style="color:#a33a1f">Cancel gathering</h2>
+  <p style="color:var(--ink-soft)">Attendees get a notification. This can't be undone.</p>
+  <form method="post" onsubmit="return confirm('Cancel this gathering? Attendees will be notified.')">
+    <?= csrf_field() ?>
+    <input type="hidden" name="do" value="cancel_event"><input type="hidden" name="id" value="<?= $id ?>">
+    <button class="btn-danger" type="submit">Cancel this gathering</button>
+  </form>
+</div>
+<?php endif; ?>
+</main>
+<?php bottom_nav('plans'); site_footer(); ?>

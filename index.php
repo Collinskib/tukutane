@@ -1,46 +1,35 @@
 <?php
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/layout.php';
 
-$view     = ($_GET['view'] ?? '') === 'mine' ? 'mine' : 'discover';
+// legacy deep-link (?event=N opened the old modal) → event page
+if (!empty($_GET['event'])) redirect('event.php?id=' . (int) $_GET['event']);
+
+$view     = in_array($_GET['view'] ?? '', ['discover', 'mine'], true) ? $_GET['view'] : 'discover';
+if ($view === 'mine' && !user()) $view = 'discover';
 $interest = $_GET['interest'] ?? 'All interests';
-if ($interest !== 'All interests' && !isset(CATEGORIES[$interest])) $interest = 'All interests';
+if ($interest !== 'All interests' && !isset(categories()[$interest])) $interest = 'All interests';
 $area  = $_GET['area'] ?? 'All Nairobi';
-if ($area !== 'All Nairobi' && !in_array($area, AREAS, true)) $area = 'All Nairobi';
+if ($area !== 'All Nairobi' && !in_array($area, areas(), true)) $area = 'All Nairobi';
 $query = trim($_GET['q'] ?? '');
-$eventId = (int) ($_GET['event'] ?? 0);
+$when  = in_array($_GET['when'] ?? '', ['today', 'tomorrow', 'weekend'], true) ? $_GET['when'] : '';
+$cost  = in_array($_GET['cost'] ?? '', ['free', 'paid'], true) ? $_GET['cost'] : '';
+$sort  = in_array($_GET['sort'] ?? '', ['popular'], true) ? $_GET['sort'] : 'soon';
+$page  = max(1, (int) ($_GET['page'] ?? 1));
 
-$events  = gatherings($view, $interest, $area, $query);
-$detail  = $eventId ? find_gathering($eventId) : null;
-$flashMsg = flash();
+$events = gatherings(compact('view', 'interest', 'area') + [
+    'q' => $query, 'when' => $when, 'cost' => $cost, 'sort' => $sort,
+    'page' => $page, 'per' => 12,
+]);
+$hasMore = count($events) === 12;
 
-// Build a URL that keeps the current filters, minus keys in $drop.
-function keep(array $drop = [], array $add = []): string {
-    global $view, $interest, $area, $query;
-    $p = ['view' => $view, 'interest' => $interest, 'area' => $area, 'q' => $query];
-    $p = array_merge($p, $add);
-    foreach ($drop as $d) unset($p[$d]);
-    $p = array_filter($p, fn($v) => $v !== '' && $v !== 'All interests' && $v !== 'All Nairobi' && $v !== 'discover');
-    return 'index.php' . ($p ? '?' . http_build_query($p) : '');
-}
+page_head($view === 'mine' ? 'My plans' : 'Discover gatherings');
+site_header('discover');
 ?>
-<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nipange · Nairobi gatherings</title>
-<link rel="stylesheet" href="assets/style.css">
-<header>
-  <nav>
-    <span class="brand">Nipange<i>.</i></span>
-    <a class="btn <?= $view === 'discover' ? 'active' : '' ?>" href="index.php">Discover</a>
-    <a class="btn <?= $view === 'mine' ? 'active' : '' ?>" href="?view=mine">My plans</a>
-    <button id="open" class="primary" type="button">+ Create plan</button>
-  </nav>
-</header>
 <main>
   <section class="hero">
     <div>
-      <small>NAIROBI, KENYA</small>
+      <small>Nairobi, Kenya</small>
       <h1>Find your people.</h1>
       <p>Find a game to watch, a place to dance, or a group to spend your Saturday with.</p>
     </div>
@@ -49,56 +38,100 @@ function keep(array $drop = [], array $add = []): string {
 
   <form method="get" action="index.php" id="filter-form">
     <?php if ($view === 'mine'): ?><input type="hidden" name="view" value="mine"><?php endif; ?>
+    <?php if ($interest !== 'All interests'): ?><input type="hidden" name="interest" value="<?= e($interest) ?>"><?php endif; ?>
+    <?php if ($when): ?><input type="hidden" name="when" value="<?= e($when) ?>"><?php endif; ?>
+    <?php if ($cost): ?><input type="hidden" name="cost" value="<?= e($cost) ?>"><?php endif; ?>
+    <?php if ($sort === 'popular'): ?><input type="hidden" name="sort" value="popular"><?php endif; ?>
     <div class="toolbar">
       <h2 id="heading"><?= $view === 'mine' ? 'My plans' : 'Gatherings nearby' ?></h2>
       <input id="search" name="q" type="search" aria-label="Search gatherings"
              placeholder="Search gatherings" value="<?= e($query) ?>">
-      <select id="area" name="area" aria-label="Neighbourhood">
+      <select id="area" name="area" aria-label="Neighbourhood" onchange="this.form.submit()">
         <option<?= $area === 'All Nairobi' ? ' selected' : '' ?>>All Nairobi</option>
-        <?php foreach (AREAS as $a): ?>
+        <?php foreach (areas() as $a): ?>
         <option<?= $a === $area ? ' selected' : '' ?>><?= e($a) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
     <div class="filters" id="filters" aria-label="Interests">
-      <?php foreach (['All interests', ...array_keys(CATEGORIES)] as $cat): ?>
+      <?php foreach (['All interests', ...array_keys(categories())] as $cat): ?>
       <button type="submit" name="interest" value="<?= e($cat) ?>"
               class="<?= $cat === $interest ? 'active' : '' ?>"
               aria-pressed="<?= $cat === $interest ? 'true' : 'false' ?>"><?= e($cat) ?></button>
       <?php endforeach; ?>
     </div>
+    <div class="chips" role="group" aria-label="Quick filters">
+      <?php foreach (['' => 'Upcoming', 'today' => 'Today', 'tomorrow' => 'Tomorrow', 'weekend' => 'This weekend'] as $w => $label): ?>
+      <button type="submit" name="when" value="<?= $w ?>" class="chip <?= $when === $w ? 'on' : '' ?>"><?= $label ?></button>
+      <?php endforeach; ?>
+      <span style="width:6px"></span>
+      <button type="submit" name="cost" value=""    class="chip <?= $cost === '' ? 'on' : '' ?>">Any price</button>
+      <button type="submit" name="cost" value="free" class="chip <?= $cost === 'free' ? 'on' : '' ?>">Free</button>
+      <button type="submit" name="cost" value="paid" class="chip <?= $cost === 'paid' ? 'on' : '' ?>">Paid</button>
+      <span style="width:6px"></span>
+      <button type="submit" name="sort" value="<?= $sort === 'popular' ? 'soon' : 'popular' ?>"
+              class="chip <?= $sort === 'popular' ? 'on' : '' ?>">🔥 Popular</button>
+    </div>
   </form>
 
-  <div id="status" role="status"><?= e($flashMsg) ?></div>
+  <?php if ($query || $interest !== 'All interests' || $area !== 'All Nairobi' || $when || $cost): ?>
+  <div class="chips">
+    <?php
+      $active = array_filter([
+        $query ? '“' . $query . '”' : null,
+        $interest !== 'All interests' ? $interest : null,
+        $area !== 'All Nairobi' ? $area : null,
+        $when ? ucfirst($when === 'weekend' ? 'This weekend' : $when) : null,
+        $cost ? ucfirst($cost) . ' events' : null,
+      ]);
+      foreach ($active as $a): ?>
+    <span class="chip on rv in"><?= e($a) ?></span>
+    <?php endforeach; ?>
+    <a class="chip" href="index.php<?= $view === 'mine' ? '?view=mine' : '' ?>">✕ Clear all</a>
+  </div>
+  <?php endif; ?>
 
   <div class="grid" id="cards">
     <?php if (!$events): ?>
-      <p>No gatherings match these filters.</p>
+      <div class="empty rv in" style="grid-column:1/-1">
+        <span class="big">🫂</span>
+        <p>No gatherings match these filters<?= $view === 'mine' ? ' — join or create one!' : '' ?>.</p>
+        <a class="primary btn" href="create.php">+ Create a plan</a>
+      </div>
     <?php endif; ?>
-    <?php foreach ($events as $event):
-      [$emoji, $ribbon] = CATEGORIES[$event['category']] ?? ['📅', '#e4e6db'];
+    <?php foreach ($events as $i => $event):
+      [$emoji, $ribbon] = categories()[$event['category']] ?? ['📅', '#e4e6db'];
       $joined = (bool) $event['joined'];
       $mine   = (bool) $event['mine']; ?>
-    <article class="card">
+    <article class="card rv" style="--d:<?= min($i * 45, 400) ?>ms">
+      <?php if (!empty($event['cover'])): ?>
+      <div class="ribbon cover"><img src="uploads/<?= e($event['cover']) ?>" alt="" loading="lazy"></div>
+      <?php else: ?>
       <div class="ribbon" style="background:<?= e($ribbon) ?>">
         <span><?= e($event['category']) ?></span><span><?= $emoji ?></span>
       </div>
+      <?php endif; ?>
       <div class="body">
-        <h3><?= e($event['title']) ?></h3>
+        <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a></h3>
         <p><?= e(when($event['event_at'])) ?></p>
         <p><?= e($event['area']) ?> · <?= e(price((int) $event['cost'])) ?></p>
         <p><?= $mine
-            ? ($event['audience'] === 'friends' ? 'My plans only' : 'Hosted by you')
+            ? '<span class="status-pill going">Hosted by you</span>'
             : e(going_count($event) . ' going' . ($event['sample'] ? ' · Sample' : '')) ?></p>
         <div class="actions">
-          <a class="btn" href="<?= e(keep([], ['event' => $event['id']])) ?>">View details</a>
+          <a class="btn" href="event.php?id=<?= (int) $event['id'] ?>">View details</a>
           <?php if (!$mine): ?>
-          <form method="post" action="rsvp.php">
-            <input type="hidden" name="id" value="<?= (int) $event['id'] ?>">
-            <input type="hidden" name="back" value="<?= e(keep()) ?>">
-            <input type="hidden" name="action" value="<?= $joined ? 'cancel' : 'join' ?>">
-            <button class="primary" type="submit"><?= $joined ? 'Cancel RSVP' : 'Join' ?></button>
-          </form>
+            <?php if (user()): ?>
+            <form method="post" action="rsvp.php">
+              <?= csrf_field() ?>
+              <input type="hidden" name="id" value="<?= (int) $event['id'] ?>">
+              <input type="hidden" name="back" value="<?= e(keep()) ?>">
+              <input type="hidden" name="action" value="<?= $joined ? 'cancel' : 'join' ?>">
+              <button class="primary" type="submit"><?= $joined ? 'Cancel RSVP' : 'Join' ?></button>
+            </form>
+            <?php else: ?>
+            <a class="primary" href="auth.php?next=<?= urlencode('event.php?id=' . $event['id']) ?>">Join</a>
+            <?php endif; ?>
           <?php endif; ?>
         </div>
       </div>
@@ -106,71 +139,19 @@ function keep(array $drop = [], array $add = []): string {
     <?php endforeach; ?>
   </div>
 
-  <footer>Explore sample gatherings. Your RSVPs and plans are saved on this server.</footer>
+  <?php if ($page > 1 || $hasMore): ?>
+  <nav class="pager" aria-label="Pages">
+    <a class="<?= $page <= 1 ? 'dis' : '' ?>" href="<?= e(keep([], ['page' => $page - 1])) ?>">← Prev</a>
+    <span class="on">Page <?= $page ?></span>
+    <a class="<?= !$hasMore ? 'dis' : '' ?>" href="<?= e(keep([], ['page' => $page + 1])) ?>">Next →</a>
+  </nav>
+  <?php endif; ?>
 </main>
-
-<dialog id="create">
-  <form id="plan" method="post" action="create.php">
-    <h2>Create a plan</h2>
-    <input type="hidden" name="back" value="<?= e(keep()) ?>">
-    <label>Event name<input name="title" required maxlength="80"></label>
-    <label>Interest<select name="category">
-      <?php foreach (array_keys(CATEGORIES) as $cat): ?>
-      <option><?= e($cat) ?></option>
-      <?php endforeach; ?>
-    </select></label>
-    <label>Neighbourhood<select name="area">
-      <?php foreach (AREAS as $a): ?>
-      <option><?= e($a) ?></option>
-      <?php endforeach; ?>
-    </select></label>
-    <label>Venue<input name="venue" required maxlength="80"></label>
-    <label>Date and time in Kenya<input type="datetime-local" name="date" required></label>
-    <label>Expected cost in KSh<input name="cost" type="number" min="0" max="1000000" value="0" required></label>
-    <label>Who can see it?<select name="audience">
-      <option value="public">Discover feed</option>
-      <option value="friends">My plans only</option>
-    </select></label>
-    <label>Details<textarea name="description" maxlength="300" required></textarea></label>
-    <div class="actions">
-      <button type="button" id="cancel">Cancel</button>
-      <button class="primary" type="submit">Save plan</button>
-    </div>
-  </form>
-</dialog>
-
-<?php if ($detail): ?>
-<dialog id="details">
-  <a class="btn close" href="<?= e(keep(['event'])) ?>">Close</a>
-  <div id="detail">
-    <h2><?= e($detail['title']) ?></h2>
-    <p><?= e(when($detail['event_at']) . ' · ' . $detail['venue'] . ', ' . $detail['area']) ?></p>
-    <p><?= e(price((int) $detail['cost'])) ?></p>
-    <p><?= e($detail['description']) ?></p>
-    <p><?= $detail['sample'] ? 'Sample gathering'
-        : ($detail['audience'] === 'friends' ? 'Only in My plans' : 'Created on Nipange') ?></p>
-    <?php if (!$detail['mine']): ?>
-    <form method="post" action="rsvp.php">
-      <input type="hidden" name="id" value="<?= (int) $detail['id'] ?>">
-      <input type="hidden" name="back" value="<?= e(keep()) ?>">
-      <input type="hidden" name="action" value="<?= $detail['joined'] ? 'cancel' : 'join' ?>">
-      <button class="primary" type="submit"><?= $detail['joined'] ? 'Cancel RSVP' : 'Join gathering' ?></button>
-    </form>
-    <?php endif; ?>
-  </div>
-</dialog>
-<?php endif; ?>
-
 <script>
-document.getElementById('open').onclick = () => document.getElementById('create').showModal();
-const _details = document.getElementById('details');
-if (_details) _details.showModal();
-document.getElementById('cancel').onclick = () => document.getElementById('create').close();
-document.getElementById('area').onchange = () => document.getElementById('filter-form').submit();
-let t;
+let _t;
 document.getElementById('search').oninput = () => {
-  clearTimeout(t);
-  t = setTimeout(() => document.getElementById('filter-form').submit(), 500);
+  clearTimeout(_t);
+  _t = setTimeout(() => document.getElementById('filter-form').submit(), 500);
 };
 </script>
-</html>
+<?php bottom_nav('discover'); site_footer(); ?>

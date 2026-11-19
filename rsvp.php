@@ -1,32 +1,46 @@
 <?php
-// Join / cancel an RSVP.
+require_once __DIR__ . '/includes/bootstrap.php';
 
-require_once __DIR__ . '/db.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('index.php');
+csrf_verify();
 
 $id     = (int) ($_POST['id'] ?? 0);
-$action = $_POST['action'] === 'cancel' ? 'cancel' : 'join';
+$action = $_POST['action'] ?? 'join';
 $back   = $_POST['back'] ?? 'index.php';
+if (!preg_match('~^[a-z0-9_./?=&#%-]+$~i', $back) || str_starts_with($back, '//')) $back = 'index.php';
 
-$event = find_gathering($id);
-if (!$event) {
-    flash('That gathering no longer exists.');
-    header('Location: ' . $back);
-    exit;
+if (!user()) {
+    flash('Log in to join gatherings.');
+    redirect('auth.php?next=' . urlencode('event.php?id=' . $id));
 }
 
-if ($action === 'join') {
-    db()->prepare('INSERT IGNORE INTO rsvps (gathering_id, session_key) VALUES (?, ?)')
-        ->execute([$id, SESSION_KEY]);
-    flash("You're going to " . $event['title'] . '.');
-} else {
-    db()->prepare('DELETE FROM rsvps WHERE gathering_id = ? AND session_key = ?')
-        ->execute([$id, SESSION_KEY]);
-    flash('RSVP cancelled.');
+switch ($action) {
+    case 'accept_invite':
+        $res = respond_invite($id, user_id(), 'accept');
+        flash($res === 'joined' ? 'You\'re in! See you there.' : 'Couldn\'t accept — the gathering may be full or closed.', $res === 'joined' ? 'ok' : 'err');
+        break;
+    case 'decline_invite':
+        respond_invite($id, user_id(), 'decline');
+        flash('Invitation declined.');
+        break;
+    case 'cancel':
+        rsvp($id, 'cancel');
+        flash('RSVP cancelled.');
+        break;
+    default:
+        $res = rsvp($id, 'join');
+        match ($res) {
+            'joined'    => flash('You\'re in! See you there.'),
+            'full'      => flash('That gathering is already full.', 'err'),
+            'cancelled' => flash('RSVP cancelled.'),
+            default     => flash('That gathering is no longer open.', 'err'),
+        };
+        // notify host
+        if ($res === 'joined') {
+            $g = find_gathering($id);
+            if ($g && $g['creator_id'] && (int) $g['creator_id'] !== user_id()) {
+                notify((int) $g['creator_id'], 'rsvp', user()['name'] . ' joined "' . $g['title'] . '".', 'event.php?id=' . $id);
+            }
+        }
 }
-
-header('Location: ' . $back);
+redirect($back);

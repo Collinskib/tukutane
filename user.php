@@ -1,0 +1,103 @@
+<?php
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/layout.php';
+require_login('index.php');
+
+$id = (int) ($_GET['id'] ?? 0);
+if ($id === user_id()) redirect('profile.php');
+$p = find_user($id);
+
+page_head($p ? $p['name'] : 'Not found');
+site_header('people');
+
+if (!$p || $p['status'] !== 'active' || is_blocked(user_id(), $id)):
+?>
+<main><div class="empty"><span class="big">🫥</span><p>This profile isn't available.</p><a class="primary btn" href="people.php">Back to People</a></div></main>
+<?php else:
+$rel   = friendship(user_id(), $id);
+$isFriend = $rel && $rel['status'] === 'accepted';
+$their = array_filter(explode(',', $p['interests']));
+$shared = shared_interests(array_filter(explode(',', user()['interests'] ?? '')), $p['interests']);
+// their upcoming hosted public gatherings
+$hosted = array_filter(gatherings(['per' => 6]), fn($g) => (int) ($g['creator_id'] ?? 0) === $id);
+?>
+<main class="ev-wrap">
+  <div class="prof-head rv in">
+    <?= avatar_html($p, 'lg') ?>
+    <div class="info">
+      <h2><?= e($p['name']) ?></h2>
+      <p><?= $p['area'] ? e($p['area']) : 'Nairobi' ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?></p>
+      <?php if ($p['bio']): ?><p style="margin-top:6px"><?= e($p['bio']) ?></p><?php endif; ?>
+    </div>
+  </div>
+
+  <div class="share-row">
+    <?php if ($isFriend): ?>
+      <a class="btn-mini solid" href="messages.php?to=<?= $id ?>">💬 Message</a>
+      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="remove">
+        <button class="btn-ghost" type="submit">Remove friend</button></form>
+    <?php elseif ($rel && $rel['status'] === 'pending'): ?>
+      <?php if ((int) $rel['requester_id'] === user_id()): ?>
+      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="cancel">
+        <button class="btn-ghost" type="submit">Requested ✓ (cancel)</button></form>
+      <?php else: ?>
+      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="accept">
+        <button class="primary" type="submit">Accept request</button></form>
+      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="decline">
+        <button class="btn-ghost" type="submit">Decline</button></form>
+      <?php endif; ?>
+    <?php else: ?>
+      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="send">
+        <button class="primary" type="submit">+ Add friend</button></form>
+    <?php endif; ?>
+    <button class="btn-ghost" type="button" data-dialog="#moredlg">More…</button>
+  </div>
+
+  <?php if ($their): ?>
+  <div class="tags" style="justify-content:flex-start;margin:6px 0 18px">
+    <?php foreach ($their as $t): ?>
+    <span class="tag<?= in_array($t, $shared, true) ? ' shared' : '' ?>"><?= in_array($t, $shared, true) ? '✓ ' : '' ?><?= e($t) ?></span>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($hosted): ?>
+  <h3 style="font-family:var(--serif);font-weight:400">Gatherings by <?= e($p['name']) ?></h3>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+    <?php foreach ($hosted as $r): [, $rc] = categories()[$r['category']] ?? ['', '#e4e6db']; ?>
+    <article class="card">
+      <div class="ribbon" style="background:<?= e($rc) ?>"><span><?= e($r['category']) ?></span><span><?= e((categories()[$r['category']] ?? ['📅'])[0]) ?></span></div>
+      <div class="body">
+        <h3><a href="event.php?id=<?= (int) $r['id'] ?>" style="color:inherit;text-decoration:none"><?= e($r['title']) ?></a></h3>
+        <p><?= e(when($r['event_at'])) ?> · <?= e($r['area']) ?></p>
+      </div>
+    </article>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+</main>
+
+<dialog id="moredlg">
+  <h3 style="margin-top:0">More options</h3>
+  <form method="post" action="friend.php" onsubmit="return confirm('Block <?= e($p['name']) ?>? They won\'t see or message you.')">
+    <?= csrf_field() ?>
+    <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="block">
+    <button class="btn-danger" type="submit" style="width:100%;margin-bottom:10px">Block user</button>
+  </form>
+  <form method="post" action="report.php">
+    <?= csrf_field() ?>
+    <input type="hidden" name="type" value="user"><input type="hidden" name="id" value="<?= $id ?>">
+    <input type="hidden" name="back" value="user.php?id=<?= $id ?>">
+    <div class="field"><label>Report this profile</label>
+      <textarea name="reason" required maxlength="300" rows="3"></textarea></div>
+    <button class="btn-danger" type="submit">Send report</button>
+  </form>
+  <div class="actions" style="margin-top:10px"><button class="btn-ghost" type="button" data-close>Close</button></div>
+</dialog>
+<?php endif; ?>
+<?php bottom_nav('people'); site_footer(); ?>

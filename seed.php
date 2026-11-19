@@ -2,7 +2,7 @@
 // Seed the sample gatherings George's mockup showed.
 // Usage: php seed.php   (safe to re-run — skips if samples exist)
 
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/bootstrap.php';
 
 if (PHP_SAPI !== 'cli') {
     exit('Run from the command line: php seed.php' . PHP_EOL);

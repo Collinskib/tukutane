@@ -1,0 +1,8 @@
+# Uploaded files are served as static content only — no script execution.
+Options -ExecCGI
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phtml|phar|cgi|pl|py|sh)$">
+  Require all denied
+</FilesMatch>
