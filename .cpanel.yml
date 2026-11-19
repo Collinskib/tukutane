@@ -6,7 +6,7 @@
 # in cPanel, and in the cPanel URL).
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/CPANELUSER/public_html/
+    - export DEPLOYPATH=/home/nipangec/public_html/
     - /bin/cp index.php $DEPLOYPATH
     - /bin/cp create.php $DEPLOYPATH
     - /bin/cp rsvp.php $DEPLOYPATH
