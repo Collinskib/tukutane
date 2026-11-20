@@ -7,6 +7,7 @@ $uid      = user_id();
 $incoming = pending_requests($uid);
 $outgoing = outgoing_requests($uid);
 $friends  = my_friends($uid);
+$blocked  = blocked_list($uid);
 
 page_head('Friends');
 site_header();
@@ -65,5 +66,20 @@ site_header();
     </div>
     <?php endforeach; ?>
   </section>
+
+  <?php if ($blocked): ?>
+  <section class="panel rv in" style="margin-top:18px">
+    <h3 style="font-family:var(--serif);font-weight:400;padding:14px 16px 4px">Blocked (<?= count($blocked) ?>)</h3>
+    <?php foreach ($blocked as $b): ?>
+    <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
+      <?= avatar_html($b) ?>
+      <div style="flex:1"><b><?= e($b['name']) ?></b></div>
+      <form method="post" action="friend.php"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= (int) $b['id'] ?>">
+        <input type="hidden" name="do" value="unblock"><button class="btn-mini" type="submit">Unblock</button></form>
+    </div>
+    <?php endforeach; ?>
+  </section>
+  <?php endif; ?>
 </main>
 <?php bottom_nav('people'); site_footer(); ?>

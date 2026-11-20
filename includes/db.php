@@ -514,6 +514,19 @@ function block_user(int $me, int $other): void {
         ->execute([':m1' => $me, ':o1' => $other, ':m2' => $me, ':o2' => $other]);
 }
 
+function unblock_user(int $me, int $other): void {
+    db()->prepare('DELETE FROM blocks WHERE blocker_id = :m AND blocked_id = :o')
+        ->execute([':m' => $me, ':o' => $other]);
+}
+
+// people I have blocked
+function blocked_list(int $me): array {
+    $stmt = db()->prepare('SELECT u.id, u.name, u.photo, u.area FROM blocks b
+                           JOIN users u ON u.id = b.blocked_id WHERE b.blocker_id = :m');
+    $stmt->execute([':m' => $me]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // ---------- messaging ----------
 
 function get_conversation(int $me, int $other): ?array {
@@ -563,9 +576,11 @@ function conversation_for(int $convId, int $me): ?array {
     return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-function send_message(int $convId, int $me, string $body): int {
-    db()->prepare('INSERT INTO messages (conversation_id, sender_id, body) VALUES (:c, :s, :b)')
-        ->execute([':c' => $convId, ':s' => $me, ':b' => mb_substr($body, 0, 1000)]);
+function send_message(int $convId, int $me, string $body, ?array $att = null): int {
+    db()->prepare('INSERT INTO messages (conversation_id, sender_id, body, attachment, attachment_name, attachment_kind)
+                   VALUES (:c, :s, :b, :a, :an, :ak)')
+        ->execute([':c' => $convId, ':s' => $me, ':b' => mb_substr($body, 0, 1000),
+                   ':a' => $att[0] ?? null, ':an' => $att[1] ?? null, ':ak' => $att[2] ?? null]);
     $id = (int) db()->lastInsertId();
     db()->prepare('UPDATE conversations SET last_message_at = NOW() WHERE id = :c')
         ->execute([':c' => $convId]);

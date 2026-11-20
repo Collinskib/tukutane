@@ -24,6 +24,11 @@ if ($do === 'block') {
     flash('User blocked.');
     redirect('people.php');
 }
+if ($do === 'unblock') {
+    unblock_user(user_id(), $uid);
+    flash('User unblocked.');
+    redirect('friends.php');
+}
 
 $res = friend_action($do, user_id(), $uid);
 match ($res) {

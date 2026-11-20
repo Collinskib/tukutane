@@ -21,8 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_typing((int) $conv['id'], $uid);
         exit(json_encode(['ok' => true]));
     }
-    if ($body === '') exit(json_encode(['error' => 'empty']));
-    $id = send_message((int) $conv['id'], $uid, $body);
+    $att = upload_attachment('attach');
+    if (is_string($att) && str_starts_with($att, '!')) {
+        http_response_code(422); exit(json_encode(['error' => substr($att, 1)]));
+    }
+    if ($body === '' && !$att) exit(json_encode(['error' => 'empty']));
+    $id = send_message((int) $conv['id'], $uid, $body, $att ?: null);
     set_typing((int) $conv['id'], $uid, false);
     // notify the other party (once per unread burst, unless they muted the chat)
     $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id = :c AND sender_id = :s AND read_at IS NULL');
@@ -33,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(['ok' => true, 'message' => [
         'id' => $id, 'sender_id' => $uid, 'body' => mb_substr($body, 0, 1000),
         'time' => date('g:i A'),
+        'attachment' => $att[0] ?? null, 'attachment_name' => $att[1] ?? null,
+        'attachment_kind' => $att[2] ?? null,
     ]]);
     exit;
 }
@@ -40,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // GET: poll new messages
 $conv = conversation_for((int) ($_GET['conv'] ?? 0), $uid);
 if (!$conv) { http_response_code(403); exit(json_encode(['error' => 'no conversation'])); }
+$otherIdGet = (int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_one']);
+if (is_blocked($uid, $otherIdGet)) { http_response_code(403); exit(json_encode(['error' => 'blocked'])); }
 $rows = messages_since((int) $conv['id'], (int) ($_GET['after'] ?? 0), 50);
 // mark incoming as read when fetched
 db()->prepare('UPDATE messages SET read_at = NOW() WHERE conversation_id = :c AND sender_id != :u AND read_at IS NULL')
@@ -48,4 +56,6 @@ $otherId = (int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_o
 echo json_encode(['typing' => peer_typing((int) $conv['id'], $otherId), 'messages' => array_map(fn($m) => [
     'id' => (int) $m['id'], 'sender_id' => (int) $m['sender_id'],
     'body' => $m['body'], 'time' => date('g:i A', strtotime($m['created_at'])),
+    'attachment' => $m['attachment'], 'attachment_name' => $m['attachment_name'],
+    'attachment_kind' => $m['attachment_kind'],
 ], $rows)]);

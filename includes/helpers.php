@@ -148,11 +148,73 @@ function upload_image(string $field): string {
         default      => null,
     };
     if (!$ext || !@getimagesize($f['tmp_name'])) return '!Only JPG, PNG or WebP images.';
+    $dir = dirname(__DIR__) . '/uploads';
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+    // server-side compress when GD is available: cap at 1600px, re-encode ~82%
+    if (extension_loaded('gd')) {
+        [$w, $h] = getimagesize($f['tmp_name']);
+        $src = match ($ext) {
+            'jpg'  => imagecreatefromjpeg($f['tmp_name']),
+            'png'  => imagecreatefrompng($f['tmp_name']),
+            'webp' => imagecreatefromwebp($f['tmp_name']),
+        };
+        if ($src) {
+            $scale = $w > 1600 ? 1600 / $w : 1;
+            $nw = (int) round($w * $scale); $nh = (int) round($h * $scale);
+            $dst = imagecreatetruecolor($nw, $nh);
+            if ($ext !== 'jpg') { // keep alpha for png/webp
+                imagealphablending($dst, false);
+                imagesavealpha($dst, true);
+            }
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            $name = bin2hex(random_bytes(10)) . '.' . $ext;
+            $ok = match ($ext) {
+                'jpg'  => imagejpeg($dst, "$dir/$name", 82),
+                'png'  => imagepng($dst, "$dir/$name", 6),
+                'webp' => imagewebp($dst, "$dir/$name", 82),
+            };
+            imagedestroy($src); imagedestroy($dst);
+            if ($ok) return $name;
+        }
+    }
+
+    $name = bin2hex(random_bytes(10)) . '.' . $ext;
+    if (!move_uploaded_file($f['tmp_name'], "$dir/$name")) return '!Could not store the image.';
+    return $name;
+}
+
+// chat attachment: images go through upload_image (compresses when GD is
+// present); documents are whitelisted by extension + sniffed MIME, stored as-is.
+// Returns [filename, display_name, kind] or "!<error>".
+function upload_attachment(string $field): array|string {
+    if (empty($_FILES[$field]) || $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE) return '';
+    $f = $_FILES[$field];
+    if ($f['error'] !== UPLOAD_ERR_OK) return '!Upload failed — try a smaller file.';
+    if ($f['size'] > 10 * 1024 * 1024) return '!File must be under 10 MB.';
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+    if (str_starts_with($mime, 'image/')) {
+        $r = upload_image($field);
+        if (str_starts_with($r, '!')) return $r;
+        return [$r, basename($f['name']), 'image'];
+    }
+    $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+    $allowed = ['pdf' => 'application/pdf', 'txt' => 'text/plain', 'csv' => 'text/csv',
+                'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt' => 'application/vnd.ms-powerpoint', 'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'zip' => 'application/zip'];
+    // office/pdf mimes can vary; accept the sniffed type OR octet-stream for office/zip
+    $mimeOk = isset($allowed[$ext]) && ($mime === $allowed[$ext]
+        || in_array($mime, ['application/octet-stream', 'application/x-zip-compressed',
+                            'text/plain', 'application/zip', 'application/x-empty'], true)
+        || str_starts_with($mime, 'application/vnd.'));
+    if (!$mimeOk) return '!Only images, PDFs and Office documents.';
     $name = bin2hex(random_bytes(10)) . '.' . $ext;
     $dir = dirname(__DIR__) . '/uploads';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
-    if (!move_uploaded_file($f['tmp_name'], "$dir/$name")) return '!Could not store the image.';
-    return $name;
+    if (!move_uploaded_file($f['tmp_name'], "$dir/$name")) return '!Could not store the file.';
+    return [$name, mb_substr(basename($f['name']), 0, 180), 'file'];
 }
 
 function whatsapp_share(string $title, string $url): string {

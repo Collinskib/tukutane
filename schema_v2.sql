@@ -283,3 +283,9 @@ ALTER TABLE gatherings
     ADD COLUMN venue_id INT UNSIGNED NULL,
     ADD KEY idx_venue (venue_id),
     ADD CONSTRAINT fk_g_venue FOREIGN KEY (venue_id) REFERENCES venues (id) ON DELETE SET NULL;
+
+-- chat attachments
+ALTER TABLE messages
+    ADD COLUMN attachment      VARCHAR(255) NULL,
+    ADD COLUMN attachment_name VARCHAR(200) NULL,
+    ADD COLUMN attachment_kind VARCHAR(10)  NULL;

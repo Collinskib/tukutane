@@ -23,7 +23,13 @@ if (!empty($_GET['to'])) {
     $other = find_user($to);
 } elseif (!empty($_GET['c'])) {
     $conv = conversation_for((int) $_GET['c'], $uid);
-    if ($conv) $other = find_user((int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_one']));
+    if ($conv) {
+        $other = find_user((int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_one']));
+        if ($other && is_blocked($uid, (int) $other['id'])) {
+            flash('That conversation is unavailable.', 'err');
+            redirect('messages.php');
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $conv) {
@@ -69,21 +75,34 @@ site_header();
         <input type="hidden" name="do" value="<?= $convMuted ? 'unmute' : 'mute' ?>">
         <button class="btn-mini" type="submit"><?= $convMuted ? 'Unmute' : 'Mute' ?></button></form>
       <button class="btn-mini" type="button" data-dialog="#reportdlg" id="headreport">Report</button>
+      <form method="post" action="friend.php" style="display:inline"
+            onsubmit="return confirm('Block <?= e($other['name']) ?>? You won\\'t see or message each other.')"><?= csrf_field() ?>
+        <input type="hidden" name="uid" value="<?= (int) $other['id'] ?>"><input type="hidden" name="do" value="block">
+        <button class="btn-mini" type="submit" title="Block">🚫</button></form>
       <a class="btn-mini" href="user.php?id=<?= (int) $other['id'] ?>">Profile</a>
     </div>
     <div class="msgs" id="msgs" data-last="<?= $messages ? (int) end($messages)['id'] : 0 ?>">
       <?php foreach ($messages as $m): ?>
       <div class="bubble <?= (int) $m['sender_id'] === $uid ? 'me' : 'them' ?>" data-mid="<?= (int) $m['id'] ?>">
+        <?php if ($m['attachment'] && $m['attachment_kind'] === 'image'): ?>
+        <a href="uploads/<?= e($m['attachment']) ?>" target="_blank"><img class="attach-img" src="uploads/<?= e($m['attachment']) ?>" alt="<?= e($m['attachment_name'] ?? 'image') ?>" loading="lazy"></a>
+        <?php elseif ($m['attachment']): ?>
+        <a class="attach-file" href="uploads/<?= e($m['attachment']) ?>" target="_blank" download="<?= e($m['attachment_name'] ?? 'file') ?>">📄 <?= e($m['attachment_name'] ?? 'attachment') ?></a>
+        <?php endif; ?>
         <?= nl2br(e($m['body'])) ?><small><?= e(date('g:i A', strtotime($m['created_at']))) ?><?php if ((int) $m['sender_id'] !== $uid): ?><button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="<?= (int) $m['id'] ?>" title="Report this message">⚑</button><?php endif; ?></small>
       </div>
       <?php endforeach; ?>
       <?php if (!$messages): ?><div class="empty" style="margin:auto"><span class="big">👋</span><p>Say hi to <?= e($other['name']) ?>!</p></div><?php endif; ?>
       <div class="bubble them typing-bubble" id="tind" hidden aria-label="<?= e($other['name']) ?> is typing"><span class="td"></span><span class="td"></span><span class="td"></span></div>
     </div>
-    <form class="composer" id="composer" action="/api/messages.php" method="post">
+    <form class="composer" id="composer" action="/api/messages.php" method="post" enctype="multipart/form-data">
       <?= csrf_field() ?>
       <input type="hidden" name="conv" value="<?= (int) $conv['id'] ?>">
-      <input name="body" id="msgbody" autocomplete="off" maxlength="1000" placeholder="Write a message…" required>
+      <input type="file" name="attach" id="attach" hidden
+             accept="image/jpeg,image/png,image/webp,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip">
+      <button type="button" class="icon-btn" id="attachbtn" title="Attach a photo or file" aria-label="Attach">📎</button>
+      <span class="attach-chip" id="attachchip" hidden></span>
+      <input name="body" id="msgbody" autocomplete="off" maxlength="1000" placeholder="Write a message…">
       <button type="submit" id="sendbtn">Send</button>
     </form>
   </div>
@@ -120,12 +139,19 @@ site_header();
   box.scrollTop = box.scrollHeight;
 
   function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/\n/g,'<br>');}
+  function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
+  function attachHtml(m){
+    if(!m.attachment)return '';
+    if(m.attachment_kind==='image')
+      return '<a href="uploads/'+m.attachment+'" target="_blank"><img class="attach-img" src="uploads/'+m.attachment+'" loading="lazy" alt="image"></a>';
+    return '<a class="attach-file" href="uploads/'+m.attachment+'" target="_blank" download="'+escAttr(m.attachment_name||'file')+'">📄 '+esc(m.attachment_name||'attachment')+'</a>';
+  }
   function add(m){
     var b=document.createElement('div');
     var mine = m.sender_id==<?= $uid ?>;
     b.className='bubble '+(mine?'me':'them');
     b.dataset.mid=m.id;
-    b.innerHTML=esc(m.body)+'<small>'+m.time+(mine?'':'<button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="'+m.id+'" title="Report this message">⚑</button>')+'</small>';
+    b.innerHTML=attachHtml(m)+esc(m.body)+'<small>'+m.time+(mine?'':'<button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="'+m.id+'" title="Report this message">⚑</button>')+'</small>';
     b.style.opacity='0';b.style.transform='translateY(6px)';
     box.insertBefore(b, tind);
     requestAnimationFrame(function(){b.style.transition='opacity .2s ease-out,transform .2s ease-out';b.style.opacity='1';b.style.transform='none';});
@@ -171,17 +197,26 @@ site_header();
 
   document.getElementById('composer').addEventListener('submit',function(ev){
     ev.preventDefault();
-    var inp=document.getElementById('msgbody'),btn=document.getElementById('sendbtn');
-    var body=inp.value.trim();if(!body)return;
+    var inp=document.getElementById('msgbody'),btn=document.getElementById('sendbtn'),
+        fileInp=document.getElementById('attach'),chip=document.getElementById('attachchip');
+    var body=inp.value.trim();if(!body&&!fileInp.files.length)return;
     btn.disabled=true;
     fetch('/api/messages.php',{method:'POST',body:new FormData(this),headers:{'X-Requested-With':'fetch'}})
       .then(function(r){return r.json()})
       .then(function(j){
         btn.disabled=false;
-        if(j.ok&&j.message){add(j.message);last=+j.message.id;inp.value='';inp.focus();}
+        if(j.ok&&j.message){add(j.message);last=+j.message.id;inp.value='';fileInp.value='';chip.hidden=true;inp.focus();}
         else if(j.error)toast(j.error,true);
       })
       .catch(function(){btn.disabled=false;toast('Could not send — try again',true);});
+  });
+
+  // attachment picker: 📎 opens the file dialog, chip shows the pick
+  var fileInp2=document.getElementById('attach'),chip2=document.getElementById('attachchip');
+  document.getElementById('attachbtn').addEventListener('click',function(){fileInp2.click();});
+  fileInp2.addEventListener('change',function(){
+    chip2.hidden=!this.files.length;
+    if(this.files.length)chip2.textContent='📎 '+this.files[0].name;
   });
 })();
 </script>
