@@ -284,12 +284,14 @@ function waitlist_claim(int $gatheringId, int $uid): string {
     $pdo = db();
     $pdo->beginTransaction();
     try {
-        $w = $pdo->prepare('SELECT id, status, offered_at FROM waitlists
+        $w = $pdo->prepare('SELECT id, status, offered_at,
+                            offered_at > NOW() - INTERVAL ' . WAITLIST_TTL . ' AS fresh
+                            FROM waitlists
                             WHERE gathering_id = :g AND user_id = :u FOR UPDATE');
         $w->execute([':g' => $gatheringId, ':u' => $uid]);
         $offer = $w->fetch(PDO::FETCH_ASSOC);
         if (!$offer || $offer['status'] !== 'offered') { $pdo->rollBack(); return 'none'; }
-        if (strtotime($offer['offered_at']) < time() - 7200) {
+        if (!$offer['fresh']) {
             $pdo->prepare('UPDATE waitlists SET status = "expired" WHERE id = :i')->execute([':i' => $offer['id']]);
             $pdo->commit();
             waitlist_promote($gatheringId);
