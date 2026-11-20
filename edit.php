@@ -41,34 +41,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':io' => $invite, ':id' => $id,
                 ];
                 if ($cover) $params[':cv'] = $cover;
-                db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
-                               event_at=:d,cost=:k,audience=:au,description=:ds,
-                               capacity=:cap,invite_only=:io'
-                               . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
-                    ->execute($params);
-                if ($ev['venue'] !== $venue || $ev['area'] !== $area || strtotime($ev['event_at']) !== strtotime($date)) {
-                    $when = date('D j M · g:i A', strtotime($date));
-                    foreach (attendees_of($id) as $a) {
-                        if ($a['user_id']) notify((int) $a['user_id'], 'event_updated',
-                            '"' . $title . '" was updated — ' . $when . ' at ' . $venue . ', ' . $area . '.',
-                            'event.php?id=' . $id);
+                $scope = ($_POST['scope'] ?? '') === 'series' && $ev['series_id'] ? 'series' : 'one';
+                if ($scope === 'series') {
+                    // shared fields on every upcoming occurrence; date stays per-occurrence
+                    $shared = $params; unset($shared[':d'], $shared[':cv'], $shared[':id']);
+                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
+                                   cost=:k,audience=:au,description=:ds,capacity=:cap,invite_only=:io
+                                   WHERE series_id=:sid AND status="active" AND event_at >= NOW()')
+                        ->execute($shared + [':sid' => $ev['series_id']]);
+                    db()->prepare('UPDATE gatherings SET event_at=:d' . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
+                        ->execute([':d' => $params[':d'], ':id' => $id] + ($cover ? [':cv' => $cover] : []));
+                    // notify each upcoming occurrence's attendees when venue/area moved
+                    if ($ev['venue'] !== $venue || $ev['area'] !== $area) {
+                        $occs = db()->prepare('SELECT id, event_at FROM gatherings WHERE series_id=:s AND status="active" AND event_at >= NOW()');
+                        $occs->execute([':s' => $ev['series_id']]);
+                        foreach ($occs->fetchAll(PDO::FETCH_ASSOC) as $oc) {
+                            $when = date('D j M · g:i A', strtotime($oc['event_at']));
+                            foreach (attendees_of((int) $oc['id']) as $a) {
+                                if ($a['user_id']) notify((int) $a['user_id'], 'event_updated',
+                                    '"' . $title . '" was updated — ' . $when . ' at ' . $venue . ', ' . $area . '.',
+                                    'event.php?id=' . $oc['id']);
+                            }
+                        }
                     }
+                    flash('Saved across the whole series.');
+                } else {
+                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
+                                   event_at=:d,cost=:k,audience=:au,description=:ds,
+                                   capacity=:cap,invite_only=:io'
+                                   . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
+                        ->execute($params);
+                    if ($ev['venue'] !== $venue || $ev['area'] !== $area || strtotime($ev['event_at']) !== strtotime($date)) {
+                        $when = date('D j M · g:i A', strtotime($date));
+                        foreach (attendees_of($id) as $a) {
+                            if ($a['user_id']) notify((int) $a['user_id'], 'event_updated',
+                                '"' . $title . '" was updated — ' . $when . ' at ' . $venue . ', ' . $area . '.',
+                                'event.php?id=' . $id);
+                        }
+                    }
+                    flash('Saved.');
                 }
                 if ($capacity === null || $ev['capacity'] === null || $capacity > (int) $ev['capacity']) {
                     waitlist_promote($id);
                 }
-                flash('Saved.');
                 redirect('edit.php?id=' . $id);
             }
             break;
         case 'cancel_event':
-            db()->prepare('UPDATE gatherings SET status = "cancelled" WHERE id = :i')->execute([':i' => $id]);
-            // notify attendees
-            foreach (attendees_of($id) as $a) {
-                if ($a['user_id']) notify((int) $a['user_id'], 'event_cancelled',
-                    '"' . $ev['title'] . '" was cancelled by the host.', 'index.php');
+            $scope = ($_POST['scope'] ?? '') === 'series' && $ev['series_id'] ? 'series' : 'one';
+            if ($scope === 'series') {
+                $occs = db()->prepare('SELECT id FROM gatherings WHERE series_id=:s AND status="active" AND event_at >= NOW()');
+                $occs->execute([':s' => $ev['series_id']]);
+                $ids = array_map('intval', $occs->fetchAll(PDO::FETCH_COLUMN));
+                db()->prepare('UPDATE gatherings SET status="cancelled" WHERE series_id=:s AND status="active" AND event_at >= NOW()')
+                    ->execute([':s' => $ev['series_id']]);
+                foreach ($ids as $oid) {
+                    foreach (attendees_of($oid) as $a) {
+                        if ($a['user_id']) notify((int) $a['user_id'], 'event_cancelled',
+                            '"' . $ev['title'] . '" was cancelled by the host.', 'index.php');
+                    }
+                }
+                flash('Whole series cancelled — attendees have been notified.');
+            } else {
+                db()->prepare('UPDATE gatherings SET status = "cancelled" WHERE id = :i')->execute([':i' => $id]);
+                foreach (attendees_of($id) as $a) {
+                    if ($a['user_id']) notify((int) $a['user_id'], 'event_cancelled',
+                        '"' . $ev['title'] . '" was cancelled by the host.', 'index.php');
+                }
+                flash('Gathering cancelled — attendees have been notified.');
             }
-            flash('Gathering cancelled — attendees have been notified.');
             redirect('edit.php?id=' . $id);
             break;
         case 'invite':
@@ -86,6 +127,16 @@ $invited   = db()->prepare('SELECT user_id, status FROM invites WHERE gathering_
 $invited->execute([':g' => $id]);
 $invMap = array_column($invited->fetchAll(PDO::FETCH_ASSOC), 'status', 'user_id');
 
+$series = null; $siblings = [];
+if (!empty($ev['series_id'])) {
+    $series = db()->prepare('SELECT s.* FROM gathering_series s WHERE s.id = :s');
+    $series->execute([':s' => $ev['series_id']]);
+    $series = $series->fetch(PDO::FETCH_ASSOC) ?: null;
+    $sib = db()->prepare('SELECT id, event_at, status FROM gatherings WHERE series_id = :s AND id != :i AND event_at >= NOW() ORDER BY event_at LIMIT 10');
+    $sib->execute([':s' => $ev['series_id'], ':i' => $id]);
+    $siblings = $sib->fetchAll(PDO::FETCH_ASSOC);
+}
+
 page_head('Manage — ' . $ev['title']);
 site_header('plans');
 ?>
@@ -95,6 +146,13 @@ site_header('plans');
     <h2>Manage gathering</h2>
     <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span><?php endif; ?>
   </div>
+  <?php if ($series): ?>
+  <p style="color:var(--ink-soft)">🔁 Part of a <b><?= e($series['freq']) ?></b> series.
+    <?php if ($siblings): ?>Other dates:
+      <?php foreach ($siblings as $s): ?><a href="edit.php?id=<?= (int) $s['id'] ?>" style="white-space:nowrap"><?= e(date('j M', strtotime($s['event_at']))) ?></a> · <?php endforeach; ?>
+    <?php endif; ?>
+  </p>
+  <?php endif; ?>
   <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
 
   <form method="post" enctype="multipart/form-data">
@@ -135,6 +193,14 @@ site_header('plans');
       <?php if ($ev['cover']): ?><img src="uploads/<?= e($ev['cover']) ?>" class="imgprev wide" alt=""><?php endif; ?>
       <img id="coverprev" class="imgprev wide" hidden alt="">
       <input name="cover" type="file" accept="image/jpeg,image/png,image/webp" data-preview="#coverprev"></div>
+    <?php if ($series): ?>
+    <div class="field"><label>Apply changes to</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400">
+        <input type="radio" name="scope" value="one" style="width:auto" checked> This date only</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:6px">
+        <input type="radio" name="scope" value="series" style="width:auto"> All upcoming dates — keeps each date's own time</label>
+    </div>
+    <?php endif; ?>
     <button class="btn-block" type="submit">Save changes</button>
   </form>
 </div>
@@ -185,7 +251,15 @@ site_header('plans');
   <form method="post" onsubmit="return confirm('Cancel this gathering? Attendees will be notified.')">
     <?= csrf_field() ?>
     <input type="hidden" name="do" value="cancel_event"><input type="hidden" name="id" value="<?= $id ?>">
-    <button class="btn-danger" type="submit">Cancel this gathering</button>
+    <?php if ($series): ?>
+    <div class="field" style="margin-bottom:10px"><label>Cancel scope</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400">
+        <input type="radio" name="scope" value="one" style="width:auto" checked> This date only</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:6px">
+        <input type="radio" name="scope" value="series" style="width:auto"> All upcoming dates in the series</label>
+    </div>
+    <?php endif; ?>
+    <button class="btn-danger" type="submit"><?= $series ? 'Cancel' : 'Cancel this gathering' ?></button>
   </form>
 </div>
 <?php endif; ?>

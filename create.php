@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $audience = in_array($_POST['audience'] ?? '', ['public', 'friends'], true) ? $_POST['audience'] : 'public';
     $invite   = !empty($_POST['invite_only']) ? 1 : 0;
     $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
+    $repeat   = in_array($_POST['repeat'] ?? '', ['weekly', 'monthly'], true) ? $_POST['repeat'] : '';
 
     if ($title === '' || $venue === '' || $desc === '')            $err = 'Fill in the name, venue and details.';
     elseif (!isset(categories()[$category]))                        $err = 'Pick a category.';
@@ -26,19 +27,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (str_starts_with($cover, '!')) {
             $err = substr($cover, 1);
         } else {
-            db()->prepare('INSERT INTO gatherings
+            $sid = null;
+            $dates = [date('Y-m-d H:i:s', strtotime($date))];
+            if ($repeat) {
+                db()->prepare('INSERT INTO gathering_series (freq, creator_id) VALUES (:f, :u)')
+                    ->execute([':f' => $repeat, ':u' => user_id()]);
+                $sid = (int) db()->lastInsertId();
+                $n   = $repeat === 'weekly' ? 7 : 3; // total: 8 weekly / 4 monthly
+                $iv  = $repeat === 'weekly' ? 'week' : 'month';
+                for ($i = 1; $i <= $n; $i++) {
+                    $dates[] = date('Y-m-d H:i:s', strtotime('+' . $i . ' ' . $iv, strtotime($date)));
+                }
+            }
+            $ins = db()->prepare('INSERT INTO gatherings
                 (title, category, area, venue, event_at, cost, audience, description,
-                 sample, creator, creator_id, capacity, invite_only, cover)
-                VALUES (:t, :c, :a, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv)')
-                ->execute([
+                 sample, creator, creator_id, capacity, invite_only, cover, series_id)
+                VALUES (:t, :c, :a, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid)');
+            $firstId = null;
+            foreach ($dates as $d) {
+                $ins->execute([
                     ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
-                    ':d' => date('Y-m-d H:i:s', strtotime($date)), ':k' => $cost,
-                    ':au' => $audience, ':ds' => $desc, ':sk' => SESSION_KEY,
-                    ':uid' => user_id(), ':cap' => $capacity, ':io' => $invite,
-                    ':cv' => $cover ?: null,
+                    ':d' => $d, ':k' => $cost, ':au' => $audience, ':ds' => $desc,
+                    ':sk' => SESSION_KEY, ':uid' => user_id(), ':cap' => $capacity,
+                    ':io' => $invite, ':cv' => $cover ?: null, ':sid' => $sid,
                 ]);
-            flash('Your plan is live! Share it with friends.');
-            redirect('event.php?id=' . db()->lastInsertId());
+                $firstId ??= (int) db()->lastInsertId();
+            }
+            flash($repeat ? 'Series created — ' . count($dates) . ' dates are live!' : 'Your plan is live! Share it with friends.');
+            redirect('event.php?id=' . $firstId);
         }
     }
 }
@@ -99,6 +115,13 @@ site_header();
         Invite-only — people join by invitation, not the public feed
       </label>
     </div>
+
+    <div class="field"><label for="repeat">Repeat</label>
+      <select id="repeat" name="repeat">
+        <option value=""<?= ($_POST['repeat'] ?? '') === '' ? ' selected' : '' ?>>One-time gathering</option>
+        <option value="weekly"<?= ($_POST['repeat'] ?? '') === 'weekly' ? ' selected' : '' ?>>Weekly — creates the next 8 dates</option>
+        <option value="monthly"<?= ($_POST['repeat'] ?? '') === 'monthly' ? ' selected' : '' ?>>Monthly — creates the next 4 dates</option>
+      </select></div>
 
     <div class="field"><label for="desc">Details</label>
       <textarea id="desc" name="description" maxlength="300" rows="3" required

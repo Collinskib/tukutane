@@ -17,8 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$rel || $rel['status'] !== 'accepted' || is_blocked($uid, $otherId)) {
         http_response_code(403); exit(json_encode(['error' => 'friends only']));
     }
+    if (($_POST['do'] ?? '') === 'typing') {
+        set_typing((int) $conv['id'], $uid);
+        exit(json_encode(['ok' => true]));
+    }
     if ($body === '') exit(json_encode(['error' => 'empty']));
     $id = send_message((int) $conv['id'], $uid, $body);
+    set_typing((int) $conv['id'], $uid, false);
     // notify the other party (once per unread burst, unless they muted the chat)
     $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id = :c AND sender_id = :s AND read_at IS NULL');
     $pending->execute([':c' => $conv['id'], ':s' => $uid]);
@@ -39,7 +44,8 @@ $rows = messages_since((int) $conv['id'], (int) ($_GET['after'] ?? 0), 50);
 // mark incoming as read when fetched
 db()->prepare('UPDATE messages SET read_at = NOW() WHERE conversation_id = :c AND sender_id != :u AND read_at IS NULL')
     ->execute([':c' => $conv['id'], ':u' => $uid]);
-echo json_encode(['messages' => array_map(fn($m) => [
+$otherId = (int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_one']);
+echo json_encode(['typing' => peer_typing((int) $conv['id'], $otherId), 'messages' => array_map(fn($m) => [
     'id' => (int) $m['id'], 'sender_id' => (int) $m['sender_id'],
     'body' => $m['body'], 'time' => date('g:i A', strtotime($m['created_at'])),
 ], $rows)]);

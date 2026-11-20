@@ -590,6 +590,20 @@ function set_conversation_muted(int $convId, int $me, bool $muted): void {
         ->execute([':c' => $convId, ':u' => $me, ':m' => $muted ? 1 : 0]);
 }
 
+function set_typing(int $convId, int $me, bool $typing = true): void {
+    db()->prepare('INSERT INTO conversation_state (conversation_id, user_id, typing_at)
+                   VALUES (:c, :u, NOW())
+                   ON DUPLICATE KEY UPDATE typing_at = ' . ($typing ? 'NOW()' : 'NULL'))
+        ->execute([':c' => $convId, ':u' => $me]);
+}
+
+function peer_typing(int $convId, int $other): bool {
+    $stmt = db()->prepare('SELECT typing_at > NOW() - INTERVAL 6 SECOND
+                           FROM conversation_state WHERE conversation_id = :c AND user_id = :u');
+    $stmt->execute([':c' => $convId, ':u' => $other]);
+    return (bool) $stmt->fetchColumn();
+}
+
 function unread_messages(int $me): int {
     $stmt = db()->prepare(
         'SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id
@@ -698,4 +712,211 @@ function consume_reset_token(string $token): ?int {
         return (int) $uid;
     }
     return null;
+}
+
+// ---------- local interest groups ----------
+
+function groups_list(array $f): array {
+    $uid = user_id();
+    $sql = 'SELECT g.*, u.name AS creator_name,
+                   (SELECT COUNT(*) FROM grp_members m WHERE m.group_id = g.id AND m.status = "active") AS members,
+                   (SELECT m2.status FROM grp_members m2 WHERE m2.group_id = g.id AND m2.user_id = :um) AS my_status,
+                   (SELECT m3.role FROM grp_members m3 WHERE m3.group_id = g.id AND m3.user_id = :um2 AND m3.status = "active") AS my_role
+            FROM grps g JOIN users u ON u.id = g.creator_id WHERE 1=1';
+    $p = [':um' => $uid, ':um2' => $uid];
+    if (($f['view'] ?? '') === 'mine') {
+        $sql .= ' AND EXISTS(SELECT 1 FROM grp_members mx WHERE mx.group_id = g.id AND mx.user_id = :um3 AND mx.status IN ("active","pending"))';
+        $p[':um3'] = $uid;
+    }
+    if (($f['category'] ?? '') && $f['category'] !== 'All interests') {
+        $sql .= ' AND g.category = :cat'; $p[':cat'] = $f['category'];
+    }
+    if (($f['area'] ?? '') && $f['area'] !== 'All Nairobi') {
+        $sql .= ' AND g.area = :area'; $p[':area'] = $f['area'];
+    }
+    if (!empty($f['q'])) {
+        $sql .= " AND CONCAT_WS(' ', g.name, g.description, g.area, g.category) LIKE :q";
+        $p[':q'] = '%' . $f['q'] . '%';
+    }
+    $sql .= ' ORDER BY members DESC, g.created_at DESC LIMIT 60';
+    $stmt = db()->prepare($sql);
+    $stmt->execute($p);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function group_get(int $id): ?array {
+    $stmt = db()->prepare('SELECT g.*, u.name AS creator_name, u.photo AS creator_photo,
+                           (SELECT COUNT(*) FROM grp_members m WHERE m.group_id = g.id AND m.status = "active") AS members
+                           FROM grps g JOIN users u ON u.id = g.creator_id WHERE g.id = :id');
+    $stmt->execute([':id' => $id]);
+    $g = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $g ?: null;
+}
+
+function group_membership(int $gid, int $uid): ?array {
+    $stmt = db()->prepare('SELECT * FROM grp_members WHERE group_id = :g AND user_id = :u');
+    $stmt->execute([':g' => $gid, ':u' => $uid]);
+    $m = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $m ?: null;
+}
+
+function group_members(int $gid, string $status = 'active'): array {
+    $stmt = db()->prepare('SELECT m.*, u.name, u.photo, u.area FROM grp_members m
+                           JOIN users u ON u.id = m.user_id
+                           WHERE m.group_id = :g AND m.status = :s ORDER BY m.role = "admin" DESC, m.created_at');
+    $stmt->execute([':g' => $gid, ':s' => $status]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function group_admins(int $gid): array {
+    $stmt = db()->prepare('SELECT user_id FROM grp_members WHERE group_id = :g AND role = "admin" AND status = "active"');
+    $stmt->execute([':g' => $gid]);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+function group_create(int $uid, array $d): int {
+    db()->prepare('INSERT INTO grps (name, description, category, area, creator_id, join_policy)
+                   VALUES (:n, :d, :c, :a, :u, :p)')
+        ->execute([':n' => $d['name'], ':d' => $d['description'], ':c' => $d['category'],
+                   ':a' => $d['area'], ':u' => $uid, ':p' => $d['join_policy']]);
+    $gid = (int) db()->lastInsertId();
+    db()->prepare('INSERT INTO grp_members (group_id, user_id, role, status) VALUES (:g, :u, "admin", "active")')
+        ->execute([':g' => $gid, ':u' => $uid]);
+    return $gid;
+}
+
+function group_update(int $gid, array $d): void {
+    db()->prepare('UPDATE grps SET name = :n, description = :d, category = :c, area = :a, join_policy = :p WHERE id = :id')
+        ->execute([':n' => $d['name'], ':d' => $d['description'], ':c' => $d['category'],
+                   ':a' => $d['area'], ':p' => $d['join_policy'], ':id' => $gid]);
+}
+
+// returns 'joined' | 'requested' | 'rejoined' | 'rerequested' | null (already active/pending)
+function group_join(int $gid, int $uid, string $policy): ?string {
+    $m = group_membership($gid, $uid);
+    $want = $policy === 'open' ? 'active' : 'pending';
+    if (!$m) {
+        db()->prepare('INSERT INTO grp_members (group_id, user_id, status) VALUES (:g, :u, :s)')
+            ->execute([':g' => $gid, ':u' => $uid, ':s' => $want]);
+        return $want === 'active' ? 'joined' : 'requested';
+    }
+    if ($m['status'] === 'declined') {
+        db()->prepare('UPDATE grp_members SET status = :s, role = "member" WHERE group_id = :g AND user_id = :u')
+            ->execute([':s' => $want, ':g' => $gid, ':u' => $uid]);
+        return $want === 'active' ? 'rejoined' : 'rerequested';
+    }
+    return null;
+}
+
+function group_leave(int $gid, int $uid): bool {
+    $m = group_membership($gid, $uid);
+    if (!$m || $m['status'] !== 'active') return false;
+    if ($m['role'] === 'admin') {
+        $admins = group_admins($gid);
+        if (count($admins) === 1) return false; // sole admin can't leave; delete instead
+    }
+    db()->prepare('DELETE FROM grp_members WHERE group_id = :g AND user_id = :u')
+        ->execute([':g' => $gid, ':u' => $uid]);
+    return true;
+}
+
+function group_delete(int $gid): void {
+    db()->prepare('DELETE FROM grps WHERE id = :g')->execute([':g' => $gid]);
+}
+
+// admin approves/declines a pending request; returns the target uid or null
+function group_review(int $gid, int $target, bool $approve): ?int {
+    $m = group_membership($gid, $target);
+    if (!$m || $m['status'] !== 'pending') return null;
+    if ($approve) {
+        db()->prepare('UPDATE grp_members SET status = "active" WHERE group_id = :g AND user_id = :u')
+            ->execute([':g' => $gid, ':u' => $target]);
+    } else {
+        db()->prepare('UPDATE grp_members SET status = "declined" WHERE group_id = :g AND user_id = :u')
+            ->execute([':g' => $gid, ':u' => $target]);
+    }
+    return $target;
+}
+
+function group_remove_member(int $gid, int $target): bool {
+    $m = group_membership($gid, $target);
+    if (!$m) return false;
+    if ($m['role'] === 'admin' && count(group_admins($gid)) === 1) return false;
+    db()->prepare('DELETE FROM grp_members WHERE group_id = :g AND user_id = :u')
+        ->execute([':g' => $gid, ':u' => $target]);
+    return true;
+}
+
+// ---------- event group chat ----------
+
+// host + confirmed (logged-in) attendees may use the chat;
+// a block between the user and the host locks them out
+function can_event_chat(array $ev, int $uid): bool {
+    if (!$uid) return false;
+    if (!empty($ev['creator_id']) && (int) $ev['creator_id'] === $uid) return true;
+    if (!empty($ev['creator_id']) && is_blocked($uid, (int) $ev['creator_id'])) return false;
+    if (!empty($ev['mine'])) return true;
+    $stmt = db()->prepare('SELECT 1 FROM rsvps WHERE gathering_id = :g AND user_id = :u LIMIT 1');
+    $stmt->execute([':g' => $ev['id'], ':u' => $uid]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function event_messages(int $gid, int $after = 0, int $limit = 60): array {
+    $stmt = db()->prepare('SELECT m.*, u.name AS sender_name, u.photo AS sender_photo
+                           FROM event_messages m JOIN users u ON u.id = m.sender_id
+                           WHERE m.gathering_id = :g AND m.id > :a ORDER BY m.id LIMIT ' . (int) $limit);
+    $stmt->execute([':g' => $gid, ':a' => $after]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function event_message_get(int $mid): ?array {
+    $stmt = db()->prepare('SELECT m.*, u.name AS sender_name FROM event_messages m
+                           JOIN users u ON u.id = m.sender_id WHERE m.id = :i');
+    $stmt->execute([':i' => $mid]);
+    $m = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $m ?: null;
+}
+
+function event_pinned(int $gid): ?array {
+    $stmt = db()->prepare('SELECT m.*, u.name AS sender_name FROM event_messages m
+                           JOIN users u ON u.id = m.sender_id
+                           WHERE m.gathering_id = :g AND m.pinned = 1 ORDER BY m.id DESC LIMIT 1');
+    $stmt->execute([':g' => $gid]);
+    $m = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $m ?: null;
+}
+
+function event_chat_send(int $gid, int $uid, string $body): int {
+    db()->prepare('INSERT INTO event_messages (gathering_id, sender_id, body) VALUES (:g, :u, :b)')
+        ->execute([':g' => $gid, ':u' => $uid, ':b' => mb_substr($body, 0, 1000)]);
+    return (int) db()->lastInsertId();
+}
+
+function event_chat_muted(int $gid, int $uid): bool {
+    $stmt = db()->prepare('SELECT muted FROM event_chat_state WHERE gathering_id = :g AND user_id = :u');
+    $stmt->execute([':g' => $gid, ':u' => $uid]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function event_chat_set_muted(int $gid, int $uid, bool $muted): void {
+    db()->prepare('INSERT INTO event_chat_state (gathering_id, user_id, muted) VALUES (:g, :u, :m)
+                   ON DUPLICATE KEY UPDATE muted = VALUES(muted)')
+        ->execute([':g' => $gid, ':u' => $uid, ':m' => $muted ? 1 : 0]);
+}
+
+function event_chat_mark_read(int $gid, int $uid): void {
+    db()->prepare('INSERT INTO event_chat_state (gathering_id, user_id, last_read_id)
+                   VALUES (:g, :u, (SELECT COALESCE(MAX(id),0) FROM event_messages WHERE gathering_id = :g2))
+                   ON DUPLICATE KEY UPDATE last_read_id = VALUES(last_read_id)')
+        ->execute([':g' => $gid, ':u' => $uid, ':g2' => $gid]);
+}
+
+// all logged-in participants (host + attendees) except $except, minus chat-muted users
+function event_chat_audience(int $gid, int $except): array {
+    $stmt = db()->prepare(
+        'SELECT DISTINCT r.user_id FROM rsvps r WHERE r.gathering_id = :g AND r.user_id IS NOT NULL
+         UNION SELECT creator_id FROM gatherings WHERE id = :g2 AND creator_id IS NOT NULL');
+    $stmt->execute([':g' => $gid, ':g2' => $gid]);
+    $uids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    return array_values(array_filter($uids, fn($u) => $u !== $except && !event_chat_muted($gid, $u)));
 }

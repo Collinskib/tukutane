@@ -15,9 +15,9 @@ function page_head(string $title): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=6">
+<link rel="stylesheet" href="/assets/style.css?v=8">
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-<script defer src="/assets/app.js?v=6"></script>
+<script defer src="/assets/app.js?v=8"></script>
 </head>
 <body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
 <?php }
@@ -30,6 +30,7 @@ function site_header(string $active = ''): void {
     <a class="brand" href="/index.php">Nipange<i>.</i></a>
     <a class="btn nav-link <?= $active === 'discover' ? 'active' : '' ?>" href="/index.php">Discover</a>
     <a class="btn nav-link <?= $active === 'people' ? 'active' : '' ?>" href="/people.php">People</a>
+    <a class="btn nav-link <?= $active === 'groups' ? 'active' : '' ?>" href="/groups.php">Groups</a>
     <?php if ($u): ?>
     <a class="btn nav-link <?= $active === 'plans' ? 'active' : '' ?>" href="/plans.php">My plans</a>
     <a class="primary nav-create" href="/create.php">+ Create plan</a>
@@ -43,6 +44,7 @@ function site_header(string $active = ''): void {
       <span class="dropdown" x-show="open" x-transition @click.outside="open=false" x-cloak>
         <a href="/profile.php">My profile</a>
         <a href="/friends.php">Friends</a>
+        <a href="/groups.php">Groups</a>
         <a href="/messages.php">Messages <span class="badge soft" id="msg-badge" hidden></span></a>
         <?php if (is_admin()): ?><a href="/admin/index.php">Admin</a><?php endif; ?>
         <a href="/logout.php">Log out</a>
@@ -82,7 +84,7 @@ function site_footer(): void { ?>
     <div><span class="brand sm">Nipange<i>.</i></span>
       <p>Find gatherings and new friends near you.</p></div>
     <div><strong>Explore</strong>
-      <a href="/index.php">Gatherings</a><a href="/people.php">People nearby</a><a href="/create.php">Create a plan</a></div>
+      <a href="/index.php">Gatherings</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>

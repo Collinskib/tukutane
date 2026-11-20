@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS conversation_state (
     conversation_id INT UNSIGNED NOT NULL,
     user_id         INT UNSIGNED NOT NULL,
     muted           TINYINT(1) NOT NULL DEFAULT 0,
+    typing_at       DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (conversation_id, user_id),
     CONSTRAINT fk_cs_conv FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE,
     CONSTRAINT fk_cs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -181,3 +182,74 @@ CREATE TABLE IF NOT EXISTS waitlists (
     CONSTRAINT fk_wl_gath FOREIGN KEY (gathering_id) REFERENCES gatherings (id) ON DELETE CASCADE,
     CONSTRAINT fk_wl_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============ Release 2: local interest groups ============
+
+CREATE TABLE IF NOT EXISTS grps (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(80) NOT NULL,
+    description VARCHAR(600) NOT NULL DEFAULT '',
+    category    VARCHAR(40) NOT NULL,
+    area        VARCHAR(60) NOT NULL,
+    creator_id  INT UNSIGNED NOT NULL,
+    join_policy ENUM('open','approval') NOT NULL DEFAULT 'open',
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_grp_area (area),
+    INDEX idx_grp_cat (category),
+    CONSTRAINT fk_grp_creator FOREIGN KEY (creator_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS grp_members (
+    group_id   INT UNSIGNED NOT NULL,
+    user_id    INT UNSIGNED NOT NULL,
+    role       ENUM('admin','member') NOT NULL DEFAULT 'member',
+    status     ENUM('active','pending','declined') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (group_id, user_id),
+    INDEX idx_gm_user (user_id, status),
+    CONSTRAINT fk_gm_grp FOREIGN KEY (group_id) REFERENCES grps (id) ON DELETE CASCADE,
+    CONSTRAINT fk_gm_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============ Release 2: event group chat ============
+
+CREATE TABLE IF NOT EXISTS event_messages (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    gathering_id INT UNSIGNED NOT NULL,
+    sender_id    INT UNSIGNED NOT NULL,
+    body         VARCHAR(1000) NOT NULL,
+    pinned       TINYINT(1) NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_em (gathering_id, id),
+    CONSTRAINT fk_em_gath FOREIGN KEY (gathering_id) REFERENCES gatherings (id) ON DELETE CASCADE,
+    CONSTRAINT fk_em_user FOREIGN KEY (sender_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS event_chat_state (
+    gathering_id INT UNSIGNED NOT NULL,
+    user_id      INT UNSIGNED NOT NULL,
+    muted        TINYINT(1) NOT NULL DEFAULT 0,
+    last_read_id INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (gathering_id, user_id),
+    CONSTRAINT fk_ecs_gath FOREIGN KEY (gathering_id) REFERENCES gatherings (id) ON DELETE CASCADE,
+    CONSTRAINT fk_ecs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- event chat messages are reportable too
+ALTER TABLE reports MODIFY target_type ENUM('user','gathering','message','event_message') NOT NULL;
+
+-- ============ Release 2: recurring gatherings ============
+
+CREATE TABLE IF NOT EXISTS gathering_series (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    freq       ENUM('weekly','monthly') NOT NULL,
+    creator_id INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_gs_creator FOREIGN KEY (creator_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE gatherings
+    ADD COLUMN series_id INT UNSIGNED NULL,
+    ADD KEY idx_series (series_id),
+    ADD CONSTRAINT fk_g_series FOREIGN KEY (series_id) REFERENCES gathering_series (id) ON DELETE SET NULL;

@@ -78,6 +78,7 @@ site_header();
       </div>
       <?php endforeach; ?>
       <?php if (!$messages): ?><div class="empty" style="margin:auto"><span class="big">👋</span><p>Say hi to <?= e($other['name']) ?>!</p></div><?php endif; ?>
+      <div class="bubble them typing-bubble" id="tind" hidden aria-label="<?= e($other['name']) ?> is typing"><span class="td"></span><span class="td"></span><span class="td"></span></div>
     </div>
     <form class="composer" id="composer" action="/api/messages.php" method="post">
       <?= csrf_field() ?>
@@ -126,18 +127,35 @@ site_header();
     b.dataset.mid=m.id;
     b.innerHTML=esc(m.body)+'<small>'+m.time+(mine?'':'<button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="'+m.id+'" title="Report this message">⚑</button>')+'</small>';
     b.style.opacity='0';b.style.transform='translateY(6px)';
-    box.appendChild(b);
+    box.insertBefore(b, tind);
     requestAnimationFrame(function(){b.style.transition='opacity .2s ease-out,transform .2s ease-out';b.style.opacity='1';b.style.transform='none';});
     box.scrollTop=box.scrollHeight;
   }
+  var tind = document.getElementById('tind');
   function poll(){
     if(document.hidden)return;
     fetch('/api/messages.php?conv='+conv+'&after='+last,{headers:{'X-Requested-With':'fetch'}})
       .then(function(r){return r.json()})
-      .then(function(j){(j.messages||[]).forEach(function(m){if(+m.id>last){last=+m.id;add(m);}});})
+      .then(function(j){
+        (j.messages||[]).forEach(function(m){if(+m.id>last){last=+m.id;add(m);}});
+        var was = !tind.hidden;
+        tind.hidden = !j.typing;
+        if(j.typing&&!was)box.scrollTop=box.scrollHeight;
+      })
       .catch(function(){});
   }
   setInterval(poll,5000);
+
+  // typing presence: ping at most once every 2.5s while the box has text
+  var _tp = 0, csrf = document.querySelector('#composer input[name=csrf]').value;
+  document.getElementById('msgbody').addEventListener('input', function(){
+    var now = Date.now();
+    if (!this.value.trim() || now - _tp < 2500) return;
+    _tp = now;
+    var fd = new FormData();
+    fd.append('csrf', csrf); fd.append('conv', conv); fd.append('do', 'typing');
+    fetch('/api/messages.php', {method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}}).catch(function(){});
+  });
 
   // message reporting: per-bubble flags pick that message; head button picks the last incoming one
   var repInput = document.getElementById('repmsgid');
@@ -145,7 +163,7 @@ site_header();
     var flag = ev.target.closest('[data-report-msg]');
     if (flag) { repInput.value = flag.getAttribute('data-report-msg'); return; }
     if (ev.target.closest('#headreport')) {
-      var thems = box.querySelectorAll('.bubble.them');
+      var thems = box.querySelectorAll('.bubble.them[data-mid]');
       if (thems.length) repInput.value = thems[thems.length-1].dataset.mid;
       else { ev.preventDefault(); ev.stopImmediatePropagation(); toast('No message from them to report yet', true); }
     }

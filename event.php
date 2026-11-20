@@ -45,7 +45,7 @@ site_header('discover');
     <?php if ($ev['cover']): ?><img src="uploads/<?= e($ev['cover']) ?>" alt=""><?php endif; ?>
     <div class="grad"></div>
     <div class="cap">
-      <small><?= e($ev['category']) ?> <?= $emoji ?><?= $ev['invite_only'] ? ' · 🔒 Invite only' : '' ?></small>
+      <small><?= e($ev['category']) ?> <?= $emoji ?><?= $ev['invite_only'] ? ' · 🔒 Invite only' : '' ?><?= $ev['series_id'] ? ' · 🔁 Series' : '' ?></small>
       <h1><?= e($ev['title']) ?></h1>
     </div>
   </div>
@@ -58,6 +58,15 @@ site_header('discover');
   </div>
 
   <p class="rv" style="--d:140ms;color:var(--ink-soft);font-size:17px;line-height:1.55"><?= nl2br(e($ev['description'])) ?></p>
+
+  <?php if (!empty($ev['series_id'])):
+      $sib = db()->prepare('SELECT id, event_at FROM gatherings WHERE series_id = :s AND id != :i AND status = "active" AND event_at >= NOW() ORDER BY event_at LIMIT 8');
+      $sib->execute([':s' => $ev['series_id'], ':i' => $id]);
+      $others = $sib->fetchAll(PDO::FETCH_ASSOC);
+      if ($others): ?>
+  <p class="rv" style="--d:160ms;color:var(--ink-soft)">🔁 Also coming up:
+    <?php foreach ($others as $o): ?><a href="event.php?id=<?= (int) $o['id'] ?>" style="white-space:nowrap"><?= e(date('D j M', strtotime($o['event_at']))) ?></a> · <?php endforeach; ?></p>
+  <?php endif; endif; ?>
 
   <div class="hostcard rv" style="--d:180ms">
     <?= avatar_html($host) ?>
@@ -160,6 +169,91 @@ site_header('discover');
   </section>
   <?php endif; ?>
 
+  <?php if (user() && can_event_chat($ev, $uid)): ?>
+  <section class="rv echat" id="chat" style="--d:280ms">
+    <div class="chat-head">
+      <h3>Group chat</h3>
+      <small>host + everyone going</small>
+      <button class="btn-mini" id="chatmute" type="button"><?= event_chat_muted($id, $uid) ? 'Unmute' : 'Mute' ?></button>
+    </div>
+    <div class="pinbar" id="pinbar" hidden></div>
+    <div class="msgs emsgs" id="emsgs" data-g="<?= $id ?>"><div class="empty" style="margin:auto"><p>Say hi to the group 👋</p></div></div>
+    <?php if ($ev['status'] !== 'cancelled'): ?>
+    <form class="composer" id="ecomposer">
+      <?= csrf_field() ?>
+      <input name="body" id="emsg" autocomplete="off" maxlength="1000" placeholder="Message the group…" required>
+      <button type="submit">Send</button>
+    </form>
+    <?php endif; ?>
+  </section>
+  <script>
+  (function(){
+    var box=document.getElementById('emsgs'),G=<?= $id ?>,UID=<?= $uid ?>,last=0;
+    var pinbar=document.getElementById('pinbar'),muteBtn=document.getElementById('chatmute');
+    var csrf='<?= csrf_token() ?>',isHost=false;
+    function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/\n/g,'<br>');}
+    function add(m){
+      var e=box.querySelector('.empty');if(e)e.remove();
+      var b=document.createElement('div');var mine=m.sender_id===UID;
+      b.className='bubble '+(mine?'me':'them')+(m.pinned?' pinned':'');
+      b.dataset.mid=m.id;
+      var h='';
+      if(!mine)h+='<b class="esender">'+esc(m.sender_name)+(m.host?' · host':'')+'</b>';
+      else if(m.host)h+='<b class="esender">host</b>';
+      h+=esc(m.body)+'<small>'+m.time;
+      if(m.pinned)h+=' 📌';
+      if(isHost)h+=' <button class="msg-flag" type="button" data-pin="'+m.id+'" title="'+(m.pinned?'Unpin':'Pin update')+'">'+(m.pinned?'✕':'📌')+'</button>';
+      if(!mine)h+='<button class="msg-flag" type="button" data-dialog="#msgreportdlg" data-report-msg="'+m.id+'" title="Report this message">⚑</button>';
+      h+='</small>';
+      b.innerHTML=h;
+      box.appendChild(b);
+    }
+    function renderPin(p){
+      if(p){pinbar.hidden=false;pinbar.innerHTML='📌 <b>'+esc(p.sender_name)+'</b>: '+esc(p.body);}
+      else pinbar.hidden=true;
+    }
+    function poll(){
+      if(document.hidden)return;
+      fetch('/api/event_chat.php?g='+G+'&after='+last,{headers:{'X-Requested-With':'fetch'}})
+        .then(function(r){return r.json()})
+        .then(function(j){
+          if(j.error)return;
+          isHost=!!j.host;
+          renderPin(j.pinned);
+          muteBtn.textContent=j.muted?'Unmute':'Mute';
+          (j.messages||[]).forEach(function(m){if(+m.id>last){last=+m.id;add(m);}});
+          if(j.messages&&j.messages.length)box.scrollTop=box.scrollHeight;
+        }).catch(function(){});
+    }
+    poll();setInterval(poll,5000);
+    muteBtn.addEventListener('click',function(){
+      var fd=new FormData();fd.append('csrf',csrf);fd.append('g',G);fd.append('do',muteBtn.textContent==='Mute'?'mute':'unmute');
+      fetch('/api/event_chat.php',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(j){if(j.ok)muteBtn.textContent=muteBtn.textContent==='Mute'?'Unmute':'Mute';});
+    });
+    var rep=document.getElementById('erepmsgid');
+    box.addEventListener('click',function(ev){
+      var fl=ev.target.closest('[data-report-msg]');if(fl){rep.value=fl.getAttribute('data-report-msg');return;}
+      var pn=ev.target.closest('[data-pin]');
+      if(pn){
+        var fd=new FormData();fd.append('csrf',csrf);fd.append('g',G);
+        fd.append('do',pn.closest('.bubble').classList.contains('pinned')?'unpin':'pin');fd.append('mid',pn.getAttribute('data-pin'));
+        fetch('/api/event_chat.php',{method:'POST',body:fd}).then(function(){poll();});
+      }
+    });
+    var comp=document.getElementById('ecomposer');
+    if(comp)comp.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var inp=document.getElementById('emsg'),body=inp.value.trim();if(!body)return;
+      var fd=new FormData(comp);fd.append('do','send');fd.append('g',G);
+      fetch('/api/event_chat.php',{method:'POST',body:fd})
+        .then(function(r){return r.json()})
+        .then(function(j){if(j.ok&&j.message){add(j.message);last=Math.max(last,+j.message.id);inp.value='';inp.focus();box.scrollTop=box.scrollHeight;}else if(j.error)toast(j.error,true);})
+        .catch(function(){toast('Could not send — try again',true);});
+    });
+  })();
+  </script>
+  <?php endif; ?>
+
   <?php if ($related): ?>
   <section class="related rv" style="--d:300ms">
     <h3>More <?= e($ev['category']) ?> gatherings</h3>
@@ -179,6 +273,24 @@ site_header('discover');
   </section>
   <?php endif; ?>
 </main>
+
+<?php if (user() && can_event_chat($ev, $uid)): ?>
+<dialog id="msgreportdlg">
+  <form method="post" action="report.php">
+    <h3>Report this message</h3>
+    <?= csrf_field() ?>
+    <input type="hidden" name="type" value="event_message">
+    <input type="hidden" name="id" id="erepmsgid" value="0">
+    <input type="hidden" name="back" value="event.php?id=<?= $id ?>#chat">
+    <div class="field"><label>What's wrong?</label>
+      <textarea name="reason" required maxlength="300" rows="3" placeholder="Harassment, spam, unsafe…"></textarea></div>
+    <div class="actions">
+      <button type="button" class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-danger" type="submit">Send report</button>
+    </div>
+  </form>
+</dialog>
+<?php endif; ?>
 
 <?php if (user() && !$ev['mine']): ?>
 <dialog id="reportdlg">

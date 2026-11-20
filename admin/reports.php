@@ -14,10 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $reports = db()->query(
     'SELECT r.*, u.name AS reporter,
-            m.body AS msg_body, m.conversation_id AS msg_conv
+            m.body AS msg_body, m.conversation_id AS msg_conv,
+            em.body AS emsg_body, em.gathering_id AS emsg_gath
      FROM reports r
      JOIN users u ON u.id = r.reporter_id
      LEFT JOIN messages m ON r.target_type = "message" AND m.id = r.target_id
+     LEFT JOIN event_messages em ON r.target_type = "event_message" AND em.id = r.target_id
      ORDER BY r.status = "open" DESC, r.id DESC LIMIT 200'
 )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -32,13 +34,16 @@ admin_page('Reports', 'reports', function () use ($reports) { ?>
             'user'      => '../user.php?id=' . (int) $r['target_id'],
             'gathering' => '../event.php?id=' . (int) $r['target_id'],
             'message'   => $r['msg_conv'] ? '../messages.php?c=' . (int) $r['msg_conv'] : '#',
+            'event_message' => $r['emsg_gath'] ? '../event.php?id=' . (int) $r['emsg_gath'] . '#chat' : '#',
             default     => '#',
         }; ?>
     <tr>
       <td><?= e($r['target_type']) ?></td>
       <td><a href="<?= e($link) ?>">#<?= (int) $r['target_id'] ?></a>
         <?php if ($r['target_type'] === 'message' && $r['msg_body'] !== null): ?>
-          <br><small><?= e(mb_strimwidth($r['msg_body'], 0, 60, '…')) ?></small><?php endif; ?></td>
+          <br><small><?= e(mb_strimwidth($r['msg_body'], 0, 60, '…')) ?></small><?php endif; ?>
+        <?php if ($r['target_type'] === 'event_message' && $r['emsg_body'] !== null): ?>
+          <br><small><?= e(mb_strimwidth($r['emsg_body'], 0, 60, '…')) ?></small><?php endif; ?></td>
       <td><?= e($r['reason']) ?></td>
       <td><?= e($r['reporter']) ?></td>
       <td><?= e(time_ago($r['created_at'])) ?></td>

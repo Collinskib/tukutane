@@ -44,8 +44,11 @@ site_header('discover');
     <?php if ($sort === 'popular'): ?><input type="hidden" name="sort" value="popular"><?php endif; ?>
     <div class="toolbar">
       <h2 id="heading"><?= $view === 'mine' ? 'My plans' : 'Gatherings nearby' ?></h2>
+      <span class="search-wrap">
       <input id="search" name="q" type="search" aria-label="Search gatherings"
-             placeholder="Search gatherings" value="<?= e($query) ?>">
+             placeholder="Search gatherings" value="<?= e($query) ?>" autocomplete="off">
+      <div id="suggest" class="suggest" hidden></div>
+      </span>
       <select id="area" name="area" aria-label="Neighbourhood" onchange="this.form.submit()">
         <option<?= $area === 'All Nairobi' ? ' selected' : '' ?>>All Nairobi</option>
         <?php foreach (areas() as $a): ?>
@@ -112,7 +115,7 @@ site_header('discover');
       </div>
       <?php endif; ?>
       <div class="body">
-        <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a></h3>
+        <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a><?= !empty($event['series_id']) ? ' <span title="Repeating series">🔁</span>' : '' ?></h3>
         <p><?= e(when($event['event_at'])) ?></p>
         <p><?= e($event['area']) ?> · <?= e(price((int) $event['cost'])) ?></p>
         <p><?= $mine
@@ -148,10 +151,26 @@ site_header('discover');
   <?php endif; ?>
 </main>
 <script>
-let _t;
-document.getElementById('search').oninput = () => {
-  clearTimeout(_t);
+let _t, _st;
+const _s = document.getElementById('search'), _sg = document.getElementById('suggest');
+_s.oninput = () => {
+  clearTimeout(_t); clearTimeout(_st);
   _t = setTimeout(() => document.getElementById('filter-form').submit(), 500);
+  const q = _s.value.trim();
+  if (q.length < 2) { _sg.hidden = true; return; }
+  _st = setTimeout(async () => {
+    try {
+      const r = await fetch('api/suggest.php?q=' + encodeURIComponent(q));
+      if (!r.ok) { _sg.hidden = true; return; }
+      const items = await r.json();
+      if (!items.length) { _sg.hidden = true; return; }
+      const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      _sg.innerHTML = items.map(i =>
+        `<a class="sg-item" href="event.php?id=${i.id}"><b>${esc(i.title)}</b><small>${esc(i.meta)}</small></a>`).join('');
+      _sg.hidden = false;
+    } catch { _sg.hidden = true; }
+  }, 180);
 };
+_s.onblur = () => setTimeout(() => _sg.hidden = true, 150);
 </script>
 <?php bottom_nav('discover'); site_footer(); ?>
