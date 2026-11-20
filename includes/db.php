@@ -920,3 +920,105 @@ function event_chat_audience(int $gid, int $except): array {
     $uids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     return array_values(array_filter($uids, fn($u) => $u !== $except && !event_chat_muted($gid, $u)));
 }
+
+// ---------- organizer follows ----------
+
+function is_following(int $me, int $them): bool {
+    $stmt = db()->prepare('SELECT 1 FROM follows WHERE follower_id = :a AND followed_id = :b');
+    $stmt->execute([':a' => $me, ':b' => $them]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function follow_set(int $me, int $them, bool $on): void {
+    if ($on) {
+        db()->prepare('INSERT IGNORE INTO follows (follower_id, followed_id) VALUES (:a, :b)')
+            ->execute([':a' => $me, ':b' => $them]);
+    } else {
+        db()->prepare('DELETE FROM follows WHERE follower_id = :a AND followed_id = :b')
+            ->execute([':a' => $me, ':b' => $them]);
+    }
+}
+
+function follower_count(int $uid): int {
+    $stmt = db()->prepare('SELECT COUNT(*) FROM follows WHERE followed_id = :u');
+    $stmt->execute([':u' => $uid]);
+    return (int) $stmt->fetchColumn();
+}
+
+function follower_ids(int $uid): array {
+    $stmt = db()->prepare('SELECT follower_id FROM follows WHERE followed_id = :u');
+    $stmt->execute([':u' => $uid]);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+// a host's gatherings — upcoming (default) or past
+function host_gatherings(int $uid, bool $upcoming = true, int $limit = 12): array {
+    $cmp = $upcoming ? '>=' : '<';
+    $ord = $upcoming ? 'ASC' : 'DESC';
+    $stmt = db()->prepare(
+        "SELECT g.*, (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
+         FROM gatherings g WHERE g.creator_id = :u AND g.status != 'cancelled'
+         AND g.event_at $cmp NOW() ORDER BY g.event_at $ord LIMIT " . (int) $limit);
+    $stmt->execute([':u' => $uid]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- venue profiles ----------
+
+function venues_list(array $f): array {
+    $sql = 'SELECT v.*, u.name AS creator_name,
+                   (SELECT COUNT(*) FROM gatherings g WHERE g.venue_id = v.id AND g.status = "active" AND g.event_at >= NOW()) AS upcoming
+            FROM venues v LEFT JOIN users u ON u.id = v.creator_id WHERE 1=1';
+    $p = [];
+    if (($f['area'] ?? '') && $f['area'] !== 'All Nairobi') { $sql .= ' AND v.area = :a'; $p[':a'] = $f['area']; }
+    if (!empty($f['q'])) {
+        $sql .= " AND CONCAT_WS(' ', v.name, v.description, v.area) LIKE :q";
+        $p[':q'] = '%' . $f['q'] . '%';
+    }
+    $sql .= ' ORDER BY upcoming DESC, v.name LIMIT 80';
+    $stmt = db()->prepare($sql);
+    $stmt->execute($p);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function venue_get(int $id): ?array {
+    $stmt = db()->prepare('SELECT v.*, u.name AS creator_name FROM venues v
+                           LEFT JOIN users u ON u.id = v.creator_id WHERE v.id = :i');
+    $stmt->execute([':i' => $id]);
+    $v = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $v ?: null;
+}
+
+function venue_events(int $id): array {
+    $stmt = db()->prepare("SELECT g.*, (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
+                           FROM gatherings g WHERE g.venue_id = :v AND g.status = 'active' AND g.event_at >= NOW()
+                           ORDER BY g.event_at LIMIT 24");
+    $stmt->execute([':v' => $id]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function venue_by_name(string $name): ?int {
+    $stmt = db()->prepare('SELECT id FROM venues WHERE name = :n LIMIT 1');
+    $stmt->execute([':n' => trim($name)]);
+    $id = $stmt->fetchColumn();
+    return $id ? (int) $id : null;
+}
+
+function venue_create(int $uid, array $d): int {
+    db()->prepare('INSERT INTO venues (name, area, description, photo, creator_id)
+                   VALUES (:n, :a, :d, :p, :u)')
+        ->execute([':n' => $d['name'], ':a' => $d['area'], ':d' => $d['description'],
+                   ':p' => $d['photo'] ?? null, ':u' => $uid]);
+    return (int) db()->lastInsertId();
+}
+
+function venue_update(int $id, array $d): void {
+    db()->prepare('UPDATE venues SET name = :n, area = :a, description = :d'
+                  . (isset($d['photo']) ? ', photo = :p' : '') . ' WHERE id = :i')
+        ->execute([':n' => $d['name'], ':a' => $d['area'], ':d' => $d['description']]
+                  + (isset($d['photo']) ? [':p' => $d['photo']] : []) + [':i' => $id]);
+}
+
+function venues_all(): array {
+    return db()->query('SELECT id, name, area FROM venues ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
+}

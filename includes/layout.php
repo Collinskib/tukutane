@@ -45,6 +45,7 @@ function site_header(string $active = ''): void {
         <a href="/profile.php">My profile</a>
         <a href="/friends.php">Friends</a>
         <a href="/groups.php">Groups</a>
+        <a href="/venues.php">Venues</a>
         <a href="/messages.php">Messages <span class="badge soft" id="msg-badge" hidden></span></a>
         <?php if (is_admin()): ?><a href="/admin/index.php">Admin</a><?php endif; ?>
         <a href="/logout.php">Log out</a>
@@ -84,7 +85,7 @@ function site_footer(): void { ?>
     <div><span class="brand sm">Nipange<i>.</i></span>
       <p>Find gatherings and new friends near you.</p></div>
     <div><strong>Explore</strong>
-      <a href="/index.php">Gatherings</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/create.php">Create a plan</a></div>
+      <a href="/index.php">Gatherings</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Venues</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>

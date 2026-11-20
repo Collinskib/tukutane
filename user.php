@@ -18,15 +18,29 @@ $rel   = friendship(user_id(), $id);
 $isFriend = $rel && $rel['status'] === 'accepted';
 $their = array_filter(explode(',', $p['interests']));
 $shared = shared_interests(array_filter(explode(',', user()['interests'] ?? '')), $p['interests']);
-// their upcoming hosted public gatherings
-$hosted = array_filter(gatherings(['per' => 6]), fn($g) => (int) ($g['creator_id'] ?? 0) === $id);
+
+// follow / unfollow this organizer
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+    $do = $_POST['do'] ?? '';
+    if (in_array($do, ['follow', 'unfollow'], true)) {
+        follow_set(user_id(), $id, $do === 'follow');
+        flash($do === 'follow' ? 'Following — you\'ll get their new gathering alerts.' : 'Unfollowed.');
+    }
+    redirect('user.php?id=' . $id);
+}
+
+$following  = is_following(user_id(), $id);
+$followers  = follower_count($id);
+$hosted     = host_gatherings($id, true, 12);
+$pastHosted = host_gatherings($id, false, 6);
 ?>
 <main class="ev-wrap">
   <div class="prof-head rv in">
     <?= avatar_html($p, 'lg') ?>
     <div class="info">
       <h2><?= e($p['name']) ?></h2>
-      <p><?= $p['area'] ? e($p['area']) : 'Nairobi' ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?></p>
+      <p><?= $p['area'] ? e($p['area']) : 'Nairobi' ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
       <?php if ($p['bio']): ?><p style="margin-top:6px"><?= e($p['bio']) ?></p><?php endif; ?>
     </div>
   </div>
@@ -55,6 +69,9 @@ $hosted = array_filter(gatherings(['per' => 6]), fn($g) => (int) ($g['creator_id
         <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="send">
         <button class="primary" type="submit">+ Add friend</button></form>
     <?php endif; ?>
+    <form method="post" style="display:inline"><?= csrf_field() ?>
+      <input type="hidden" name="do" value="<?= $following ? 'unfollow' : 'follow' ?>">
+      <button class="btn-mini<?= $following ? '' : ' solid' ?>" type="submit"><?= $following ? '✓ Following' : '🔔 Follow' ?></button></form>
     <button class="btn-ghost" type="button" data-dialog="#moredlg">More…</button>
   </div>
 
@@ -67,7 +84,7 @@ $hosted = array_filter(gatherings(['per' => 6]), fn($g) => (int) ($g['creator_id
   <?php endif; ?>
 
   <?php if ($hosted): ?>
-  <h3 style="font-family:var(--serif);font-weight:400">Gatherings by <?= e($p['name']) ?></h3>
+  <h3 style="font-family:var(--serif);font-weight:400">Upcoming gatherings by <?= e($p['name']) ?></h3>
   <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
     <?php foreach ($hosted as $r): [, $rc] = categories()[$r['category']] ?? ['', '#e4e6db']; ?>
     <article class="card">
@@ -77,6 +94,18 @@ $hosted = array_filter(gatherings(['per' => 6]), fn($g) => (int) ($g['creator_id
         <p><?= e(when($r['event_at'])) ?> · <?= e($r['area']) ?></p>
       </div>
     </article>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($pastHosted): ?>
+  <h3 style="font-family:var(--serif);font-weight:400;margin-top:26px">Past gatherings</h3>
+  <div class="card" style="padding:8px 0">
+    <?php foreach ($pastHosted as $r): ?>
+    <div class="member-row">
+      <span class="who" style="flex:1"><b><a href="event.php?id=<?= (int) $r['id'] ?>" style="color:inherit;text-decoration:none"><?= e($r['title']) ?></a></b>
+        <small><?= e(date('D j M Y', strtotime($r['event_at']))) ?> · <?= e($r['area']) ?> · <?= (int) $r['real_rsvps'] + (int) $r['going_base'] ?> went</small></span>
+    </div>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>

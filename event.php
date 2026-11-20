@@ -52,7 +52,7 @@ site_header('discover');
 
   <div class="ev-meta rv" style="--d:80ms">
     <div class="m"><b>When</b><?= e(when($ev['event_at'])) ?></div>
-    <div class="m"><b>Where</b><?= e($ev['venue']) ?>, <?= e($ev['area']) ?></div>
+    <div class="m"><b>Where</b><?php if ($ev['venue_id']): ?><a href="venue.php?id=<?= (int) $ev['venue_id'] ?>" style="color:inherit"><?= e($ev['venue']) ?></a><?php else: ?><?= e($ev['venue']) ?><?php endif; ?>, <?= e($ev['area']) ?></div>
     <div class="m"><b>Cost</b><?= e(price((int) $ev['cost'])) ?></div>
     <div class="m"><b>Going</b><?= $going ?><?= $ev['capacity'] ? ' / ' . (int) $ev['capacity'] : '' ?></div>
   </div>

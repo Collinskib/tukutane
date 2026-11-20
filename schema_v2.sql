@@ -253,3 +253,33 @@ ALTER TABLE gatherings
     ADD COLUMN series_id INT UNSIGNED NULL,
     ADD KEY idx_series (series_id),
     ADD CONSTRAINT fk_g_series FOREIGN KEY (series_id) REFERENCES gathering_series (id) ON DELETE SET NULL;
+
+-- ============ Release 3: organizer follows + venue profiles ============
+
+CREATE TABLE IF NOT EXISTS follows (
+    follower_id INT UNSIGNED NOT NULL,
+    followed_id INT UNSIGNED NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, followed_id),
+    INDEX idx_fol_target (followed_id),
+    CONSTRAINT fk_fol_a FOREIGN KEY (follower_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_fol_b FOREIGN KEY (followed_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS venues (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(80) NOT NULL,
+    area        VARCHAR(60) NOT NULL,
+    description VARCHAR(600) NOT NULL DEFAULT '',
+    photo       VARCHAR(255) NULL,
+    creator_id  INT UNSIGNED NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_v_area (area),
+    INDEX idx_v_name (name),
+    CONSTRAINT fk_v_creator FOREIGN KEY (creator_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE gatherings
+    ADD COLUMN venue_id INT UNSIGNED NULL,
+    ADD KEY idx_venue (venue_id),
+    ADD CONSTRAINT fk_g_venue FOREIGN KEY (venue_id) REFERENCES venues (id) ON DELETE SET NULL;

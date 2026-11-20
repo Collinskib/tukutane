@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cost     = max(0, min(1000000, (int) ($_POST['cost'] ?? 0)));
             $capacity = ($_POST['capacity'] ?? '') !== '' ? max(1, min(100000, (int) $_POST['capacity'])) : null;
             $audience = in_array($_POST['audience'] ?? '', ['public', 'friends'], true) ? $_POST['audience'] : 'public';
+            $venue_id = venue_by_name($venue);
             $invite   = !empty($_POST['invite_only']) ? 1 : 0;
             $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
             if ($title === '' || $venue === '' || $desc === '')        $err = 'Fill in name, venue and details.';
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
                     ':d' => date('Y-m-d H:i:s', strtotime($date)), ':k' => $cost,
                     ':au' => $audience, ':ds' => $desc, ':cap' => $capacity,
-                    ':io' => $invite, ':id' => $id,
+                    ':io' => $invite, ':vid' => $venue_id, ':id' => $id,
                 ];
                 if ($cover) $params[':cv'] = $cover;
                 $scope = ($_POST['scope'] ?? '') === 'series' && $ev['series_id'] ? 'series' : 'one';
@@ -46,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // shared fields on every upcoming occurrence; date stays per-occurrence
                     $shared = $params; unset($shared[':d'], $shared[':cv'], $shared[':id']);
                     db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
-                                   cost=:k,audience=:au,description=:ds,capacity=:cap,invite_only=:io
+                                   cost=:k,audience=:au,description=:ds,capacity=:cap,invite_only=:io,
+                                   venue_id=:vid
                                    WHERE series_id=:sid AND status="active" AND event_at >= NOW()')
                         ->execute($shared + [':sid' => $ev['series_id']]);
                     db()->prepare('UPDATE gatherings SET event_at=:d' . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
@@ -68,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
                                    event_at=:d,cost=:k,audience=:au,description=:ds,
-                                   capacity=:cap,invite_only=:io'
+                                   capacity=:cap,invite_only=:io,venue_id=:vid'
                                    . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
                         ->execute($params);
                     if ($ev['venue'] !== $venue || $ev['area'] !== $area || strtotime($ev['event_at']) !== strtotime($date)) {
@@ -168,7 +170,11 @@ site_header('plans');
         <select name="area"><?php foreach (areas() as $a): ?>
           <option<?= $ev['area'] === $a ? ' selected' : '' ?>><?= e($a) ?></option><?php endforeach; ?></select></div>
     </div>
-    <div class="field"><label>Venue</label><input name="venue" required maxlength="80" value="<?= e($ev['venue']) ?>"></div>
+    <div class="field"><label>Venue</label><input name="venue" required maxlength="80" list="venuelist" value="<?= e($ev['venue']) ?>">
+      <datalist id="venuelist">
+        <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e($v['area']) ?></option><?php endforeach; ?>
+      </datalist>
+      <small style="color:var(--ink-soft)">Known spots autocomplete — or <a href="venue-edit.php">add a venue</a>.</small></div>
     <div class="grid2">
       <div class="field"><label>Date and time</label>
         <input name="date" type="datetime-local" required

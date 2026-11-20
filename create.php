@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $invite   = !empty($_POST['invite_only']) ? 1 : 0;
     $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
     $repeat   = in_array($_POST['repeat'] ?? '', ['weekly', 'monthly'], true) ? $_POST['repeat'] : '';
+    $venue_id = venue_by_name($venue);
 
     if ($title === '' || $venue === '' || $desc === '')            $err = 'Fill in the name, venue and details.';
     elseif (!isset(categories()[$category]))                        $err = 'Pick a category.';
@@ -41,17 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $ins = db()->prepare('INSERT INTO gatherings
                 (title, category, area, venue, event_at, cost, audience, description,
-                 sample, creator, creator_id, capacity, invite_only, cover, series_id)
-                VALUES (:t, :c, :a, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid)');
+                 sample, creator, creator_id, capacity, invite_only, cover, series_id, venue_id)
+                VALUES (:t, :c, :a, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid)');
             $firstId = null;
             foreach ($dates as $d) {
                 $ins->execute([
                     ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
                     ':d' => $d, ':k' => $cost, ':au' => $audience, ':ds' => $desc,
                     ':sk' => SESSION_KEY, ':uid' => user_id(), ':cap' => $capacity,
-                    ':io' => $invite, ':cv' => $cover ?: null, ':sid' => $sid,
+                    ':io' => $invite, ':cv' => $cover ?: null, ':sid' => $sid, ':vid' => $venue_id,
                 ]);
                 $firstId ??= (int) db()->lastInsertId();
+            }
+            foreach (follower_ids(user_id()) as $fid) {
+                notify($fid, 'host_event',
+                    user()['name'] . ' posted "' . $title . '" — ' . date('D j M · g:i A', strtotime($date)) . ' at ' . $venue . ', ' . $area . '.',
+                    'event.php?id=' . $firstId);
             }
             flash($repeat ? 'Series created — ' . count($dates) . ' dates are live!' : 'Your plan is live! Share it with friends.');
             redirect('event.php?id=' . $firstId);
@@ -87,8 +93,12 @@ site_header();
     </div>
 
     <div class="field"><label for="venue">Venue</label>
-      <input id="venue" name="venue" required maxlength="80" value="<?= e($_POST['venue'] ?? '') ?>"
-             placeholder="e.g. rooftop lounge, sports café"></div>
+      <input id="venue" name="venue" required maxlength="80" list="venuelist" value="<?= e($_POST['venue'] ?? '') ?>"
+             placeholder="e.g. rooftop lounge, sports café">
+      <datalist id="venuelist">
+        <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e($v['area']) ?></option><?php endforeach; ?>
+      </datalist>
+      <small style="color:var(--ink-soft)">Known spots autocomplete — or <a href="venue-edit.php">add a venue</a>.</small></div>
 
     <div class="grid2">
       <div class="field"><label for="date">Date and time (Kenya)</label>
