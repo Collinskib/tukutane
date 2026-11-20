@@ -346,5 +346,6 @@ function resolve_location(string $county, string $areaFallback = '', string $est
         }
         return [$area, ''];
     }
+    if ($e === '' && array_key_exists('estate', $_POST)) return [$area, ''];
     return [$area, estate_valid($county, $area, $e) ? $e : $estateFallback];
 }
