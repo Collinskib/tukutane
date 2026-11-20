@@ -22,7 +22,7 @@ site_header();
     <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
       <a href="user.php?id=<?= (int) $r['requester_id'] ?>"><?= avatar_html($r) ?></a>
       <div style="flex:1;min-width:0"><b><?= e($r['name']) ?></b><br>
-        <small style="color:var(--ink-soft)"><?= e($r['area'] ?: 'Nairobi') ?></small></div>
+        <small style="color:var(--ink-soft)"><?= e(place_label($r, 'Kenya')) ?></small></div>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $r['requester_id'] ?>">
         <input type="hidden" name="do" value="accept"><button class="btn-mini solid" type="submit">Accept</button></form>
@@ -58,7 +58,7 @@ site_header();
     <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
       <a href="user.php?id=<?= (int) $fr['id'] ?>"><?= avatar_html($fr) ?></a>
       <div style="flex:1"><a href="user.php?id=<?= (int) $fr['id'] ?>" style="color:inherit;text-decoration:none"><b><?= e($fr['name']) ?></b></a><br>
-        <small style="color:var(--ink-soft)"><?= e($fr['area'] ?: 'Nairobi') ?></small></div>
+        <small style="color:var(--ink-soft)"><?= e(place_label($fr, 'Kenya')) ?></small></div>
       <a class="btn-mini solid" href="messages.php?to=<?= (int) $fr['id'] ?>">💬 Message</a>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $fr['id'] ?>">

@@ -16,7 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             trim($_POST['email'] ?? ''),
             $_POST['password'] ?? '',
             trim($_POST['name'] ?? ''),
-            $_POST['area'] ?? ''
+            $_POST['area'] ?? '',
+            $_POST['county'] ?? ''
         );
     } else {
         $err = attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '');
@@ -61,13 +62,9 @@ site_header();
     </div>
 
     <?php if ($mode === 'register'): ?>
-    <div class="field"><label for="area">Your neighbourhood (optional)</label>
-      <select id="area" name="area">
-        <option value="">Choose…</option>
-        <?php foreach (areas() as $a): ?>
-        <option<?= ($_POST['area'] ?? '') === $a ? ' selected' : '' ?>><?= e($a) ?></option>
-        <?php endforeach; ?>
-      </select></div>
+    <div class="field"><label>Where do you live? (optional)</label>
+      <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', 'optional'); ?>
+    </div>
     <?php endif; ?>
 
     <button class="btn-block" type="submit"><?= $mode === 'register' ? 'Create account' : 'Log in' ?></button>

@@ -9,15 +9,15 @@ $view     = in_array($_GET['view'] ?? '', ['discover', 'mine'], true) ? $_GET['v
 if ($view === 'mine' && !user()) $view = 'discover';
 $interest = $_GET['interest'] ?? 'All interests';
 if ($interest !== 'All interests' && !isset(categories()[$interest])) $interest = 'All interests';
-$area  = $_GET['area'] ?? 'All Nairobi';
-if ($area !== 'All Nairobi' && !in_array($area, areas(), true)) $area = 'All Nairobi';
+$county = in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '';
+$area  = area_valid($county, $_GET['area'] ?? '') ? $_GET['area'] : '';
 $query = trim($_GET['q'] ?? '');
 $when  = in_array($_GET['when'] ?? '', ['today', 'tomorrow', 'weekend'], true) ? $_GET['when'] : '';
 $cost  = in_array($_GET['cost'] ?? '', ['free', 'paid'], true) ? $_GET['cost'] : '';
 $sort  = in_array($_GET['sort'] ?? '', ['popular'], true) ? $_GET['sort'] : 'soon';
 $page  = max(1, (int) ($_GET['page'] ?? 1));
 
-$events = gatherings(compact('view', 'interest', 'area') + [
+$events = gatherings(compact('view', 'interest', 'area', 'county') + [
     'q' => $query, 'when' => $when, 'cost' => $cost, 'sort' => $sort,
     'page' => $page, 'per' => 12,
 ]);
@@ -29,7 +29,7 @@ site_header('discover');
 <main>
   <section class="hero">
     <div>
-      <small>Nairobi, Kenya</small>
+      <small>Across Kenya</small>
       <h1>Find your people.</h1>
       <p>Find a game to watch, a place to dance, or a group to spend your Saturday with.</p>
     </div>
@@ -49,12 +49,7 @@ site_header('discover');
              placeholder="Search gatherings" value="<?= e($query) ?>" autocomplete="off">
       <div id="suggest" class="suggest" hidden></div>
       </span>
-      <select id="area" name="area" aria-label="Neighbourhood" onchange="this.form.submit()">
-        <option<?= $area === 'All Nairobi' ? ' selected' : '' ?>>All Nairobi</option>
-        <?php foreach (areas() as $a): ?>
-        <option<?= $a === $area ? ' selected' : '' ?>><?= e($a) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <span onchange="this.form.submit()"><?php location_picker($county, $area, 'filter'); ?></span>
     </div>
     <div class="filters" id="filters" aria-label="Interests">
       <?php foreach (['All interests', ...array_keys(categories())] as $cat): ?>
@@ -77,13 +72,13 @@ site_header('discover');
     </div>
   </form>
 
-  <?php if ($query || $interest !== 'All interests' || $area !== 'All Nairobi' || $when || $cost): ?>
+  <?php if ($query || $interest !== 'All interests' || $county || $area || $when || $cost): ?>
   <div class="chips">
     <?php
       $active = array_filter([
         $query ? '“' . $query . '”' : null,
         $interest !== 'All interests' ? $interest : null,
-        $area !== 'All Nairobi' ? $area : null,
+        $county ? ($area ? "$area, $county" : $county) : null,
         $when ? ucfirst($when === 'weekend' ? 'This weekend' : $when) : null,
         $cost ? ucfirst($cost) . ' events' : null,
       ]);
@@ -117,7 +112,7 @@ site_header('discover');
       <div class="body">
         <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a><?= !empty($event['series_id']) ? ' <span title="Repeating series">🔁</span>' : '' ?></h3>
         <p><?= e(when($event['event_at'])) ?></p>
-        <p><?= e($event['area']) ?> · <?= e(price((int) $event['cost'])) ?></p>
+        <p><?= e(place_label($event)) ?> · <?= e(price((int) $event['cost'])) ?></p>
         <p><?= $mine
             ? '<span class="status-pill going">Hosted by you</span>'
             : e(going_count($event) . ' going' . ($event['sample'] ? ' · Sample' : '')) ?></p>

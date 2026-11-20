@@ -19,14 +19,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->prepare('DELETE FROM categories WHERE name=:n')->execute([':n'=>$_POST['name'] ?? '']);
             break;
         case 'add_area':
-            $name = trim(mb_substr($_POST['name'] ?? '', 0, 60));
-            $sort = (int) ($_POST['sort'] ?? 99);
-            if ($name) db()->prepare('INSERT INTO areas (name,sort) VALUES (:n,:s)
+            $name   = trim(mb_substr($_POST['name'] ?? '', 0, 60));
+            $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
+            $sort   = (int) ($_POST['sort'] ?? 99);
+            if ($name && $county) db()->prepare('INSERT INTO areas (county,name,sort) VALUES (:c,:n,:s)
                                       ON DUPLICATE KEY UPDATE sort=:s2')
-                       ->execute([':n'=>$name,':s'=>$sort,':s2'=>$sort]);
+                       ->execute([':c'=>$county,':n'=>$name,':s'=>$sort,':s2'=>$sort]);
             break;
         case 'del_area':
-            db()->prepare('DELETE FROM areas WHERE name=:n')->execute([':n'=>$_POST['name'] ?? '']);
+            db()->prepare('DELETE FROM areas WHERE county=:c AND name=:n')
+                ->execute([':c'=>$_POST['county'] ?? '', ':n'=>$_POST['name'] ?? '']);
             break;
     }
     // bust the per-request caches by simply redirecting
@@ -34,10 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $cats = db()->query('SELECT * FROM categories ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
-$ar   = db()->query('SELECT * FROM areas ORDER BY sort, name')->fetchAll(PDO::FETCH_ASSOC);
+$ar   = db()->query('SELECT * FROM areas ORDER BY county, sort, name')->fetchAll(PDO::FETCH_ASSOC);
+$byCounty = [];
+foreach ($ar as $a) $byCounty[$a['county']][] = $a;
+$filterCounty = $_GET['county'] ?? 'Nairobi';
+if (!isset($byCounty[$filterCounty])) $filterCounty = array_key_first($byCounty) ?? 'Nairobi';
 
-admin_page('Categories & areas', 'vocab', function () use ($cats, $ar) { ?>
-  <h2>Categories & neighbourhoods</h2>
+admin_page('Categories & areas', 'vocab', function () use ($cats, $byCounty, $filterCounty) { ?>
+  <h2>Categories & locations</h2>
   <div class="grid2">
     <section class="panel" style="padding:16px">
       <h3 style="font-family:var(--serif);font-weight:400;margin-top:0">Categories</h3>
@@ -59,18 +65,27 @@ admin_page('Categories & areas', 'vocab', function () use ($cats, $ar) { ?>
       </form>
     </section>
     <section class="panel" style="padding:16px">
-      <h3 style="font-family:var(--serif);font-weight:400;margin-top:0">Neighbourhoods</h3>
-      <?php foreach ($ar as $a): ?>
+      <h3 style="font-family:var(--serif);font-weight:400;margin-top:0">Locations (<?= count($byCounty) ?> counties)</h3>
+      <form method="get" style="margin-bottom:10px">
+        <select name="county" onchange="this.form.submit()" style="border:1px solid var(--line);border-radius:9px;padding:8px;width:100%">
+          <?php foreach (counties() as $c): ?><option<?= $c === $filterCounty ? ' selected' : '' ?>><?= e($c) ?> (<?= count($byCounty[$c] ?? []) ?>)</option><?php endforeach; ?>
+        </select>
+      </form>
+      <?php foreach (($byCounty[$filterCounty] ?? []) as $a): ?>
       <div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line-soft)">
         <b style="flex:1"><?= e($a['name']) ?></b><small style="color:var(--ink-soft)">sort <?= (int) $a['sort'] ?></small>
-        <form method="post" onsubmit="return confirm('Delete <?= e($a['name']) ?>?')"><?= csrf_field() ?>
-          <input type="hidden" name="do" value="del_area"><input type="hidden" name="name" value="<?= e($a['name']) ?>">
+        <form method="post" onsubmit="return confirm('Delete <?= e($a['name']) ?>, <?= e($a['county']) ?>?')"><?= csrf_field() ?>
+          <input type="hidden" name="do" value="del_area">
+          <input type="hidden" name="county" value="<?= e($a['county']) ?>"><input type="hidden" name="name" value="<?= e($a['name']) ?>">
           <button class="btn-mini" type="submit">✕</button></form>
       </div>
       <?php endforeach; ?>
-      <form method="post" style="display:flex;gap:8px;margin-top:14px"><?= csrf_field() ?>
+      <form method="post" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><?= csrf_field() ?>
         <input type="hidden" name="do" value="add_area">
-        <input name="name" placeholder="Neighbourhood" required maxlength="60" style="flex:2;border:1px solid var(--line);border-radius:9px;padding:8px">
+        <select name="county" required style="flex:1;border:1px solid var(--line);border-radius:9px;padding:8px">
+          <?php foreach (counties() as $c): ?><option<?= $c === $filterCounty ? ' selected' : '' ?>><?= e($c) ?></option><?php endforeach; ?>
+        </select>
+        <input name="name" placeholder="Area / neighbourhood" required maxlength="60" style="flex:2;border:1px solid var(--line);border-radius:9px;padding:8px">
         <input name="sort" type="number" value="99" style="width:64px;border:1px solid var(--line);border-radius:9px;padding:8px">
         <button class="btn-mini solid" type="submit">Add</button>
       </form>

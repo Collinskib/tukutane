@@ -52,7 +52,7 @@ site_header('discover');
 
   <div class="ev-meta rv" style="--d:80ms">
     <div class="m"><b>When</b><?= e(when($ev['event_at'])) ?></div>
-    <div class="m"><b>Where</b><?php if ($ev['venue_id']): ?><a href="venue.php?id=<?= (int) $ev['venue_id'] ?>" style="color:inherit"><?= e($ev['venue']) ?></a><?php else: ?><?= e($ev['venue']) ?><?php endif; ?>, <?= e($ev['area']) ?></div>
+    <div class="m"><b>Where</b><?php if ($ev['venue_id']): ?><a href="venue.php?id=<?= (int) $ev['venue_id'] ?>" style="color:inherit"><?= e($ev['venue']) ?></a><?php else: ?><?= e($ev['venue']) ?><?php endif; ?>, <?= e(place_label($ev)) ?></div>
     <div class="m"><b>Cost</b><?= e(price((int) $ev['cost'])) ?></div>
     <div class="m"><b>Going</b><?= $going ?><?= $ev['capacity'] ? ' / ' . (int) $ev['capacity'] : '' ?></div>
   </div>
@@ -72,7 +72,7 @@ site_header('discover');
     <?= avatar_html($host) ?>
     <div class="who">
       <b><?= e($host['name'] ?? 'Nipange member') ?></b>
-      <small> · Host<?= $host && $host['area'] ? ' · ' . e($host['area']) : '' ?></small>
+      <small> · Host<?= place_label($host ?: []) ? ' · ' . e(place_label($host ?: [])) : '' ?></small>
     </div>
     <?php if ($host && (int) $host['id'] !== $uid): ?>
     <a class="btn-mini" href="user.php?id=<?= (int) $host['id'] ?>">View profile</a>
@@ -265,7 +265,7 @@ site_header('discover');
         <div class="body">
           <h3><a href="event.php?id=<?= (int) $r['id'] ?>" style="color:inherit;text-decoration:none"><?= e($r['title']) ?></a></h3>
           <p><?= e(when($r['event_at'])) ?></p>
-          <p><?= e($r['area']) ?> · <?= e(price((int) $r['cost'])) ?></p>
+          <p><?= e(place_label($r)) ?> · <?= e(price((int) $r['cost'])) ?></p>
         </div>
       </article>
       <?php endforeach; ?>

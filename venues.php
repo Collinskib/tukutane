@@ -5,7 +5,8 @@ require_login('venues.php');
 
 $f = [
     'q'    => trim($_GET['q'] ?? ''),
-    'area' => in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '',
+    'county' => in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '',
+    'area' => in_array($_GET['area'] ?? '', areas($_GET['county'] ?? ''), true) ? $_GET['area'] : '',
 ];
 $venues = venues_list($f);
 
@@ -15,15 +16,12 @@ site_header('venues');
 <main>
   <div class="ph rv in">
     <h1>Venues</h1>
-    <p>Spots around Nairobi where plans happen — link yours when you create one.</p>
+    <p>Spots around Kenya where plans happen — link yours when you create one.</p>
   </div>
 
   <form class="toolbar" method="get" action="venues.php">
     <input name="q" value="<?= e($f['q']) ?>" placeholder="Search venues…" maxlength="60">
-    <select name="area" onchange="this.form.submit()">
-      <option value="">All neighbourhoods</option>
-      <?php foreach (areas() as $a): ?><option<?= $f['area'] === $a ? ' selected' : '' ?>><?= e($a) ?></option><?php endforeach; ?>
-    </select>
+    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], 'filter'); ?></span>
     <button class="btn-mini" type="submit">Search</button>
     <a class="btn-mini solid" href="venue-edit.php">+ Add a venue</a>
   </form>
@@ -44,7 +42,7 @@ site_header('venues');
       <div class="body">
         <h3><a href="venue.php?id=<?= (int) $v['id'] ?>" style="color:inherit;text-decoration:none"><?= e($v['name']) ?></a></h3>
         <?php if ($v['description']): ?><p><?= e(mb_strimwidth($v['description'], 0, 110, '…')) ?></p><?php endif; ?>
-        <p class="fine" style="margin:0">📍 <?= e($v['area']) ?><?= $v['photo'] ? ' · ' . (int) $v['upcoming'] . ' upcoming' : '' ?><?= $v['creator_name'] ? ' · by ' . e($v['creator_name']) : '' ?></p>
+        <p class="fine" style="margin:0">📍 <?= e(place_label($v)) ?><?= $v['photo'] ? ' · ' . (int) $v['upcoming'] . ' upcoming' : '' ?><?= $v['creator_name'] ? ' · by ' . e($v['creator_name']) : '' ?></p>
       </div>
       <div class="actions" style="padding:0 16px 16px"><a class="btn-mini" href="venue.php?id=<?= (int) $v['id'] ?>">Open</a></div>
     </div>

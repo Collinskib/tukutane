@@ -296,3 +296,6 @@ footer.site{border-top:1px solid var(--line);margin-top:40px;padding:30px 24px;m
 .attach-file{display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:6px;border-radius:10px;background:rgba(0,0,0,.06);color:inherit;text-decoration:none;font-size:14px;font-weight:500}
 .bubble.me .attach-file{background:rgba(255,255,255,.18)}
 .attach-chip{font-size:11px;background:var(--mist);color:var(--green-2);padding:3px 8px;border-radius:99px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.locpick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.locpick select{width:100%}
+@media(max-width:540px){.locpick{grid-template-columns:1fr 1fr}}

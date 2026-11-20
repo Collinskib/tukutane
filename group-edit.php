@@ -22,13 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc    = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $cat     = $_POST['category'] ?? '';
     $area    = $_POST['area'] ?? '';
+    $county  = $_POST['county'] ?? '';
     $policy  = in_array($_POST['join_policy'] ?? '', ['open', 'approval'], true) ? $_POST['join_policy'] : 'open';
 
     if ($name === '')                          $err = 'Give the group a name.';
     elseif (!isset(categories()[$cat]))        $err = 'Pick a category.';
-    elseif (!in_array($area, areas(), true))   $err = 'Pick a neighbourhood.';
+    elseif (!area_valid($county, $area))       $err = 'Pick your county and area.';
     else {
-        $d = ['name' => $name, 'description' => $desc, 'category' => $cat, 'area' => $area, 'join_policy' => $policy];
+        $d = ['name' => $name, 'description' => $desc, 'category' => $cat, 'area' => $area, 'county' => $county, 'join_policy' => $policy];
         if ($g) {
             group_update((int) $g['id'], $d);
             flash('Group updated.');
@@ -63,12 +64,8 @@ site_header('groups');
           <option<?= ($_POST['category'] ?? $g['category'] ?? '') === $cat ? ' selected' : '' ?>><?= e($cat) ?></option>
           <?php endforeach; ?>
         </select></div>
-      <div class="field"><label for="area">Neighbourhood</label>
-        <select id="area" name="area">
-          <?php foreach (areas() as $a): ?>
-          <option<?= ($_POST['area'] ?? $g['area'] ?? '') === $a ? ' selected' : '' ?>><?= e($a) ?></option>
-          <?php endforeach; ?>
-        </select></div>
+      <div class="field"><label>Where</label>
+        <?php location_picker($_POST['county'] ?? ($g['county'] ?? ''), $_POST['area'] ?? ($g['area'] ?? '')); ?></div>
     </div>
 
     <div class="field"><label for="desc">What is this group about?</label>

@@ -270,3 +270,34 @@ function smtp_send(string $to, string $subject, string $body): bool {
     fclose($fp);
     return true;
 }
+
+// Cascading county → sub-county/area picker. Emits the shared JS once per page.
+// $all=true turns it into a filter widget (empty = no restriction).
+function location_picker(string $county = '', string $area = '', string $mode = 'required'): void {
+    static $jsDone = false;
+    $filter = $mode === 'filter';
+    echo '<div class="locpick">';
+    echo '<select name="county" class="loccounty"' . ($mode === 'required' ? ' required' : '') . '>';
+    echo '<option value="">' . ($filter ? 'All counties' : 'County…') . '</option>';
+    foreach (counties() as $c)
+        echo '<option' . ($county === $c ? ' selected' : '') . '>' . e($c) . '</option>';
+    echo '</select>';
+    echo '<select name="area" class="locarea" data-current="' . e($area) . '"' . ($mode === 'required' ? ' required' : '') . '>';
+    echo '<option value="">' . ($filter ? 'All areas' : 'Sub-county / area…') . '</option></select>';
+    echo '</div>';
+    if ($jsDone) return;
+    $jsDone = true;
+    echo '<script>var LOC_MAP=' . json_encode(areas_map(), JSON_UNESCAPED_UNICODE) . ';
+(function(){
+  function fill(sel){
+    var w=sel.closest(".locpick"),a=w.querySelector(".locarea"),
+        cur=a.dataset.current,list=LOC_MAP[sel.value]||[],
+        first=a.options[0]?a.options[0].textContent:"";
+    a.innerHTML="";var d=document.createElement("option");d.value="";d.textContent=first;a.appendChild(d);
+    list.forEach(function(n){var o=document.createElement("option");o.value=n;o.textContent=n;if(n===cur)o.selected=true;a.appendChild(o);});
+    a.dataset.current="";
+  }
+  document.addEventListener("change",function(e){if(e.target.classList&&e.target.classList.contains("loccounty"))fill(e.target);});
+  document.querySelectorAll(".loccounty").forEach(function(s){if(s.value)fill(s);});
+})();</script>';
+}

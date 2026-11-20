@@ -7,7 +7,8 @@ $view = ($_GET['view'] ?? '') === 'mine' ? 'mine' : 'discover';
 $f = [
     'q'        => trim($_GET['q'] ?? ''),
     'category' => isset(categories()[$_GET['category'] ?? '']) ? $_GET['category'] : '',
-    'area'     => in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '',
+    'county'   => in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '',
+    'area'     => in_array($_GET['area'] ?? '', areas($_GET['county'] ?? ''), true) ? $_GET['area'] : '',
     'view'     => $view,
 ];
 $groups = groups_list($f);
@@ -31,10 +32,7 @@ site_header('groups');
       <option value="">All interests</option>
       <?php foreach (array_keys(categories()) as $c): ?><option<?= $f['category'] === $c ? ' selected' : '' ?>><?= e($c) ?></option><?php endforeach; ?>
     </select>
-    <select name="area" onchange="this.form.submit()">
-      <option value="">All neighbourhoods</option>
-      <?php foreach (areas() as $a): ?><option<?= $f['area'] === $a ? ' selected' : '' ?>><?= e($a) ?></option><?php endforeach; ?>
-    </select>
+    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], 'filter'); ?></span>
     <button class="btn-mini" type="submit">Search</button>
   </form>
 
@@ -54,7 +52,7 @@ site_header('groups');
           <?php elseif ($g['my_status'] === 'active'): ?><span class="status-pill going"><?= $g['my_role'] === 'admin' ? 'Admin' : 'Joined' ?></span><?php endif; ?>
         </h3>
         <p><?= e(mb_strimwidth($g['description'], 0, 110, '…')) ?></p>
-        <p class="fine" style="margin:0">📍 <?= e($g['area']) ?> · by <?= e($g['creator_name']) ?><?= $g['join_policy'] === 'approval' ? ' · approval needed' : '' ?></p>
+        <p class="fine" style="margin:0">📍 <?= e(place_label($g)) ?> · by <?= e($g['creator_name']) ?><?= $g['join_policy'] === 'approval' ? ' · approval needed' : '' ?></p>
       </div>
       <div class="actions" style="padding:0 16px 16px">
         <a class="btn-mini<?= $g['my_status'] === 'active' ? '' : ' solid' ?>" href="group.php?id=<?= (int) $g['id'] ?>">

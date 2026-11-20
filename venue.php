@@ -24,7 +24,7 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
   <div class="prof-head rv in">
     <div class="info">
       <h2>📍 <?= e($v['name']) ?></h2>
-      <p><?= e($v['area']) ?><?= $v['creator_name'] ? ' · added by ' . e($v['creator_name']) : '' ?></p>
+      <p><?= e(place_label($v)) ?><?= $v['creator_name'] ? ' · added by ' . e($v['creator_name']) : '' ?></p>
       <?php if ($v['description']): ?><p style="margin-top:6px"><?= e($v['description']) ?></p><?php endif; ?>
     </div>
   </div>

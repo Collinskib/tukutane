@@ -77,7 +77,7 @@ site_header('groups');
     <div class="thread-head" style="flex-wrap:wrap;gap:10px">
       <div class="who" style="flex:1;min-width:200px">
         <h2 style="margin:0"><?= e($g['name']) ?></h2>
-        <small><?= e($g['category']) ?> · <?= e($g['area']) ?> · <?= (int) $g['members'] ?> member<?= (int) $g['members'] === 1 ? '' : 's' ?><?= $g['join_policy'] === 'approval' ? ' · join by approval' : ' · open' ?></small>
+        <small><?= e($g['category']) ?> · <?= e(place_label($g)) ?> · <?= (int) $g['members'] ?> member<?= (int) $g['members'] === 1 ? '' : 's' ?><?= $g['join_policy'] === 'approval' ? ' · join by approval' : ' · open' ?></small>
       </div>
       <?php if ($isCreator || $isAdmin): ?>
       <a class="btn-mini" href="group-edit.php?id=<?= $gid ?>">Edit</a>
@@ -107,7 +107,7 @@ site_header('groups');
     <?php foreach ($pending as $m): ?>
     <div class="member-row">
       <a href="user.php?id=<?= (int) $m['user_id'] ?>"><?= avatar_html($m, 'sm') ?></a>
-      <a class="who" href="user.php?id=<?= (int) $m['user_id'] ?>" style="text-decoration:none;color:inherit"><b><?= e($m['name']) ?></b><small><?= e($m['area'] ?: 'Nairobi') ?></small></a>
+      <a class="who" href="user.php?id=<?= (int) $m['user_id'] ?>" style="text-decoration:none;color:inherit"><b><?= e($m['name']) ?></b><small><?= e(place_label($m, 'Kenya')) ?></small></a>
       <form method="post" style="display:inline"><?= csrf_field() ?>
         <input type="hidden" name="do" value="approve"><input type="hidden" name="uid" value="<?= (int) $m['user_id'] ?>">
         <button class="btn-mini solid" type="submit">Approve</button></form>
@@ -126,7 +126,7 @@ site_header('groups');
       <a href="user.php?id=<?= (int) $m['user_id'] ?>"><?= avatar_html($m, 'sm') ?></a>
       <a class="who" href="user.php?id=<?= (int) $m['user_id'] ?>" style="text-decoration:none;color:inherit">
         <b><?= e($m['name']) ?></b>
-        <small><?= $m['role'] === 'admin' ? 'Admin · ' : '' ?><?= e($m['area'] ?: 'Nairobi') ?></small></a>
+        <small><?= $m['role'] === 'admin' ? 'Admin · ' : '' ?><?= e(place_label($m, 'Kenya')) ?></small></a>
       <?php if (($isAdmin || $isCreator) && (int) $m['user_id'] !== $uid && $m['role'] !== 'admin'): ?>
       <form method="post" style="display:inline;margin-left:auto"><?= csrf_field() ?>
         <input type="hidden" name="do" value="remove"><input type="hidden" name="uid" value="<?= (int) $m['user_id'] ?>">

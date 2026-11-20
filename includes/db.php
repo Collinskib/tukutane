@@ -46,17 +46,53 @@ function categories(): array {
     return $cats;
 }
 
-function areas(): array {
-    static $areas = null;
-    if ($areas === null) {
+function areas(?string $county = null): array {
+    static $all = null;
+    if ($all === null) {
         try {
-            $areas = db()->query('SELECT name FROM areas ORDER BY sort, name')
-                         ->fetchAll(PDO::FETCH_COLUMN) ?: AREAS_FALLBACK;
+            $rows = db()->query('SELECT county, name FROM areas ORDER BY sort, name')
+                        ->fetchAll(PDO::FETCH_ASSOC);
+            $all = [];
+            foreach ($rows as $r) $all[$r['county']][] = $r['name'];
+            if (!$all) $all = ['Nairobi' => AREAS_FALLBACK];
         } catch (Throwable) {
-            $areas = AREAS_FALLBACK;
+            $all = ['Nairobi' => AREAS_FALLBACK];
         }
     }
-    return $areas;
+    if ($county !== null) return $all[$county] ?? [];
+    return array_values(array_merge(...array_values($all)));
+}
+
+function counties(): array {
+    return array_keys(areas_map());
+}
+
+function areas_map(): array {
+    static $m = null;
+    if ($m === null) {
+        $m = [];
+        try {
+            foreach (db()->query('SELECT county, name FROM areas ORDER BY county, name') as $r)
+                $m[$r['county']][] = $r['name'];
+            ksort($m);
+        } catch (Throwable) {
+            $m = ['Nairobi' => AREAS_FALLBACK];
+        }
+        if (!$m) $m = ['Nairobi' => AREAS_FALLBACK];
+    }
+    return $m;
+}
+
+function area_valid(string $county, string $area): bool {
+    return $county !== '' && in_array($area, areas($county), true);
+}
+
+// "Kilimani, Nairobi" from a row that may have area/county keys
+function place_label(array $r, string $fallback = ''): string {
+    $a = trim((string) ($r['area'] ?? ''));
+    $c = trim((string) ($r['county'] ?? ''));
+    if ($a !== '' && $c !== '' && $a !== $c) return "$a, $c";
+    return $a !== '' ? $a : ($c !== '' ? $c : $fallback);
 }
 
 // ---------- gatherings ----------
@@ -107,12 +143,16 @@ function gatherings(array $f): array {
         $sql .= ' AND g.category = :interest';
         $p[':interest'] = $f['interest'];
     }
-    if (($f['area'] ?? '') && $f['area'] !== 'All Nairobi') {
+    if (!empty($f['county'])) {
+        $sql .= ' AND g.county = :county';
+        $p[':county'] = $f['county'];
+    }
+    if (!empty($f['area'])) {
         $sql .= ' AND g.area = :area';
         $p[':area'] = $f['area'];
     }
     if (!empty($f['q'])) {
-        $sql .= " AND CONCAT_WS(' ', g.title, g.area, g.venue, g.category, g.description) LIKE :q";
+        $sql .= " AND CONCAT_WS(' ', g.title, g.area, g.county, g.venue, g.category, g.description) LIKE :q";
         $p[':q'] = '%' . $f['q'] . '%';
     }
     switch ($f['when'] ?? '') {
@@ -359,7 +399,7 @@ function find_user_by_email(string $email): ?array {
 
 // People nearby: discoverable active users, shared interests ranked first.
 function people(array $f, int $viewerId): array {
-    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.area, u.interests,
+    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.area, u.county, u.interests,
                    (SELECT COUNT(*) FROM friendships fr
                     WHERE fr.status = "accepted"
                       AND ((fr.requester_id = u.id AND fr.addressee_id = :vf1)
@@ -378,6 +418,10 @@ function people(array $f, int $viewerId): array {
     $p = [':self' => $viewerId];
     foreach (['vf1','vf2','vf3','vf4','vf5','vf6','vb1','vb2'] as $k) $p[":$k"] = $viewerId;
 
+    if (!empty($f['county'])) {
+        $sql .= ' AND u.county = :county';
+        $p[':county'] = $f['county'];
+    }
     if (!empty($f['area'])) {
         $sql .= ' AND u.area = :area';
         $p[':area'] = $f['area'];
@@ -467,7 +511,7 @@ function friend_action(string $action, int $me, int $other): string {
 
 function my_friends(int $uid): array {
     $stmt = db()->prepare(
-        'SELECT u.id, u.name, u.photo, u.area FROM friendships f
+        'SELECT u.id, u.name, u.photo, u.area, u.county FROM friendships f
          JOIN users u ON u.id = IF(f.requester_id = :m1, f.addressee_id, f.requester_id)
          WHERE f.status = "accepted" AND (f.requester_id = :m2 OR f.addressee_id = :m3)
          ORDER BY u.name'
@@ -478,7 +522,7 @@ function my_friends(int $uid): array {
 
 function pending_requests(int $uid): array {
     $stmt = db()->prepare(
-        'SELECT f.id AS req_id, f.requester_id, u.name, u.photo, u.area, u.bio
+        'SELECT f.id AS req_id, f.requester_id, u.name, u.photo, u.area, u.county, u.bio
          FROM friendships f JOIN users u ON u.id = f.requester_id
          WHERE f.addressee_id = :m AND f.status = "pending" ORDER BY f.created_at DESC'
     );
@@ -488,7 +532,7 @@ function pending_requests(int $uid): array {
 
 function outgoing_requests(int $uid): array {
     $stmt = db()->prepare(
-        'SELECT f.id AS req_id, f.addressee_id, u.name, u.photo, u.area
+        'SELECT f.id AS req_id, f.addressee_id, u.name, u.photo, u.area, u.county
          FROM friendships f JOIN users u ON u.id = f.addressee_id
          WHERE f.requester_id = :m AND f.status = "pending" ORDER BY f.created_at DESC'
     );
@@ -521,7 +565,7 @@ function unblock_user(int $me, int $other): void {
 
 // people I have blocked
 function blocked_list(int $me): array {
-    $stmt = db()->prepare('SELECT u.id, u.name, u.photo, u.area FROM blocks b
+    $stmt = db()->prepare('SELECT u.id, u.name, u.photo, u.area, u.county FROM blocks b
                            JOIN users u ON u.id = b.blocked_id WHERE b.blocker_id = :m');
     $stmt->execute([':m' => $me]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -746,11 +790,14 @@ function groups_list(array $f): array {
     if (($f['category'] ?? '') && $f['category'] !== 'All interests') {
         $sql .= ' AND g.category = :cat'; $p[':cat'] = $f['category'];
     }
-    if (($f['area'] ?? '') && $f['area'] !== 'All Nairobi') {
+    if (!empty($f['county'])) {
+        $sql .= ' AND g.county = :county'; $p[':county'] = $f['county'];
+    }
+    if (!empty($f['area'])) {
         $sql .= ' AND g.area = :area'; $p[':area'] = $f['area'];
     }
     if (!empty($f['q'])) {
-        $sql .= " AND CONCAT_WS(' ', g.name, g.description, g.area, g.category) LIKE :q";
+        $sql .= " AND CONCAT_WS(' ', g.name, g.description, g.area, g.county, g.category) LIKE :q";
         $p[':q'] = '%' . $f['q'] . '%';
     }
     $sql .= ' ORDER BY members DESC, g.created_at DESC LIMIT 60';
@@ -776,7 +823,7 @@ function group_membership(int $gid, int $uid): ?array {
 }
 
 function group_members(int $gid, string $status = 'active'): array {
-    $stmt = db()->prepare('SELECT m.*, u.name, u.photo, u.area FROM grp_members m
+    $stmt = db()->prepare('SELECT m.*, u.name, u.photo, u.area, u.county FROM grp_members m
                            JOIN users u ON u.id = m.user_id
                            WHERE m.group_id = :g AND m.status = :s ORDER BY m.role = "admin" DESC, m.created_at');
     $stmt->execute([':g' => $gid, ':s' => $status]);
@@ -790,10 +837,10 @@ function group_admins(int $gid): array {
 }
 
 function group_create(int $uid, array $d): int {
-    db()->prepare('INSERT INTO grps (name, description, category, area, creator_id, join_policy)
-                   VALUES (:n, :d, :c, :a, :u, :p)')
+    db()->prepare('INSERT INTO grps (name, description, category, area, county, creator_id, join_policy)
+                   VALUES (:n, :d, :c, :a, :cy, :u, :p)')
         ->execute([':n' => $d['name'], ':d' => $d['description'], ':c' => $d['category'],
-                   ':a' => $d['area'], ':u' => $uid, ':p' => $d['join_policy']]);
+                   ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':u' => $uid, ':p' => $d['join_policy']]);
     $gid = (int) db()->lastInsertId();
     db()->prepare('INSERT INTO grp_members (group_id, user_id, role, status) VALUES (:g, :u, "admin", "active")')
         ->execute([':g' => $gid, ':u' => $uid]);
@@ -801,9 +848,9 @@ function group_create(int $uid, array $d): int {
 }
 
 function group_update(int $gid, array $d): void {
-    db()->prepare('UPDATE grps SET name = :n, description = :d, category = :c, area = :a, join_policy = :p WHERE id = :id')
+    db()->prepare('UPDATE grps SET name = :n, description = :d, category = :c, area = :a, county = :cy, join_policy = :p WHERE id = :id')
         ->execute([':n' => $d['name'], ':d' => $d['description'], ':c' => $d['category'],
-                   ':a' => $d['area'], ':p' => $d['join_policy'], ':id' => $gid]);
+                   ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':p' => $d['join_policy'], ':id' => $gid]);
 }
 
 // returns 'joined' | 'requested' | 'rejoined' | 'rerequested' | null (already active/pending)
@@ -985,9 +1032,10 @@ function venues_list(array $f): array {
                    (SELECT COUNT(*) FROM gatherings g WHERE g.venue_id = v.id AND g.status = "active" AND g.event_at >= NOW()) AS upcoming
             FROM venues v LEFT JOIN users u ON u.id = v.creator_id WHERE 1=1';
     $p = [];
-    if (($f['area'] ?? '') && $f['area'] !== 'All Nairobi') { $sql .= ' AND v.area = :a'; $p[':a'] = $f['area']; }
+    if (!empty($f['county'])) { $sql .= ' AND v.county = :c'; $p[':c'] = $f['county']; }
+    if (!empty($f['area'])) { $sql .= ' AND v.area = :a'; $p[':a'] = $f['area']; }
     if (!empty($f['q'])) {
-        $sql .= " AND CONCAT_WS(' ', v.name, v.description, v.area) LIKE :q";
+        $sql .= " AND CONCAT_WS(' ', v.name, v.description, v.area, v.county) LIKE :q";
         $p[':q'] = '%' . $f['q'] . '%';
     }
     $sql .= ' ORDER BY upcoming DESC, v.name LIMIT 80';
@@ -1020,20 +1068,21 @@ function venue_by_name(string $name): ?int {
 }
 
 function venue_create(int $uid, array $d): int {
-    db()->prepare('INSERT INTO venues (name, area, description, photo, creator_id)
-                   VALUES (:n, :a, :d, :p, :u)')
-        ->execute([':n' => $d['name'], ':a' => $d['area'], ':d' => $d['description'],
-                   ':p' => $d['photo'] ?? null, ':u' => $uid]);
+    db()->prepare('INSERT INTO venues (name, area, county, description, photo, creator_id)
+                   VALUES (:n, :a, :cy, :d, :p, :u)')
+        ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '',
+                   ':d' => $d['description'], ':p' => $d['photo'] ?? null, ':u' => $uid]);
     return (int) db()->lastInsertId();
 }
 
 function venue_update(int $id, array $d): void {
-    db()->prepare('UPDATE venues SET name = :n, area = :a, description = :d'
+    db()->prepare('UPDATE venues SET name = :n, area = :a, county = :cy, description = :d'
                   . (isset($d['photo']) ? ', photo = :p' : '') . ' WHERE id = :i')
-        ->execute([':n' => $d['name'], ':a' => $d['area'], ':d' => $d['description']]
+        ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '',
+                   ':d' => $d['description']]
                   + (isset($d['photo']) ? [':p' => $d['photo']] : []) + [':i' => $id]);
 }
 
 function venues_all(): array {
-    return db()->query('SELECT id, name, area FROM venues ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
+    return db()->query('SELECT id, name, area, county FROM venues ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 }

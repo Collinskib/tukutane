@@ -13,6 +13,6 @@ $rows = gatherings(['q' => $q, 'per' => 6, 'sort' => 'soon']);
 $out = array_map(fn($g) => [
     'id'    => (int) $g['id'],
     'title' => $g['title'],
-    'meta'  => when($g['event_at']) . ' · ' . $g['area'],
+    'meta'  => when($g['event_at']) . ' · ' . place_label($g),
 ], $rows);
 echo json_encode($out);

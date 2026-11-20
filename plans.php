@@ -36,7 +36,7 @@ function event_row(array $ev, bool $hosted = false): void {
     <div class="ribbon" style="background:<?= e($col) ?>;height:64px;width:74px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none"><?= $em ?></div>
     <div class="info">
       <b><a href="event.php?id=<?= (int) $ev['id'] ?>" style="color:inherit;text-decoration:none"><?= e($ev['title']) ?></a></b>
-      <small><?= e(when($ev['event_at'])) ?> · <?= e($ev['area']) ?> · <?= e(price((int) $ev['cost'])) ?></small>
+      <small><?= e(when($ev['event_at'])) ?> · <?= e(place_label($ev)) ?> · <?= e(price((int) $ev['cost'])) ?></small>
     </div>
     <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span>
     <?php elseif ($hosted): ?><span class="status-pill going"><?= going_count($ev) ?> going</span>
@@ -82,7 +82,7 @@ site_header('plans');
       <div class="ribbon" style="background:<?= e($col) ?>;height:64px;width:74px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none"><?= $em ?></div>
       <div class="info">
         <b><?= e($inv['title']) ?></b>
-        <small><?= e(when($inv['event_at'])) ?> · <?= e($inv['area']) ?> · invited by <?= e($inv['inviter_name']) ?></small>
+        <small><?= e(when($inv['event_at'])) ?> · <?= e(place_label($inv)) ?> · invited by <?= e($inv['inviter_name']) ?></small>
       </div>
       <?php if ($inv['status'] === 'pending'): ?>
       <form method="post" action="rsvp.php"><?= csrf_field() ?>
@@ -104,7 +104,7 @@ site_header('plans');
     <?php foreach ($requests as $r): ?>
     <div class="plan-card">
       <?= avatar_html($r) ?>
-      <div class="info"><b><?= e($r['name']) ?></b><small><?= e($r['area'] ?: 'Nairobi') ?></small></div>
+      <div class="info"><b><?= e($r['name']) ?></b><small><?= e(place_label($r, 'Kenya')) ?></small></div>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $r['requester_id'] ?>">
         <input type="hidden" name="do" value="accept"><button class="btn-mini solid" type="submit">Accept</button></form>

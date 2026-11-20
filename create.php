@@ -9,6 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
     $category = $_POST['category'] ?? '';
     $area     = $_POST['area'] ?? '';
+    $county   = $_POST['county'] ?? '';
     $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
     $date     = trim($_POST['date'] ?? '');
     $cost     = max(0, min(1000000, (int) ($_POST['cost'] ?? 0)));
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($title === '' || $venue === '' || $desc === '')            $err = 'Fill in the name, venue and details.';
     elseif (!isset(categories()[$category]))                        $err = 'Pick a category.';
-    elseif (!in_array($area, areas(), true))                        $err = 'Pick a neighbourhood.';
+    elseif (!area_valid($county, $area))                            $err = 'Pick your county and area.';
     elseif (!strtotime($date) || strtotime($date) < time())         $err = 'Pick a future date and time.';
     else {
         $cover = upload_image('cover');
@@ -41,13 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             $ins = db()->prepare('INSERT INTO gatherings
-                (title, category, area, venue, event_at, cost, audience, description,
+                (title, category, area, county, venue, event_at, cost, audience, description,
                  sample, creator, creator_id, capacity, invite_only, cover, series_id, venue_id)
-                VALUES (:t, :c, :a, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid)');
+                VALUES (:t, :c, :a, :cy, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid)');
             $firstId = null;
             foreach ($dates as $d) {
                 $ins->execute([
-                    ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
+                    ':t' => $title, ':c' => $category, ':a' => $area, ':cy' => $county, ':v' => $venue,
                     ':d' => $d, ':k' => $cost, ':au' => $audience, ':ds' => $desc,
                     ':sk' => SESSION_KEY, ':uid' => user_id(), ':cap' => $capacity,
                     ':io' => $invite, ':cv' => $cover ?: null, ':sid' => $sid, ':vid' => $venue_id,
@@ -84,19 +85,15 @@ site_header();
           <option<?= ($_POST['category'] ?? '') === $cat ? ' selected' : '' ?>><?= e($cat) ?></option>
           <?php endforeach; ?>
         </select></div>
-      <div class="field"><label for="area">Neighbourhood</label>
-        <select id="area" name="area">
-          <?php foreach (areas() as $a): ?>
-          <option<?= ($_POST['area'] ?? '') === $a ? ' selected' : '' ?>><?= e($a) ?></option>
-          <?php endforeach; ?>
-        </select></div>
+      <div class="field"><label>Where</label>
+        <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? ''); ?></div>
     </div>
 
     <div class="field"><label for="venue">Venue</label>
       <input id="venue" name="venue" required maxlength="80" list="venuelist" value="<?= e($_POST['venue'] ?? '') ?>"
              placeholder="e.g. rooftop lounge, sports café">
       <datalist id="venuelist">
-        <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e($v['area']) ?></option><?php endforeach; ?>
+        <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e(place_label($v)) ?></option><?php endforeach; ?>
       </datalist>
       <small style="color:var(--ink-soft)">Known spots autocomplete — or <a href="venue-edit.php">add a venue</a>.</small></div>
 

@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
             $category = $_POST['category'] ?? $ev['category'];
             $area     = $_POST['area'] ?? $ev['area'];
+            $county   = $_POST['county'] ?? $ev['county'];
             $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
             $date     = trim($_POST['date'] ?? '');
             $cost     = max(0, min(1000000, (int) ($_POST['cost'] ?? 0)));
@@ -30,13 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
             if ($title === '' || $venue === '' || $desc === '')        $err = 'Fill in name, venue and details.';
             elseif (!isset(categories()[$category]))                    $err = 'Pick a category.';
-            elseif (!in_array($area, areas(), true))                    $err = 'Pick a neighbourhood.';
+            elseif (!area_valid($county, $area))                        $err = 'Pick your county and area.';
             elseif (!strtotime($date))                                   $err = 'Invalid date.';
             else {
                 $cover = upload_image('cover');
                 if (str_starts_with($cover, '!')) { $err = substr($cover, 1); break; }
                 $params = [
-                    ':t' => $title, ':c' => $category, ':a' => $area, ':v' => $venue,
+                    ':t' => $title, ':c' => $category, ':a' => $area, ':cy' => $county, ':v' => $venue,
                     ':d' => date('Y-m-d H:i:s', strtotime($date)), ':k' => $cost,
                     ':au' => $audience, ':ds' => $desc, ':cap' => $capacity,
                     ':io' => $invite, ':vid' => $venue_id, ':id' => $id,
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($scope === 'series') {
                     // shared fields on every upcoming occurrence; date stays per-occurrence
                     $shared = $params; unset($shared[':d'], $shared[':cv'], $shared[':id']);
-                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
+                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,venue=:v,
                                    cost=:k,audience=:au,description=:ds,capacity=:cap,invite_only=:io,
                                    venue_id=:vid
                                    WHERE series_id=:sid AND status="active" AND event_at >= NOW()')
@@ -68,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     flash('Saved across the whole series.');
                 } else {
-                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,venue=:v,
+                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,venue=:v,
                                    event_at=:d,cost=:k,audience=:au,description=:ds,
                                    capacity=:cap,invite_only=:io,venue_id=:vid'
                                    . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
@@ -166,13 +167,12 @@ site_header('plans');
       <div class="field"><label>Interest</label>
         <select name="category"><?php foreach (array_keys(categories()) as $cat): ?>
           <option<?= $ev['category'] === $cat ? ' selected' : '' ?>><?= e($cat) ?></option><?php endforeach; ?></select></div>
-      <div class="field"><label>Neighbourhood</label>
-        <select name="area"><?php foreach (areas() as $a): ?>
-          <option<?= $ev['area'] === $a ? ' selected' : '' ?>><?= e($a) ?></option><?php endforeach; ?></select></div>
+      <div class="field"><label>Where</label>
+        <?php location_picker($_POST['county'] ?? $ev['county'], $_POST['area'] ?? $ev['area']); ?></div>
     </div>
     <div class="field"><label>Venue</label><input name="venue" required maxlength="80" list="venuelist" value="<?= e($ev['venue']) ?>">
       <datalist id="venuelist">
-        <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e($v['area']) ?></option><?php endforeach; ?>
+        <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e(place_label($v)) ?></option><?php endforeach; ?>
       </datalist>
       <small style="color:var(--ink-soft)">Known spots autocomplete — or <a href="venue-edit.php">add a venue</a>.</small></div>
     <div class="grid2">

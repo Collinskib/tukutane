@@ -15,14 +15,15 @@ $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $name = trim(mb_substr($_POST['name'] ?? '', 0, 80));
-    $area = in_array($_POST['area'] ?? '', areas(), true) ? $_POST['area'] : '';
+    $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
+    $area = area_valid($county, $_POST['area'] ?? '') ? $_POST['area'] : '';
     $desc = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $photo = upload_image('photo');
     if (str_starts_with($photo, '!')) $err = substr($photo, 1);
     elseif ($name === '') $err = 'Give the venue a name.';
     elseif ($area === '') $err = 'Pick a neighbourhood.';
     else {
-        $d = ['name' => $name, 'area' => $area, 'description' => $desc];
+        $d = ['name' => $name, 'area' => $area, 'county' => $county, 'description' => $desc];
         if ($photo) $d['photo'] = $photo;
         if ($v) {
             venue_update($id, $d);
@@ -47,12 +48,8 @@ site_header('venues');
       <div class="field"><label for="name">Name</label>
         <input id="name" name="name" required maxlength="80" value="<?= e($_POST['name'] ?? ($v['name'] ?? '')) ?>"
                placeholder="e.g. Yaya Centre rooftop, Karura gate B"></div>
-      <div class="field"><label for="area">Neighbourhood</label>
-        <select id="area" name="area" required>
-          <option value="">Pick a neighbourhood…</option>
-          <?php $cur = $_POST['area'] ?? ($v['area'] ?? '');
-          foreach (areas() as $a): ?><option<?= $cur === $a ? ' selected' : '' ?>><?= e($a) ?></option><?php endforeach; ?>
-        </select></div>
+      <div class="field"><label>Where</label>
+        <?php location_picker($_POST['county'] ?? ($v['county'] ?? ''), $_POST['area'] ?? ($v['area'] ?? '')); ?></div>
       <div class="field"><label for="description">About this spot <small>(optional)</small></label>
         <textarea id="description" name="description" rows="3" maxlength="600"
                   placeholder="What is it good for? How do people find it?"><?= e($_POST['description'] ?? ($v['description'] ?? '')) ?></textarea></div>

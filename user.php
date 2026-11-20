@@ -40,7 +40,7 @@ $pastHosted = host_gatherings($id, false, 6);
     <?= avatar_html($p, 'lg') ?>
     <div class="info">
       <h2><?= e($p['name']) ?></h2>
-      <p><?= $p['area'] ? e($p['area']) : 'Nairobi' ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
+      <p><?= e(place_label($p, 'Nipange user')) ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
       <?php if ($p['bio']): ?><p style="margin-top:6px"><?= e($p['bio']) ?></p><?php endif; ?>
     </div>
   </div>
@@ -91,7 +91,7 @@ $pastHosted = host_gatherings($id, false, 6);
       <div class="ribbon" style="background:<?= e($rc) ?>"><span><?= e($r['category']) ?></span><span><?= e((categories()[$r['category']] ?? ['📅'])[0]) ?></span></div>
       <div class="body">
         <h3><a href="event.php?id=<?= (int) $r['id'] ?>" style="color:inherit;text-decoration:none"><?= e($r['title']) ?></a></h3>
-        <p><?= e(when($r['event_at'])) ?> · <?= e($r['area']) ?></p>
+        <p><?= e(when($r['event_at'])) ?> · <?= e(place_label($r)) ?></p>
       </div>
     </article>
     <?php endforeach; ?>
@@ -104,7 +104,7 @@ $pastHosted = host_gatherings($id, false, 6);
     <?php foreach ($pastHosted as $r): ?>
     <div class="member-row">
       <span class="who" style="flex:1"><b><a href="event.php?id=<?= (int) $r['id'] ?>" style="color:inherit;text-decoration:none"><?= e($r['title']) ?></a></b>
-        <small><?= e(date('D j M Y', strtotime($r['event_at']))) ?> · <?= e($r['area']) ?> · <?= (int) $r['real_rsvps'] + (int) $r['going_base'] ?> went</small></span>
+        <small><?= e(date('D j M Y', strtotime($r['event_at']))) ?> · <?= e(place_label($r)) ?> · <?= (int) $r['real_rsvps'] + (int) $r['going_base'] ?> went</small></span>
     </div>
     <?php endforeach; ?>
   </div>
