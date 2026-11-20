@@ -76,6 +76,11 @@ a.brand{text-decoration:none}
 .btn-block{display:block;width:100%;text-align:center;border:0;border-radius:var(--r-pill);padding:12px;background:var(--green-3);color:var(--cream);font-weight:600;transition:transform var(--dur-fast) var(--ease-out),background var(--dur-fast)}
 .btn-block:active{transform:scale(.98)}
 .btn-block[disabled]{opacity:.65;cursor:wait}
+.oauth-sep{display:flex;align-items:center;gap:12px;margin:16px 0 12px;color:var(--ink-soft);font-size:.85rem}
+.oauth-sep::before,.oauth-sep::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 12px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:600;font-size:.95rem;text-decoration:none;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast),background var(--dur-fast)}
+.btn-google:hover{background:#fff;box-shadow:var(--shadow)}
+.btn-google:active{transform:scale(.98)}
 .form .alt{text-align:center;margin-top:16px;font-size:14px;color:var(--ink-soft)}
 .checkrow{display:flex;flex-wrap:wrap;gap:8px}
 .checkrow label{border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 13px;font-size:14px;cursor:pointer;transition:background var(--dur-fast),border-color var(--dur-fast);user-select:none}

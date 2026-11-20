@@ -11,3 +11,10 @@ const DB_HOST = 'localhost';
 const DB_NAME = 'your_db_name';
 const DB_USER = 'your_db_user';
 const DB_PASS = 'your_db_password';
+
+// Optional: "Continue with Google" sign-in.
+// Create an OAuth 2.0 "Web application" client in Google Cloud Console and
+// register the redirect URI  https://your-domain/oauth-google.php
+// When these are defined, the button shows on the login/signup page.
+const GOOGLE_CLIENT_ID     = 'your-client-id.apps.googleusercontent.com';
+const GOOGLE_CLIENT_SECRET = 'your-client-secret';

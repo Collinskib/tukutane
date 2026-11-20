@@ -1,9 +1,9 @@
 // Nipange service worker — static shell + offline fallback only.
 // NEVER caches API responses, messages, or account pages.
-const CACHE = 'nipange-v5';
+const CACHE = 'nipange-v6';
 const STATIC = [
-  '/assets/style.css?v=5',
-  '/assets/app.js?v=5',
+  '/assets/style.css?v=6',
+  '/assets/app.js?v=6',
   '/assets/icons/icon-192.png',
   '/offline.html',
 ];
