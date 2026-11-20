@@ -44,9 +44,9 @@ access checks both RSVP state and host-block relationships.
 
 | # | Feature | Status |
 |---|---------|--------|
-| 17 | Organizer profiles (bio, upcoming/past events, follow + new-event notifications) | ⬜ |
-| 18 | Venue profiles (location, photos, upcoming events; hosts link gatherings) | ⬜ |
-| 19 | M-Pesa ticket payments (Daraja), tickets on confirmed payment, refunds | ⬜ |
+| 17 | Organizer profiles (bio, upcoming/past events, follow + new-event notifications) | ✅ shipped 20 Nov |
+| 18 | Venue profiles (location, photos, upcoming events; hosts link gatherings) | ✅ shipped 20 Nov |
+| 19 | M-Pesa ticket payments (Daraja), tickets on confirmed payment, refunds | ⬜ deferred |
 
 ## Platform / business items (from chat)
 
