@@ -15,9 +15,9 @@ function page_head(string $title): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=2">
+<link rel="stylesheet" href="/assets/style.css?v=3">
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-<script defer src="/assets/app.js?v=2"></script>
+<script defer src="/assets/app.js?v=3"></script>
 </head>
 <body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
 <?php }
@@ -51,7 +51,7 @@ function site_header(string $active = ''): void {
     <?php else: ?>
     <span class="nav-right">
       <a class="btn" href="/auth.php">Log in</a>
-      <a class="primary" href="/auth.php?mode=register">Join Nipange</a>
+      <a class="primary nav-join" href="/auth.php?mode=register">Join Nipange</a>
     </span>
     <?php endif; ?>
   </nav>

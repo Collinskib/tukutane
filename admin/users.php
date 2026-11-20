@@ -18,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'admin':
                 db()->prepare('UPDATE users SET role="admin" WHERE id=:u')->execute([':u' => $uid]);
                 flash('Admin role granted.'); break;
+            case 'demote':
+                db()->prepare('UPDATE users SET role="member" WHERE id=:u')->execute([':u' => $uid]);
+                flash('Admin role removed.'); break;
         }
     }
     redirect('users.php' . (!empty($_GET['q']) ? '?q=' . urlencode($_GET['q']) : ''));
@@ -59,6 +62,9 @@ admin_page('Users', 'users', function () use ($users, $q) { ?>
           <?php endif; ?>
           <?php if ($u['role'] !== 'admin'): ?>
           <button class="btn-mini" name="do" value="admin" type="submit">Make admin</button>
+          <?php else: ?>
+          <button class="btn-mini" name="do" value="demote" type="submit"
+                  onclick="return confirm('Remove this admin role?')">Remove admin</button>
           <?php endif; ?>
         </form>
         <?php else: ?><small>(you)</small><?php endif; ?>

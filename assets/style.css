@@ -56,7 +56,7 @@ a.brand{text-decoration:none}
   .bottomnav a.active span{transform:translateY(-1px)}
   .bottomnav a.fab span{display:flex;align-items:center;justify-content:center;width:46px;height:46px;margin-top:-22px;border-radius:50%;background:var(--green-3);color:var(--cream);font-size:26px;box-shadow:var(--shadow)}
   .bottomnav a:active span{transform:scale(.9)}
-  header.site .nav-right .btn[href="auth.php"],header.site .nav-create{display:none}
+  header.site .nav-right .btn[href="auth.php"],header.site .nav-create,header.site .nav-join{display:none}
 }
 
 /* ============ toast ============ */
@@ -89,7 +89,7 @@ a.brand{text-decoration:none}
 .chip .x{border:0;background:none;color:inherit;cursor:pointer;padding:0;font-size:14px;line-height:1}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 22px;border-bottom:1px solid var(--line)}
 .tabs a{padding:10px 14px;text-decoration:none;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--dur-fast),border-color var(--dur-ui)}
-.tabs a.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.tabs a.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:600;background:none}
 
 /* ============ cards / grids / avatars ============ */
 .card{transition:transform var(--dur-ui) var(--ease-out),box-shadow var(--dur-ui) var(--ease-out)}

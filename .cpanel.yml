@@ -9,7 +9,7 @@ deployment:
     - export DEPLOYPATH=/home/nipangec/public_html/
     - /bin/cp -f index.php event.php create.php edit.php rsvp.php save.php $DEPLOYPATH
     - /bin/cp -f auth.php logout.php forgot.php reset.php profile.php $DEPLOYPATH
-    - /bin/cp -f people.php user.php friends.php friend.php report.php $DEPLOYPATH
+    - /bin/cp -f people.php user.php friends.php friend.php report.php setup-admin.php $DEPLOYPATH
     - /bin/cp -f messages.php plans.php config.example.php $DEPLOYPATH
     - /bin/cp -f manifest.webmanifest sw.js offline.html $DEPLOYPATH
     - /bin/mkdir -p $DEPLOYPATH/includes $DEPLOYPATH/api $DEPLOYPATH/admin $DEPLOYPATH/assets $DEPLOYPATH/assets/icons $DEPLOYPATH/uploads
