@@ -163,3 +163,39 @@ function absolute_url(string $path): string {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'nipange.co.ke') . '/' . ltrim($path, '/');
 }
+
+// ---------- SMTP send (no composer; plain socket AUTH LOGIN) ----------
+
+function smtp_send(string $to, string $subject, string $body): bool {
+    if (!defined('SMTP_USER') || !defined('SMTP_PASS')) return false;
+    $host = defined('SMTP_HOST') ? SMTP_HOST : 'mail.nipange.co.ke';
+    $port = defined('SMTP_PORT') ? SMTP_PORT : 465;
+    $from = SMTP_USER;
+
+    $fp = @fsockopen(($port === 465 ? 'ssl://' : '') . $host, $port, $en, $es, 15);
+    if (!$fp) return false;
+    $read = fn() => fgets($fp, 515);
+    $say  = function(string $s) use ($fp, $read): string {
+        fwrite($fp, $s . "\r\n");
+        $resp = '';
+        while (($line = fgets($fp, 515)) !== false) {
+            $resp .= $line;
+            if (strlen($line) >= 4 && $line[3] === ' ') break; // last line of reply
+        }
+        return $resp;
+    };
+    $read();                                   // greeting
+    $say('EHLO ' . ($_SERVER['SERVER_NAME'] ?? 'nipange.co.ke'));
+    if (strpos($say('AUTH LOGIN'), '334') !== 0) { fclose($fp); return false; }
+    $say(base64_encode($from));
+    if (strpos($say(base64_encode(SMTP_PASS)), '235') !== 0) { fclose($fp); return false; }
+    $say("MAIL FROM:<$from>");
+    $say("RCPT TO:<$to>");
+    if (strpos($say('DATA'), '354') !== 0) { fclose($fp); return false; }
+    $headers = 'From: Nipange <' . $from . ">\r\nTo: <$to>\r\nSubject: $subject\r\n"
+             . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+    $say($headers . "\r\n" . $body . "\r\n.");
+    $ok = strpos($say('QUIT'), '') !== false;
+    fclose($fp);
+    return true;
+}

@@ -9,10 +9,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($u) {
         $token = create_reset_token((int) $u['id']);
         $link = absolute_url('reset.php?token=' . $token);
-        // mail() works on most cPanel hosts; failure still shows the same screen.
-        @mail($u['email'], 'Nipange password reset',
-              "Reset your Nipange password:\n\n$link\n\nThis link expires in 1 hour.",
-              'From: no-reply@' . ($_SERVER['HTTP_HOST'] ?? 'nipange.co.ke'));
+        $sent = smtp_send($u['email'], 'Nipange password reset',
+              "Reset your Nipange password:\n\n$link\n\nThis link expires in 1 hour.");
+        if (!$sent) {
+            @mail($u['email'], 'Nipange password reset',
+                  "Reset your Nipange password:\n\n$link\n\nThis link expires in 1 hour.",
+                  'From: no-reply@' . ($_SERVER['HTTP_HOST'] ?? 'nipange.co.ke'));
+        }
     }
     $done = true; // never reveal whether the email exists
 }
