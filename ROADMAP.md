@@ -33,7 +33,7 @@ Known polish gaps: search suggestions, typing indicators in chat.
 | 13 | Local interest groups (create/discover/join/leave; open + approval-required) | ⬜ |
 | 14 | Recurring gatherings (weekly/monthly series, per-date RSVP, edit/cancel one or series) | ⬜ |
 | 15 | Event group chat (hosts + confirmed attendees, pinned updates, mute/report) | ⬜ |
-| 16 | Waitlists (auto-offer next person with accept deadline, pass on expiry) | ⬜ |
+| 16 | Waitlists (auto-offer next person with accept deadline, pass on expiry) | ✅ |
 
 ## Release 3 — Organizers, Venues and Paid Events
 

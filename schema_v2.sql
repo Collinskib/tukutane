@@ -168,3 +168,16 @@ ON DUPLICATE KEY UPDATE sort = VALUES(sort);
 
 -- Backfill: attribute existing session-created gatherings' RSVPs only when
 -- a user later claims the session key (done in code on login, not here).
+
+CREATE TABLE IF NOT EXISTS waitlists (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    gathering_id INT UNSIGNED NOT NULL,
+    user_id      INT UNSIGNED NOT NULL,
+    status       ENUM('waiting','offered','joined','expired','declined') NOT NULL DEFAULT 'waiting',
+    offered_at   TIMESTAMP NULL DEFAULT NULL,
+    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_wl (gathering_id, user_id),
+    INDEX idx_wl (gathering_id, status, created_at),
+    CONSTRAINT fk_wl_gath FOREIGN KEY (gathering_id) REFERENCES gatherings (id) ON DELETE CASCADE,
+    CONSTRAINT fk_wl_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

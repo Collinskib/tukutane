@@ -25,3 +25,7 @@ foreach ($rows as $r) {
     $n++;
 }
 echo "sent $n reminders\n";
+
+// Expire stale waitlist offers and hand their seats to the next in line.
+$expired = waitlist_sweep();
+if ($expired) echo "waitlist: expired offers swept in $expired gathering(s)\n";

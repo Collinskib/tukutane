@@ -4,7 +4,7 @@ require_once __DIR__ . '/includes/layout.php';
 require_login('plans.php');
 
 $uid = user_id();
-$tab = in_array($_GET['tab'] ?? '', ['joined','saved','hosted','invites','notifications','requests'], true)
+$tab = in_array($_GET['tab'] ?? '', ['joined','saved','hosted','waitlist','invites','notifications','requests'], true)
      ? $_GET['tab'] : 'joined';
 
 $items = [];
@@ -13,6 +13,14 @@ switch ($tab) {
     case 'joined':        $items = gatherings(['view' => 'mine', 'per' => 60]); break;
     case 'hosted':        $items = gatherings(['view' => 'hosted', 'per' => 60]); break;
     case 'saved':         $items = gatherings(['view' => 'saved', 'per' => 60]); break;
+    case 'waitlist':
+        $q = db()->prepare('SELECT g.*, w.status AS wl_status FROM waitlists w
+                            JOIN gatherings g ON g.id = w.gathering_id
+                            WHERE w.user_id = :u AND w.status IN ("waiting","offered")
+                            ORDER BY w.created_at DESC');
+        $q->execute([':u' => $uid]);
+        $items = $q->fetchAll(PDO::FETCH_ASSOC);
+        break;
     case 'invites':       $invites = my_invites($uid); break;
     case 'requests':      $requests = pending_requests($uid); break;
     case 'notifications':
@@ -33,6 +41,8 @@ function event_row(array $ev, bool $hosted = false): void {
     <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span>
     <?php elseif ($hosted): ?><span class="status-pill going"><?= going_count($ev) ?> going</span>
       <a class="btn-mini" href="edit.php?id=<?= (int) $ev['id'] ?>">Manage</a>
+    <?php elseif (($ev['wl_status'] ?? '') === 'offered'): ?><span class="status-pill going">Spot open — claim it!</span>
+    <?php elseif (($ev['wl_status'] ?? '') === 'waiting'): ?><span class="status-pill">Waitlisted</span>
     <?php else: ?><span class="status-pill going">Going</span>
     <?php endif; ?>
   </div>
@@ -44,18 +54,19 @@ site_header('plans');
 <main class="ev-wrap">
   <h2>My plans</h2>
   <nav class="tabs">
-    <?php foreach (['joined' => 'Going', 'hosted' => 'Hosting', 'saved' => 'Saved', 'invites' => 'Invites', 'requests' => 'Friend requests', 'notifications' => 'Notifications'] as $t => $label): ?>
+    <?php foreach (['joined' => 'Going', 'hosted' => 'Hosting', 'saved' => 'Saved', 'waitlist' => 'Waitlist', 'invites' => 'Invites', 'requests' => 'Friend requests', 'notifications' => 'Notifications'] as $t => $label): ?>
     <a href="?tab=<?= $t ?>" class="<?= $tab === $t ? 'active' : '' ?>"><?= $label ?></a>
     <?php endforeach; ?>
   </nav>
 
-  <?php if (in_array($tab, ['joined', 'hosted', 'saved'], true)): ?>
+  <?php if (in_array($tab, ['joined', 'hosted', 'saved', 'waitlist'], true)): ?>
     <?php if (!$items): ?>
     <div class="empty"><span class="big">📅</span>
       <p><?= match($tab) {
-          'joined' => 'You haven\'t joined anything yet — explore the Discover feed!',
-          'hosted' => 'You haven\'t created a gathering yet.',
-          default  => 'No saved gatherings — tap ☆ Save on any event.',
+          'joined'   => 'You haven\'t joined anything yet — explore the Discover feed!',
+          'hosted'   => 'You haven\'t created a gathering yet.',
+          'waitlist' => 'You\'re not on any waitlists.',
+          default    => 'No saved gatherings — tap ☆ Save on any event.',
       } ?></p>
       <a class="primary btn" href="<?= $tab === 'hosted' ? 'create.php' : 'index.php' ?>"><?= $tab === 'hosted' ? '+ Create a plan' : 'Explore gatherings' ?></a>
     </div>

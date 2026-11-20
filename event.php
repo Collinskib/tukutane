@@ -29,6 +29,7 @@ if ($ev['invite_only'] && !$ev['mine'] && !is_admin()) {
 $host   = $ev['creator_id'] ? find_user((int) $ev['creator_id']) : null;
 $going  = going_count($ev);
 $full   = $ev['capacity'] !== null && $going >= (int) $ev['capacity'];
+$wl     = user() ? waitlist_status($id, user_id()) : null;
 $attendees = attendees_of($id);
 $related = array_filter(
     gatherings(['interest' => $ev['category'], 'per' => 4, 'sort' => 'soon']),
@@ -94,14 +95,41 @@ site_header('discover');
           <button class="btn-ghost" type="submit">Decline</button>
         </form>
         <?php else: ?>
-        <form method="post" action="rsvp.php" style="display:inline">
-          <?= csrf_field() ?>
-          <input type="hidden" name="id" value="<?= $id ?>">
-          <input type="hidden" name="back" value="event.php?id=<?= $id ?>">
-          <input type="hidden" name="action" value="<?= $ev['joined'] ? 'cancel' : 'join' ?>">
-          <button class="primary" type="submit" <?= $full && !$ev['joined'] ? 'disabled' : '' ?>>
-            <?= $ev['joined'] ? 'Cancel RSVP' : ($full ? 'Gathering full' : 'Join gathering') ?></button>
-        </form>
+          <?php if ($wl && $wl['status'] === 'offered'): ?>
+          <form method="post" action="rsvp.php" style="display:inline">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <input type="hidden" name="back" value="event.php?id=<?= $id ?>">
+            <input type="hidden" name="action" value="claim">
+            <button class="primary" type="submit">Claim your spot</button>
+          </form>
+          <form method="post" action="rsvp.php" style="display:inline">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <input type="hidden" name="back" value="event.php?id=<?= $id ?>">
+            <input type="hidden" name="action" value="decline_offer">
+            <button class="btn-ghost" type="submit">Pass</button>
+          </form>
+          <small style="display:block;width:100%;color:var(--ink-soft)">🎉 A spot opened for you — claim within 2 hours.</small>
+          <?php elseif ($wl && $wl['status'] === 'waiting'): ?>
+          <button class="primary" type="submit" disabled>On the waitlist</button>
+          <form method="post" action="rsvp.php" style="display:inline">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <input type="hidden" name="back" value="event.php?id=<?= $id ?>">
+            <input type="hidden" name="action" value="unwaitlist">
+            <button class="btn-ghost" type="submit">Leave waitlist</button>
+          </form>
+          <?php else: ?>
+          <form method="post" action="rsvp.php" style="display:inline">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <input type="hidden" name="back" value="event.php?id=<?= $id ?>">
+            <input type="hidden" name="action" value="<?= $ev['joined'] ? 'cancel' : ($full ? 'waitlist' : 'join') ?>">
+            <button class="primary" type="submit">
+              <?= $ev['joined'] ? 'Cancel RSVP' : ($full ? 'Join waitlist' : 'Join gathering') ?></button>
+          </form>
+          <?php endif; ?>
         <?php endif; ?>
         <form method="post" action="save.php" data-ajax data-swap-label style="display:inline">
           <?= csrf_field() ?>

@@ -27,6 +27,28 @@ switch ($action) {
         rsvp($id, 'cancel');
         flash('RSVP cancelled.');
         break;
+    case 'waitlist':
+        $res = waitlist_join($id, user_id());
+        flash($res === 'already' ? 'You\'re already on the waitlist.' : 'You\'re on the waitlist — we\'ll notify you if a spot opens.');
+        waitlist_promote($id); // a seat may have freed between page load and POST
+        break;
+    case 'unwaitlist':
+        waitlist_leave($id, user_id());
+        flash('Removed from the waitlist.');
+        break;
+    case 'claim':
+        $res = waitlist_claim($id, user_id());
+        match ($res) {
+            'joined'  => flash('You\'re in! Spot claimed.'),
+            'expired' => flash('That offer expired — the spot went to the next person.', 'err'),
+            'full'    => flash('The spot was taken before you could claim it.', 'err'),
+            default   => flash('No offer to claim.', 'err'),
+        };
+        break;
+    case 'decline_offer':
+        waitlist_decline($id, user_id());
+        flash('Passed — the spot goes to the next person.');
+        break;
     default:
         $res = rsvp($id, 'join');
         match ($res) {

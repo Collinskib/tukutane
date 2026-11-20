@@ -185,6 +185,7 @@ function rsvp(int $gatheringId, string $action): string {
                 $pdo->prepare('DELETE FROM rsvps WHERE id = :i')->execute([':i' => $existing]);
             }
             $pdo->commit();
+            waitlist_promote($gatheringId);
             return 'cancelled';
         }
 
@@ -216,6 +217,128 @@ function attendees_of(int $gatheringId): array {
     );
     $stmt->execute([':g' => $gatheringId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- waitlists ----------
+
+const WAITLIST_TTL = '2 HOUR';
+
+function waitlist_status(int $gatheringId, int $uid): ?array {
+    $stmt = db()->prepare('SELECT * FROM waitlists WHERE gathering_id = :g AND user_id = :u');
+    $stmt->execute([':g' => $gatheringId, ':u' => $uid]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+function waitlist_join(int $gatheringId, int $uid): string {
+    $cur = waitlist_status($gatheringId, $uid);
+    if ($cur && in_array($cur['status'], ['waiting', 'offered'], true)) return 'already';
+    db()->prepare('INSERT INTO waitlists (gathering_id, user_id) VALUES (:g, :u)
+                   ON DUPLICATE KEY UPDATE status = "waiting", offered_at = NULL, created_at = NOW()')
+        ->execute([':g' => $gatheringId, ':u' => $uid]);
+    return 'waiting';
+}
+
+function waitlist_leave(int $gatheringId, int $uid): void {
+    db()->prepare('DELETE FROM waitlists WHERE gathering_id = :g AND user_id = :u')
+        ->execute([':g' => $gatheringId, ':u' => $uid]);
+}
+
+// Offer open seats to the next people in line. Returns how many were offered.
+function waitlist_promote(int $gatheringId): int {
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $g = $pdo->prepare('SELECT capacity, going_base, title FROM gatherings WHERE id = :g AND status = "active" FOR UPDATE');
+        $g->execute([':g' => $gatheringId]);
+        $ev = $g->fetch(PDO::FETCH_ASSOC);
+        if (!$ev || $ev['capacity'] === null) { $pdo->commit(); return 0; }
+
+        $taken = (int) $pdo->query('SELECT COUNT(*) FROM rsvps WHERE gathering_id = ' . (int) $gatheringId)->fetchColumn()
+               + (int) $ev['going_base'];
+        $offered = (int) $pdo->query('SELECT COUNT(*) FROM waitlists WHERE gathering_id = ' . (int) $gatheringId . ' AND status = "offered"')->fetchColumn();
+        $free = (int) $ev['capacity'] - $taken - $offered;
+        if ($free <= 0) { $pdo->commit(); return 0; }
+
+        $next = $pdo->prepare('SELECT id, user_id FROM waitlists
+                               WHERE gathering_id = :g AND status = "waiting"
+                               ORDER BY created_at, id LIMIT ' . $free . ' FOR UPDATE');
+        $next->execute([':g' => $gatheringId]);
+        $rows = $next->fetchAll(PDO::FETCH_ASSOC);
+        $mark = $pdo->prepare('UPDATE waitlists SET status = "offered", offered_at = NOW() WHERE id = :i');
+        foreach ($rows as $w) $mark->execute([':i' => $w['id']]);
+        $pdo->commit();
+        foreach ($rows as $w) {
+            notify((int) $w['user_id'], 'waitlist',
+                'A spot opened in "' . $ev['title'] . '" — claim it within 2 hours.',
+                'event.php?id=' . $gatheringId);
+        }
+        return count($rows);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
+// Claim an offered spot. Returns 'joined' | 'expired' | 'full' | 'none'
+function waitlist_claim(int $gatheringId, int $uid): string {
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $w = $pdo->prepare('SELECT id, status, offered_at FROM waitlists
+                            WHERE gathering_id = :g AND user_id = :u FOR UPDATE');
+        $w->execute([':g' => $gatheringId, ':u' => $uid]);
+        $offer = $w->fetch(PDO::FETCH_ASSOC);
+        if (!$offer || $offer['status'] !== 'offered') { $pdo->rollBack(); return 'none'; }
+        if (strtotime($offer['offered_at']) < time() - 7200) {
+            $pdo->prepare('UPDATE waitlists SET status = "expired" WHERE id = :i')->execute([':i' => $offer['id']]);
+            $pdo->commit();
+            waitlist_promote($gatheringId);
+            return 'expired';
+        }
+        $g = $pdo->prepare('SELECT capacity, going_base FROM gatherings WHERE id = :g FOR UPDATE');
+        $g->execute([':g' => $gatheringId]);
+        $ev = $g->fetch(PDO::FETCH_ASSOC);
+        $dup = $pdo->prepare('SELECT id FROM rsvps WHERE gathering_id = :g AND user_id = :u');
+        $dup->execute([':g' => $gatheringId, ':u' => $uid]);
+        if (!$dup->fetchColumn()) {
+            if ($ev['capacity'] !== null) {
+                $n = $pdo->prepare('SELECT COUNT(*) FROM rsvps WHERE gathering_id = :g FOR UPDATE');
+                $n->execute([':g' => $gatheringId]);
+                if ((int) $n->fetchColumn() + (int) $ev['going_base'] >= (int) $ev['capacity']) {
+                    $pdo->rollBack();
+                    return 'full';
+                }
+            }
+            $pdo->prepare('INSERT INTO rsvps (gathering_id, session_key, user_id) VALUES (:g, :k, :u)')
+                ->execute([':g' => $gatheringId, ':k' => SESSION_KEY, ':u' => $uid]);
+        }
+        $pdo->prepare('UPDATE waitlists SET status = "joined" WHERE id = :i')->execute([':i' => $offer['id']]);
+        $pdo->commit();
+        return 'joined';
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
+// Decline an offer — passes the seat to the next person.
+function waitlist_decline(int $gatheringId, int $uid): void {
+    db()->prepare('UPDATE waitlists SET status = "declined"
+                   WHERE gathering_id = :g AND user_id = :u AND status = "offered"')
+        ->execute([':g' => $gatheringId, ':u' => $uid]);
+    waitlist_promote($gatheringId);
+}
+
+// Cron sweep: expire stale offers and re-offer the freed seats.
+function waitlist_sweep(): int {
+    $stale = db()->query('SELECT DISTINCT gathering_id FROM waitlists
+                          WHERE status = "offered" AND offered_at < NOW() - INTERVAL ' . WAITLIST_TTL)
+                 ->fetchAll(PDO::FETCH_COLUMN);
+    if (!$stale) return 0;
+    db()->exec('UPDATE waitlists SET status = "expired"
+                WHERE status = "offered" AND offered_at < NOW() - INTERVAL ' . WAITLIST_TTL);
+    foreach ($stale as $gid) waitlist_promote((int) $gid);
+    return count($stale);
 }
 
 // ---------- users ----------

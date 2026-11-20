@@ -54,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'event.php?id=' . $id);
                     }
                 }
+                if ($capacity === null || $ev['capacity'] === null || $capacity > (int) $ev['capacity']) {
+                    waitlist_promote($id);
+                }
                 flash('Saved.');
                 redirect('edit.php?id=' . $id);
             }
