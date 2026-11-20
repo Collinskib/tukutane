@@ -192,8 +192,17 @@ function smtp_send(string $to, string $subject, string $body): bool {
     $say("MAIL FROM:<$from>");
     $say("RCPT TO:<$to>");
     if (strpos($say('DATA'), '354') !== 0) { fclose($fp); return false; }
-    $headers = 'From: Nipange <' . $from . ">\r\nTo: <$to>\r\nSubject: $subject\r\n"
-             . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+    // full RFC headers — missing Date/Message-ID are heavy outbound spam flags
+    $domain = $_SERVER['HTTP_HOST'] ?? 'nipange.co.ke';
+    $headers = "Date: " . date('r') . "\r\n"
+             . "Message-ID: <" . bin2hex(random_bytes(12)) . "@$domain>\r\n"
+             . 'From: Nipange <' . $from . ">\r\n"
+             . "Reply-To: no-reply@$domain\r\n"
+             . "To: <$to>\r\n"
+             . "Subject: $subject\r\n"
+             . "MIME-Version: 1.0\r\n"
+             . "Content-Type: text/plain; charset=UTF-8\r\n"
+             . "Content-Transfer-Encoding: 8bit\r\n";
     $say($headers . "\r\n" . $body . "\r\n.");
     $ok = strpos($say('QUIT'), '') !== false;
     fclose($fp);

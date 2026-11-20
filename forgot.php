@@ -9,8 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($u) {
         $token = create_reset_token((int) $u['id']);
         $link = absolute_url('reset.php?token=' . $token);
-        $sent = smtp_send($u['email'], 'Nipange password reset',
-              "Reset your Nipange password:\n\n$link\n\nThis link expires in 1 hour.");
+        $sent = smtp_send($u['email'], 'Your Nipange password reset link',
+              "Hi " . $u['name'] . ",\n\n"
+              . "Someone (hopefully you) asked to reset the password on your Nipange account.\n\n"
+              . "Open this link to choose a new password — it expires in 1 hour:\n\n$link\n\n"
+              . "If this wasn't you, you can safely ignore this email — your password stays the same.\n\n"
+              . "— The Nipange team\nhttps://nipange.co.ke");
         if (!$sent) {
             @mail($u['email'], 'Nipange password reset',
                   "Reset your Nipange password:\n\n$link\n\nThis link expires in 1 hour.",
