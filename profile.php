@@ -14,15 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name  = trim(mb_substr($_POST['name'] ?? '', 0, 60));
             $bio   = trim(mb_substr($_POST['bio'] ?? '', 0, 300));
             $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
-            $area  = resolve_area($county);
+            [$area, $estate] = resolve_location($county);
             if ($county === '') $area = '';
             $ints  = array_values(array_filter($_POST['interests'] ?? [], fn($i) => isset(categories()[$i])));
             $disc  = !empty($_POST['discoverable']) ? 1 : 0;
             if ($name === '') { $err = 'Name is required.'; break; }
             $photo = upload_image('photo');
             if (str_starts_with($photo, '!')) { $err = substr($photo, 1); break; }
-            $sql = 'UPDATE users SET name=:n,bio=:b,area=:a,county=:c,interests=:i,discoverable=:d';
-            $p = [':n' => $name, ':b' => $bio, ':a' => $area, ':c' => $county,
+            $sql = 'UPDATE users SET name=:n,bio=:b,area=:a,county=:c,estate=:e,interests=:i,discoverable=:d';
+            $p = [':n' => $name, ':b' => $bio, ':a' => $area, ':c' => $county, ':e' => $estate,
                   ':i' => implode(',', $ints), ':d' => $disc, ':u' => $uid];
             if ($photo) { $sql .= ',photo=:ph'; $p[':ph'] = $photo; }
             db()->prepare($sql . ' WHERE id=:u')->execute($p);
@@ -76,7 +76,7 @@ site_header();
     <div class="field"><label>Bio</label><textarea name="bio" maxlength="300" rows="3"
         placeholder="A line about you"><?= e($u['bio']) ?></textarea></div>
     <div class="field"><label>Where you live</label>
-      <?php location_picker($_POST['county'] ?? $u['county'] ?? '', $_POST['area'] ?? $u['area'] ?? '', 'optional'); ?></div>
+      <?php location_picker($_POST['county'] ?? $u['county'] ?? '', $_POST['area'] ?? $u['area'] ?? '', $_POST['estate'] ?? $u['estate'] ?? '', 'optional'); ?></div>
     <div class="field"><label>Your interests</label>
       <div class="checkrow">
         <?php foreach (categories() as $cat => [$em, $col]): ?>

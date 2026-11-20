@@ -36,7 +36,7 @@ site_header('people');
   <h2>People nearby</h2>
   <form method="get" class="toolbar" style="justify-content:flex-start;gap:10px">
     <input name="q" type="search" placeholder="Search people" value="<?= e($f['q']) ?>" style="border:1px solid var(--line);border-radius:var(--r-input);padding:10px 13px">
-    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], 'filter'); ?></span>
+    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], '', 'filter'); ?></span>
     <select name="interest" onchange="this.form.submit()">
       <option value="">All interests</option>
       <?php foreach (array_keys(categories()) as $c): ?><option<?= $f['interest'] === $c ? ' selected' : '' ?>><?= e($c) ?></option><?php endforeach; ?>

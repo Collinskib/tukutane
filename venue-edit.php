@@ -16,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $name = trim(mb_substr($_POST['name'] ?? '', 0, 80));
     $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
-    $area = resolve_area($county, $v['area'] ?? '');
+    [$area, $estate] = resolve_location($county, $v['area'] ?? '', $v['estate'] ?? '');
     $desc = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $photo = upload_image('photo');
     if (str_starts_with($photo, '!')) $err = substr($photo, 1);
     elseif ($name === '') $err = 'Give the venue a name.';
     elseif ($area === '') $err = 'Pick a neighbourhood.';
     else {
-        $d = ['name' => $name, 'area' => $area, 'county' => $county, 'description' => $desc];
+        $d = ['name' => $name, 'area' => $area, 'county' => $county, 'estate' => $estate, 'description' => $desc];
         if ($photo) $d['photo'] = $photo;
         if ($v) {
             venue_update($id, $d);
@@ -49,7 +49,7 @@ site_header('venues');
         <input id="name" name="name" required maxlength="80" value="<?= e($_POST['name'] ?? ($v['name'] ?? '')) ?>"
                placeholder="e.g. Yaya Centre rooftop, Karura gate B"></div>
       <div class="field"><label>Where</label>
-        <?php location_picker($_POST['county'] ?? ($v['county'] ?? ''), $_POST['area'] ?? ($v['area'] ?? '')); ?></div>
+        <?php location_picker($_POST['county'] ?? ($v['county'] ?? ''), $_POST['area'] ?? ($v['area'] ?? ''), $_POST['estate'] ?? ($v['estate'] ?? '')); ?></div>
       <div class="field"><label for="description">About this spot <small>(optional)</small></label>
         <textarea id="description" name="description" rows="3" maxlength="600"
                   placeholder="What is it good for? How do people find it?"><?= e($_POST['description'] ?? ($v['description'] ?? '')) ?></textarea></div>

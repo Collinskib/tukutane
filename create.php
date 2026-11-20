@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
     $category = $_POST['category'] ?? '';
-    $area     = resolve_area($_POST['county'] ?? '');
+    [$area, $estate] = resolve_location($_POST['county'] ?? '');
     $county   = $_POST['county'] ?? '';
     $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
     $date     = trim($_POST['date'] ?? '');
@@ -42,13 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             $ins = db()->prepare('INSERT INTO gatherings
-                (title, category, area, county, venue, event_at, cost, audience, description,
+                (title, category, area, county, estate, venue, event_at, cost, audience, description,
                  sample, creator, creator_id, capacity, invite_only, cover, series_id, venue_id)
-                VALUES (:t, :c, :a, :cy, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid)');
+                VALUES (:t, :c, :a, :cy, :es, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid)');
             $firstId = null;
             foreach ($dates as $d) {
                 $ins->execute([
-                    ':t' => $title, ':c' => $category, ':a' => $area, ':cy' => $county, ':v' => $venue,
+                    ':t' => $title, ':c' => $category, ':a' => $area, ':cy' => $county, ':es' => $estate, ':v' => $venue,
                     ':d' => $d, ':k' => $cost, ':au' => $audience, ':ds' => $desc,
                     ':sk' => SESSION_KEY, ':uid' => user_id(), ':cap' => $capacity,
                     ':io' => $invite, ':cv' => $cover ?: null, ':sid' => $sid, ':vid' => $venue_id,
@@ -86,7 +86,7 @@ site_header();
           <?php endforeach; ?>
         </select></div>
       <div class="field"><label>Where</label>
-        <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? ''); ?></div>
+        <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', $_POST['estate'] ?? ''); ?></div>
     </div>
 
     <div class="field"><label for="venue">Venue</label>

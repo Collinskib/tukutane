@@ -35,6 +35,24 @@ try {
     echo (str_contains($e->getMessage(), 'Duplicate') ? "SKIP areas.custom\n" : 'FAIL custom: ' . $e->getMessage() . "\n");
 }
 
+// 2c) estates hang under sub-counties: areas.sub + estate cols on entities
+try {
+    db()->exec("ALTER TABLE areas ADD COLUMN sub VARCHAR(60) NOT NULL DEFAULT '' AFTER name,
+                DROP PRIMARY KEY, ADD PRIMARY KEY (county, sub, name)");
+    echo "OK   areas.sub + estate key\n";
+} catch (Throwable $e) {
+    echo (str_contains($e->getMessage(), 'Duplicate') ? "SKIP areas.sub\n" : 'FAIL sub: ' . $e->getMessage() . "\n");
+}
+db()->exec("DELETE FROM areas WHERE custom = 1 AND sub = ''");
+foreach (['users', 'gatherings', 'grps', 'venues'] as $t) {
+    try {
+        db()->exec("ALTER TABLE $t ADD COLUMN estate VARCHAR(60) NULL AFTER county");
+        echo "OK   $t.estate\n";
+    } catch (Throwable $e) {
+        echo (str_contains($e->getMessage(), 'Duplicate') ? "SKIP $t.estate\n" : "FAIL $t.estate: " . $e->getMessage() . "\n");
+    }
+}
+
 // 3) seed all 47 counties + sub-counties (Nairobi neighbourhoods preserved above)
 $map = array(
         "Uasin Gishu" => ["Ainabkoi", "Kapseret", "Kesses", "Moiben", "Soy", "Turbo"],

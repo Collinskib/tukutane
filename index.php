@@ -23,6 +23,8 @@ $events = gatherings(compact('view', 'interest', 'area', 'county') + [
 ]);
 $hasMore = count($events) === 12;
 
+$partial = !empty($_GET['partial']);
+if (!$partial):
 page_head($view === 'mine' ? 'My plans' : 'Discover gatherings');
 site_header('discover');
 ?>
@@ -35,7 +37,8 @@ site_header('discover');
     </div>
     <div class="scene" role="img" aria-label="Friends gathering in Nairobi"></div>
   </section>
-
+<?php endif; ?>
+<?php if (!$partial): ?><div id="filterzone"><?php endif; ?>
   <form method="get" action="index.php" id="filter-form">
     <?php if ($view === 'mine'): ?><input type="hidden" name="view" value="mine"><?php endif; ?>
     <?php if ($interest !== 'All interests'): ?><input type="hidden" name="interest" value="<?= e($interest) ?>"><?php endif; ?>
@@ -49,7 +52,7 @@ site_header('discover');
              placeholder="Search gatherings" value="<?= e($query) ?>" autocomplete="off">
       <div id="suggest" class="suggest" hidden></div>
       </span>
-      <span onchange="this.form.submit()"><?php location_picker($county, $area, 'filter'); ?></span>
+      <?php location_picker($county, $area, '', 'filter'); ?>
     </div>
     <div class="filters" id="filters" aria-label="Interests">
       <?php foreach (['All interests', ...array_keys(categories())] as $cat): ?>
@@ -144,28 +147,88 @@ site_header('discover');
     <a class="<?= !$hasMore ? 'dis' : '' ?>" href="<?= e(keep([], ['page' => $page + 1])) ?>">Next →</a>
   </nav>
   <?php endif; ?>
+<?php if ($partial) exit; ?>
+</div>
 </main>
 <script>
-let _t, _st;
-const _s = document.getElementById('search'), _sg = document.getElementById('suggest');
-_s.oninput = () => {
-  clearTimeout(_t); clearTimeout(_st);
-  _t = setTimeout(() => document.getElementById('filter-form').submit(), 500);
-  const q = _s.value.trim();
-  if (q.length < 2) { _sg.hidden = true; return; }
-  _st = setTimeout(async () => {
-    try {
-      const r = await fetch('api/suggest.php?q=' + encodeURIComponent(q));
-      if (!r.ok) { _sg.hidden = true; return; }
-      const items = await r.json();
-      if (!items.length) { _sg.hidden = true; return; }
-      const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      _sg.innerHTML = items.map(i =>
-        `<a class="sg-item" href="event.php?id=${i.id}"><b>${esc(i.title)}</b><small>${esc(i.meta)}</small></a>`).join('');
-      _sg.hidden = false;
-    } catch { _sg.hidden = true; }
-  }, 180);
-};
-_s.onblur = () => setTimeout(() => _sg.hidden = true, 150);
+let _t, _st, _seq = 0;
+const _zone = document.getElementById('filterzone');
+
+function bindSearch() {
+  const _s = document.getElementById('search'), _sg = document.getElementById('suggest');
+  if (!_s) return;
+  _s.oninput = () => {
+    clearTimeout(_t); clearTimeout(_st);
+    _t = setTimeout(refreshFeed, 500);
+    const q = _s.value.trim();
+    if (q.length < 2) { _sg.hidden = true; return; }
+    _st = setTimeout(async () => {
+      try {
+        const r = await fetch('api/suggest.php?q=' + encodeURIComponent(q));
+        if (!r.ok) { _sg.hidden = true; return; }
+        const items = await r.json();
+        if (!items.length) { _sg.hidden = true; return; }
+        const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        _sg.innerHTML = items.map(i =>
+          `<a class="sg-item" href="event.php?id=${i.id}"><b>${esc(i.title)}</b><small>${esc(i.meta)}</small></a>`).join('');
+        _sg.hidden = false;
+      } catch { _sg.hidden = true; }
+    }, 180);
+  };
+  _s.onblur = () => setTimeout(() => _sg.hidden = true, 150);
+}
+bindSearch();
+
+// Swap the filter+feed zone in place — no full page reload.
+async function refreshFeed(extra) {
+  const form = document.getElementById('filter-form');
+  if (!form) return;
+  const params = new URLSearchParams(new FormData(form));
+  if (extra) for (const k in extra) params.set(k, extra[k]);
+  params.set('partial', '1');
+  const my = ++_seq;
+  _zone.style.opacity = '.55';
+  try {
+    const r = await fetch('index.php?' + params.toString());
+    if (my !== _seq) return;
+    if (!r.ok) throw 0;
+    _zone.innerHTML = await r.text();
+    params.delete('partial');
+    const qs = params.toString();
+    history.replaceState(null, '', 'index.php' + (qs ? '?' + qs : ''));
+    _zone.querySelectorAll('.rv').forEach(el => el.classList.add('in'));
+    _zone.querySelectorAll('.loccounty').forEach(s => { if (s.value && window.LOC_FILL) LOC_FILL(s); });
+    bindSearch();
+  } catch {} finally { _zone.style.opacity = ''; }
+}
+
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'filter-form') return;
+  e.preventDefault();
+  const s = e.submitter;
+  refreshFeed(s && s.name ? { [s.name]: s.value } : null);
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!e.isTrusted || !t.classList) return;
+  if ((t.classList.contains('loccounty') || t.classList.contains('locarea'))
+      && t.closest('#filter-form')) refreshFeed();
+});
+
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('.pager a');
+  if (!a || a.classList.contains('dis')) return;
+  e.preventDefault();
+  fetch(a.href + (a.href.includes('?') ? '&' : '?') + 'partial=1')
+    .then(r => r.text()).then(async html => {
+      _zone.innerHTML = html;
+      history.replaceState(null, '', a.href);
+      _zone.querySelectorAll('.rv').forEach(el => el.classList.add('in'));
+      _zone.querySelectorAll('.loccounty').forEach(s => { if (s.value && window.LOC_FILL) LOC_FILL(s); });
+      bindSearch();
+      _zone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(() => location.href = a.href);
+});
 </script>
 <?php bottom_nav('discover'); site_footer(); ?>

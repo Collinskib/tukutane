@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'save':
             $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
             $category = $_POST['category'] ?? $ev['category'];
-            $area     = resolve_area($_POST['county'] ?? $ev['county'], $ev['area']);
+            [$area, $estate] = resolve_location($_POST['county'] ?? $ev['county'], $ev['area'], $ev['estate'] ?? '');
             $county   = $_POST['county'] ?? $ev['county'];
             $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
             $date     = trim($_POST['date'] ?? '');
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cover = upload_image('cover');
                 if (str_starts_with($cover, '!')) { $err = substr($cover, 1); break; }
                 $params = [
-                    ':t' => $title, ':c' => $category, ':a' => $area, ':cy' => $county, ':v' => $venue,
+                    ':t' => $title, ':c' => $category, ':a' => $area, ':cy' => $county, ':es' => $estate, ':v' => $venue,
                     ':d' => date('Y-m-d H:i:s', strtotime($date)), ':k' => $cost,
                     ':au' => $audience, ':ds' => $desc, ':cap' => $capacity,
                     ':io' => $invite, ':vid' => $venue_id, ':id' => $id,
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($scope === 'series') {
                     // shared fields on every upcoming occurrence; date stays per-occurrence
                     $shared = $params; unset($shared[':d'], $shared[':cv'], $shared[':id']);
-                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,venue=:v,
+                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,estate=:es,venue=:v,
                                    cost=:k,audience=:au,description=:ds,capacity=:cap,invite_only=:io,
                                    venue_id=:vid
                                    WHERE series_id=:sid AND status="active" AND event_at >= NOW()')
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     flash('Saved across the whole series.');
                 } else {
-                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,venue=:v,
+                    db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,estate=:es,venue=:v,
                                    event_at=:d,cost=:k,audience=:au,description=:ds,
                                    capacity=:cap,invite_only=:io,venue_id=:vid'
                                    . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
@@ -168,7 +168,7 @@ site_header('plans');
         <select name="category"><?php foreach (array_keys(categories()) as $cat): ?>
           <option<?= $ev['category'] === $cat ? ' selected' : '' ?>><?= e($cat) ?></option><?php endforeach; ?></select></div>
       <div class="field"><label>Where</label>
-        <?php location_picker($_POST['county'] ?? $ev['county'], $_POST['area'] ?? $ev['area']); ?></div>
+        <?php location_picker($_POST['county'] ?? $ev['county'], $_POST['area'] ?? $ev['area'], $_POST['estate'] ?? ($ev['estate'] ?? '')); ?></div>
     </div>
     <div class="field"><label>Venue</label><input name="venue" required maxlength="80" list="venuelist" value="<?= e($ev['venue']) ?>">
       <datalist id="venuelist">

@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name    = trim(mb_substr($_POST['name'] ?? '', 0, 80));
     $desc    = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $cat     = $_POST['category'] ?? '';
-    $area    = resolve_area($_POST['county'] ?? '', $g['area'] ?? '');
+    [$area, $estate] = resolve_location($_POST['county'] ?? '', $g['area'] ?? '', $g['estate'] ?? '');
     $county  = $_POST['county'] ?? '';
     $policy  = in_array($_POST['join_policy'] ?? '', ['open', 'approval'], true) ? $_POST['join_policy'] : 'open';
 
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif (!isset(categories()[$cat]))        $err = 'Pick a category.';
     elseif (!area_valid($county, $area))       $err = 'Pick your county and area.';
     else {
-        $d = ['name' => $name, 'description' => $desc, 'category' => $cat, 'area' => $area, 'county' => $county, 'join_policy' => $policy];
+        $d = ['name' => $name, 'description' => $desc, 'category' => $cat, 'area' => $area, 'county' => $county, 'estate' => $estate, 'join_policy' => $policy];
         if ($g) {
             group_update((int) $g['id'], $d);
             flash('Group updated.');
@@ -65,7 +65,7 @@ site_header('groups');
           <?php endforeach; ?>
         </select></div>
       <div class="field"><label>Where</label>
-        <?php location_picker($_POST['county'] ?? ($g['county'] ?? ''), $_POST['area'] ?? ($g['area'] ?? '')); ?></div>
+        <?php location_picker($_POST['county'] ?? ($g['county'] ?? ''), $_POST['area'] ?? ($g['area'] ?? ''), $_POST['estate'] ?? ($g['estate'] ?? '')); ?></div>
     </div>
 
     <div class="field"><label for="desc">What is this group about?</label>

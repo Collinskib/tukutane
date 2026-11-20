@@ -46,51 +46,54 @@ function categories(): array {
     return $cats;
 }
 
-function areas(?string $county = null): array {
-    static $all = null;
-    if ($all === null) {
+// county => [ sub-county => [estate names] ] — estates are user-added, custom=1
+function areas_map(): array {
+    static $m = null;
+    if ($m === null) {
+        $m = [];
         try {
-            $rows = db()->query('SELECT county, name FROM areas ORDER BY sort, name')
-                        ->fetchAll(PDO::FETCH_ASSOC);
-            $all = [];
-            foreach ($rows as $r) $all[$r['county']][] = $r['name'];
-            if (!$all) $all = ['Nairobi' => AREAS_FALLBACK];
+            foreach (db()->query('SELECT county, sub, name FROM areas ORDER BY sort, name') as $r) {
+                if ($r['sub'] === '') $m[$r['county']][$r['name']] ??= [];
+                else $m[$r['county']][$r['sub']][] = $r['name'];
+            }
+            ksort($m);
         } catch (Throwable) {
-            $all = ['Nairobi' => AREAS_FALLBACK];
+            $m = [];
         }
+        if (!$m) $m = ['Nairobi' => array_fill_keys(AREAS_FALLBACK, [])];
     }
-    if ($county !== null) return $all[$county] ?? [];
-    return array_values(array_merge(...array_values($all)));
+    return $m;
 }
 
 function counties(): array {
     return array_keys(areas_map());
 }
 
-function areas_map(): array {
-    static $m = null;
-    if ($m === null) {
-        $m = [];
-        try {
-            foreach (db()->query('SELECT county, name FROM areas ORDER BY county, name') as $r)
-                $m[$r['county']][] = $r['name'];
-            ksort($m);
-        } catch (Throwable) {
-            $m = ['Nairobi' => AREAS_FALLBACK];
-        }
-        if (!$m) $m = ['Nairobi' => AREAS_FALLBACK];
-    }
-    return $m;
+// sub-county names, for one county or flat
+function areas(?string $county = null): array {
+    $m = areas_map();
+    if ($county !== null) return array_keys($m[$county] ?? []);
+    return array_merge(...array_map('array_keys', array_values($m)));
+}
+
+function estates(string $county, string $area): array {
+    return areas_map()[$county][$area] ?? [];
 }
 
 function area_valid(string $county, string $area): bool {
     return $county !== '' && in_array($area, areas($county), true);
 }
 
-// "Kilimani, Nairobi" from a row that may have area/county keys
+function estate_valid(string $county, string $area, string $estate): bool {
+    return $estate !== '' && in_array($estate, estates($county, $area), true);
+}
+
+// "Nyayo Estate, Embakasi South" or "Kilimani, Nairobi" from a row
 function place_label(array $r, string $fallback = ''): string {
+    $e = trim((string) ($r['estate'] ?? ''));
     $a = trim((string) ($r['area'] ?? ''));
     $c = trim((string) ($r['county'] ?? ''));
+    if ($e !== '') return $a !== '' ? "$e, $a" : $e;
     if ($a !== '' && $c !== '' && $a !== $c) return "$a, $c";
     return $a !== '' ? $a : ($c !== '' ? $c : $fallback);
 }
@@ -837,10 +840,10 @@ function group_admins(int $gid): array {
 }
 
 function group_create(int $uid, array $d): int {
-    db()->prepare('INSERT INTO grps (name, description, category, area, county, creator_id, join_policy)
-                   VALUES (:n, :d, :c, :a, :cy, :u, :p)')
+    db()->prepare('INSERT INTO grps (name, description, category, area, county, estate, creator_id, join_policy)
+                   VALUES (:n, :d, :c, :a, :cy, :es, :u, :p)')
         ->execute([':n' => $d['name'], ':d' => $d['description'], ':c' => $d['category'],
-                   ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':u' => $uid, ':p' => $d['join_policy']]);
+                   ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':es' => $d['estate'] ?? '', ':u' => $uid, ':p' => $d['join_policy']]);
     $gid = (int) db()->lastInsertId();
     db()->prepare('INSERT INTO grp_members (group_id, user_id, role, status) VALUES (:g, :u, "admin", "active")')
         ->execute([':g' => $gid, ':u' => $uid]);
@@ -848,9 +851,9 @@ function group_create(int $uid, array $d): int {
 }
 
 function group_update(int $gid, array $d): void {
-    db()->prepare('UPDATE grps SET name = :n, description = :d, category = :c, area = :a, county = :cy, join_policy = :p WHERE id = :id')
+    db()->prepare('UPDATE grps SET name = :n, description = :d, category = :c, area = :a, county = :cy, estate = :es, join_policy = :p WHERE id = :id')
         ->execute([':n' => $d['name'], ':d' => $d['description'], ':c' => $d['category'],
-                   ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':p' => $d['join_policy'], ':id' => $gid]);
+                   ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':es' => $d['estate'] ?? '', ':p' => $d['join_policy'], ':id' => $gid]);
 }
 
 // returns 'joined' | 'requested' | 'rejoined' | 'rerequested' | null (already active/pending)
@@ -1068,17 +1071,17 @@ function venue_by_name(string $name): ?int {
 }
 
 function venue_create(int $uid, array $d): int {
-    db()->prepare('INSERT INTO venues (name, area, county, description, photo, creator_id)
-                   VALUES (:n, :a, :cy, :d, :p, :u)')
-        ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '',
+    db()->prepare('INSERT INTO venues (name, area, county, estate, description, photo, creator_id)
+                   VALUES (:n, :a, :cy, :es, :d, :p, :u)')
+        ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':es' => $d['estate'] ?? '',
                    ':d' => $d['description'], ':p' => $d['photo'] ?? null, ':u' => $uid]);
     return (int) db()->lastInsertId();
 }
 
 function venue_update(int $id, array $d): void {
-    db()->prepare('UPDATE venues SET name = :n, area = :a, county = :cy, description = :d'
+    db()->prepare('UPDATE venues SET name = :n, area = :a, county = :cy, estate = :es, description = :d'
                   . (isset($d['photo']) ? ', photo = :p' : '') . ' WHERE id = :i')
-        ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '',
+        ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':es' => $d['estate'] ?? '',
                    ':d' => $d['description']]
                   + (isset($d['photo']) ? [':p' => $d['photo']] : []) + [':i' => $id]);
 }

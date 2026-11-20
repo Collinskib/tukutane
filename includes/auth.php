@@ -56,18 +56,19 @@ function attempt_login(string $email, string $password): ?string {
     return null;
 }
 
-function register_user(string $email, string $password, string $name, string $area = '', string $county = ''): ?string {
+function register_user(string $email, string $password, string $name, string $area = '', string $estate = '', string $county = ''): ?string {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return 'Enter a valid email.';
     if (mb_strlen($password) < 8) return 'Password needs at least 8 characters.';
     $name = trim(mb_substr($name, 0, 60));
     if ($name === '') return 'Tell us your name.';
     if (find_user_by_email($email)) return 'That email already has an account — log in instead.';
-    db()->prepare('INSERT INTO users (email, pass_hash, name, area, county) VALUES (:e, :p, :n, :a, :c)')
+    db()->prepare('INSERT INTO users (email, pass_hash, name, area, estate, county) VALUES (:e, :p, :n, :a, :es, :c)')
         ->execute([
             ':e' => mb_strtolower($email),
             ':p' => password_hash($password, PASSWORD_DEFAULT),
             ':n' => $name,
             ':a' => area_valid($county, $area) ? $area : '',
+            ':es' => estate_valid($county, $area, $estate) || $estate !== '' ? $estate : '',
             ':c' => in_array($county, counties(), true) ? $county : '',
         ]);
     return attempt_login($email, $password);

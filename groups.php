@@ -32,7 +32,7 @@ site_header('groups');
       <option value="">All interests</option>
       <?php foreach (array_keys(categories()) as $c): ?><option<?= $f['category'] === $c ? ' selected' : '' ?>><?= e($c) ?></option><?php endforeach; ?>
     </select>
-    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], 'filter'); ?></span>
+    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], '', 'filter'); ?></span>
     <button class="btn-mini" type="submit">Search</button>
   </form>
 

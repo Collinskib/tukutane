@@ -109,7 +109,7 @@ function oauth_avatar(string $url): string {
 // Rebuild a URL that keeps current filters minus $drop, plus $add.
 function keep(array $drop = [], array $add = []): string {
     $p = $_GET;
-    unset($p['event']);
+    unset($p['event'], $p['partial']);
     foreach ($drop as $d) unset($p[$d]);
     $p = array_merge($p, $add);
     $p = array_filter($p, fn($v) => $v !== '' && $v !== null && $v !== 'All interests' && $v !== 'All Nairobi');
@@ -271,9 +271,9 @@ function smtp_send(string $to, string $subject, string $body): bool {
     return true;
 }
 
-// Cascading county → sub-county/area picker. Emits the shared JS once per page.
-// $all=true turns it into a filter widget (empty = no restriction).
-function location_picker(string $county = '', string $area = '', string $mode = 'required'): void {
+// Cascading county → sub-county → estate picker. Emits the shared JS once per page.
+// 'filter' mode shows only county + sub-county with "All" options.
+function location_picker(string $county = '', string $area = '', string $estate = '', string $mode = 'required'): void {
     static $jsDone = false;
     $filter = $mode === 'filter';
     echo '<div class="locpick">';
@@ -283,49 +283,68 @@ function location_picker(string $county = '', string $area = '', string $mode = 
         echo '<option' . ($county === $c ? ' selected' : '') . '>' . e($c) . '</option>';
     echo '</select>';
     echo '<select name="area" class="locarea" data-current="' . e($area) . '"' . ($mode === 'required' ? ' required' : '') . '>';
-    echo '<option value="">' . ($filter ? 'All areas' : 'Sub-county / area…') . '</option></select>';
-    if (!$filter)
-        echo '<input class="locnew" name="area_new" maxlength="60" placeholder="Type your area / estate name" hidden>';
+    echo '<option value="">' . ($filter ? 'All areas' : 'Sub-county…') . '</option></select>';
+    if (!$filter) {
+        echo '<select name="estate" class="locest" data-current="' . e($estate) . '">';
+        echo '<option value="">Estate / neighbourhood (optional)</option></select>';
+        echo '<input class="locnew" name="estate_new" maxlength="60" placeholder="Type your estate / neighbourhood" hidden>';
+    }
     echo '</div>';
     if ($jsDone) return;
     $jsDone = true;
     echo '<script>var LOC_MAP=' . json_encode(areas_map(), JSON_UNESCAPED_UNICODE) . ';
 (function(){
-  function fill(sel){
-    var w=sel.closest(".locpick"),a=w.querySelector(".locarea"),
-        cur=a.dataset.current,list=LOC_MAP[sel.value]||[],
-        first=a.options[0]?a.options[0].textContent:"",
-        canAdd=!!w.querySelector(".locnew");
-    a.innerHTML="";var d=document.createElement("option");d.value="";d.textContent=first;a.appendChild(d);
-    list.forEach(function(n){var o=document.createElement("option");o.value=n;o.textContent=n;if(n===cur)o.selected=true;a.appendChild(o);});
-    if(canAdd&&sel.value){var o=document.createElement("option");o.value="__new";o.textContent="＋ Add my area…";a.appendChild(o);}
-    a.dataset.current="";
-    var inp=w.querySelector(".locnew");if(inp)inp.hidden=a.value!=="__new";
+  function setOpts(sel,list,first,cur,add){
+    sel.innerHTML="";var d=document.createElement("option");d.value="";d.textContent=first;sel.appendChild(d);
+    list.forEach(function(n){var o=document.createElement("option");o.value=n;o.textContent=n;if(n===cur)o.selected=true;sel.appendChild(o);});
+    if(add){var o=document.createElement("option");o.value="__new";o.textContent="＋ Add my estate…";sel.appendChild(o);}
   }
-  document.addEventListener("change",function(e){
-    if(e.target.classList&&e.target.classList.contains("loccounty"))fill(e.target);
-    if(e.target.classList&&e.target.classList.contains("locarea")){
-      var w=e.target.closest(".locpick"),inp=w&&w.querySelector(".locnew");
-      if(inp){inp.hidden=e.target.value!=="__new";if(!inp.hidden)inp.focus();}
+  function fillEst(w){
+    var c=w.querySelector(".loccounty"),a=w.querySelector(".locarea"),
+        e=w.querySelector(".locest");if(!e)return;
+    var es=(LOC_MAP[c.value]||{})[a.value]||[];
+    setOpts(e,es,e.dataset.first||"Estate / neighbourhood (optional)",e.dataset.current,true);
+    e.dataset.current="";
+    var inp=w.querySelector(".locnew");if(inp)inp.hidden=e.value!=="__new";
+  }
+  function fillSub(sel){
+    var w=sel.closest(".locpick"),a=w.querySelector(".locarea"),
+        cur=a.dataset.current,subs=Object.keys(LOC_MAP[sel.value]||{}),
+        first=a.options[0]?a.options[0].textContent:"";
+    setOpts(a,subs,first,cur,false);
+    a.dataset.current="";
+    fillEst(w);
+  }
+  document.addEventListener("change",function(ev){
+    var t=ev.target;if(!t.classList)return;
+    if(t.classList.contains("loccounty"))fillSub(t);
+    if(t.classList.contains("locarea"))fillEst(t.closest(".locpick"));
+    if(t.classList.contains("locest")){
+      var inp=t.closest(".locpick").querySelector(".locnew");
+      if(inp){inp.hidden=t.value!=="__new";if(!inp.hidden)inp.focus();}
     }
   });
-  document.querySelectorAll(".loccounty").forEach(function(s){if(s.value)fill(s);});
+  document.querySelectorAll(".loccounty").forEach(function(s){if(s.value)fillSub(s);});
+  window.LOC_FILL=fillSub;
 })();</script>';
 }
 
-// Reads POSTed county+area, handling the "add my area" custom path.
-// Returns a valid stored area name, or the $fallback.
-function resolve_area(string $county, string $fallback = ''): string {
+// Reads POSTed county+area+estate, handling the "add my estate" custom path.
+// Estates are stored under (county, sub) and deduped by the composite PK.
+// Returns [area, estate] — each falls back when invalid/absent.
+function resolve_location(string $county, string $areaFallback = '', string $estateFallback = ''): array {
     $a = trim(mb_substr($_POST['area'] ?? '', 0, 60));
-    if ($a === '__new') {
-        $a = trim(mb_substr($_POST['area_new'] ?? '', 0, 60));
-        $a = preg_replace('/[<>{}\\[\\]\\\\]/', '', $a);
-        if ($a !== '' && in_array($county, counties(), true)) {
-            db()->prepare('INSERT IGNORE INTO areas (county, name, sort, custom) VALUES (:c, :n, 50, 1)')
-                ->execute([':c' => $county, ':n' => $a]);
-            return $a;
+    $area = area_valid($county, $a) ? $a : $areaFallback;
+    $e = trim(mb_substr($_POST['estate'] ?? '', 0, 60));
+    if ($e === '__new') {
+        $e = trim(mb_substr($_POST['estate_new'] ?? '', 0, 60));
+        $e = preg_replace('/[<>{}\\[\\]\\\\]/', '', $e);
+        if ($e !== '' && $area !== '' && in_array($county, counties(), true)) {
+            db()->prepare('INSERT IGNORE INTO areas (county, sub, name, sort, custom) VALUES (:c, :s, :n, 50, 1)')
+                ->execute([':c' => $county, ':s' => $area, ':n' => $e]);
+            return [$area, $e];
         }
-        return '';
+        return [$area, ''];
     }
-    return area_valid($county, $a) ? $a : $fallback;
+    return [$area, estate_valid($county, $area, $e) ? $e : $estateFallback];
 }

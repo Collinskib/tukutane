@@ -21,7 +21,7 @@ site_header('venues');
 
   <form class="toolbar" method="get" action="venues.php">
     <input name="q" value="<?= e($f['q']) ?>" placeholder="Search venues…" maxlength="60">
-    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], 'filter'); ?></span>
+    <span onchange="this.form.submit()"><?php location_picker($f['county'], $f['area'], '', 'filter'); ?></span>
     <button class="btn-mini" type="submit">Search</button>
     <a class="btn-mini solid" href="venue-edit.php">+ Add a venue</a>
   </form>

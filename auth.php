@@ -12,11 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $next = $_POST['next'] ?? $next;
     if (($_POST['mode'] ?? '') === 'register') {
         $mode = 'register';
+        [$regArea, $regEstate] = resolve_location($_POST['county'] ?? '');
         $err = register_user(
             trim($_POST['email'] ?? ''),
             $_POST['password'] ?? '',
             trim($_POST['name'] ?? ''),
-            resolve_area($county ?? ($_POST['county'] ?? ''), ''),
+            $regArea,
+            $regEstate,
             $_POST['county'] ?? ''
         );
     } else {
@@ -63,7 +65,7 @@ site_header();
 
     <?php if ($mode === 'register'): ?>
     <div class="field"><label>Where do you live? (optional)</label>
-      <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', 'optional'); ?>
+      <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', $_POST['estate'] ?? '', 'optional'); ?>
     </div>
     <?php endif; ?>
 

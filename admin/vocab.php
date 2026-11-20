@@ -21,14 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'add_area':
             $name   = trim(mb_substr($_POST['name'] ?? '', 0, 60));
             $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
+            $sub    = trim(mb_substr($_POST['sub'] ?? '', 0, 60));
             $sort   = (int) ($_POST['sort'] ?? 99);
-            if ($name && $county) db()->prepare('INSERT INTO areas (county,name,sort) VALUES (:c,:n,:s)
+            if ($sub !== '' && !area_valid($county, $sub)) $sub = '';
+            if ($name && $county) db()->prepare('INSERT INTO areas (county,sub,name,sort,custom) VALUES (:c,:s,:n,:st,:cu)
                                       ON DUPLICATE KEY UPDATE sort=:s2')
-                       ->execute([':c'=>$county,':n'=>$name,':s'=>$sort,':s2'=>$sort]);
+                       ->execute([':c'=>$county,':s'=>$sub,':n'=>$name,':st'=>$sort,':cu'=>$sub !== '' ? 1 : 0,':s2'=>$sort]);
             break;
         case 'del_area':
-            db()->prepare('DELETE FROM areas WHERE county=:c AND name=:n')
-                ->execute([':c'=>$_POST['county'] ?? '', ':n'=>$_POST['name'] ?? '']);
+            db()->prepare('DELETE FROM areas WHERE county=:c AND sub=:s AND name=:n')
+                ->execute([':c'=>$_POST['county'] ?? '', ':s'=>$_POST['sub'] ?? '', ':n'=>$_POST['name'] ?? '']);
             break;
     }
     // bust the per-request caches by simply redirecting
@@ -71,14 +73,27 @@ admin_page('Categories & areas', 'vocab', function () use ($cats, $byCounty, $fi
           <?php foreach (counties() as $c): ?><option<?= $c === $filterCounty ? ' selected' : '' ?>><?= e($c) ?> (<?= count($byCounty[$c] ?? []) ?>)</option><?php endforeach; ?>
         </select>
       </form>
-      <?php foreach (($byCounty[$filterCounty] ?? []) as $a): ?>
+      <?php foreach (($byCounty[$filterCounty] ?? []) as $a):
+        if ($a['sub'] !== '') continue; ?>
       <div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line-soft)">
         <b style="flex:1"><?= e($a['name']) ?><?= $a['custom'] ? ' <small style="color:var(--accent)">user-added</small>' : '' ?></b><small style="color:var(--ink-soft)">sort <?= (int) $a['sort'] ?></small>
         <form method="post" onsubmit="return confirm('Delete <?= e($a['name']) ?>, <?= e($a['county']) ?>?')"><?= csrf_field() ?>
           <input type="hidden" name="do" value="del_area">
-          <input type="hidden" name="county" value="<?= e($a['county']) ?>"><input type="hidden" name="name" value="<?= e($a['name']) ?>">
+          <input type="hidden" name="county" value="<?= e($a['county']) ?>"><input type="hidden" name="sub" value="">
+          <input type="hidden" name="name" value="<?= e($a['name']) ?>">
           <button class="btn-mini" type="submit">✕</button></form>
       </div>
+      <?php foreach (($byCounty[$filterCounty] ?? []) as $e2):
+        if ($e2['sub'] !== $a['name']) continue; ?>
+      <div style="display:flex;gap:10px;align-items:center;padding:4px 0 4px 20px">
+        <span style="flex:1;color:var(--ink-soft)">↳ <?= e($e2['name']) ?> <small style="color:var(--accent)">estate</small></span>
+        <form method="post" onsubmit="return confirm('Delete estate <?= e($e2['name']) ?>?')"><?= csrf_field() ?>
+          <input type="hidden" name="do" value="del_area">
+          <input type="hidden" name="county" value="<?= e($e2['county']) ?>"><input type="hidden" name="sub" value="<?= e($e2['sub']) ?>">
+          <input type="hidden" name="name" value="<?= e($e2['name']) ?>">
+          <button class="btn-mini" type="submit">✕</button></form>
+      </div>
+      <?php endforeach; ?>
       <?php endforeach; ?>
       <form method="post" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><?= csrf_field() ?>
         <input type="hidden" name="do" value="add_area">
