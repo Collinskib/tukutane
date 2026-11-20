@@ -8,10 +8,13 @@ require_login('people.php');
 $do  = $_POST['do'] ?? '';
 $uid = (int) ($_POST['uid'] ?? 0);
 $back = $_SERVER['HTTP_REFERER'] ?? 'people.php';
-if (str_contains($back, '://') && !str_contains($back, $_SERVER['HTTP_HOST'] ?? 'nipange.co.ke')) $back = 'people.php';
-// keep only the path+query of the referer
-if (($pos = strpos($back, '.php')) !== false) $back = substr($back, strrpos(substr($back, 0, $pos), '/') + 1);
-$back = ltrim($back, '/');
+$parts = parse_url($back);
+if (!empty($parts['host']) && $parts['host'] !== ($_SERVER['HTTP_HOST'] ?? '')) {
+    $back = 'people.php';
+} else {
+    $back = ltrim(($parts['path'] ?? '') . (isset($parts['query']) ? '?' . $parts['query'] : ''), '/');
+    if ($back === '') $back = 'people.php';
+}
 
 if (!$uid || $uid === user_id()) redirect('people.php');
 if (!find_user($uid)) redirect('people.php');

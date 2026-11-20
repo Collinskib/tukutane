@@ -24,16 +24,21 @@ Legend: ✅ shipped · 🚧 partial · ⬜ not started
 
 Launch requirement (shared accounts/DB across devices): ✅
 
-Known polish gaps: search suggestions, typing indicators in chat.
+Polish shipped 20 Nov: search suggestions on Discover, typing indicators in DMs,
+Google sign-in, privacy/terms pages.
 
 ## Release 2 — Interest Groups and Event Coordination
 
 | # | Feature | Status |
 |---|---------|--------|
-| 13 | Local interest groups (create/discover/join/leave; open + approval-required) | ⬜ |
-| 14 | Recurring gatherings (weekly/monthly series, per-date RSVP, edit/cancel one or series) | ⬜ |
-| 15 | Event group chat (hosts + confirmed attendees, pinned updates, mute/report) | ⬜ |
+| 13 | Local interest groups (create/discover/join/leave; open + approval-required) | ✅ |
+| 14 | Recurring gatherings (weekly/monthly series, per-date RSVP, edit/cancel one or series) | ✅ |
+| 15 | Event group chat (hosts + confirmed attendees, pinned updates, mute/report) | ✅ |
 | 16 | Waitlists (auto-offer next person with accept deadline, pass on expiry) | ✅ |
+
+Release 2 shipped 20 Nov. Notable fixes en route: friend-action redirects were
+broken (chopped referer path → wrong page after every friend action); event chat
+access checks both RSVP state and host-block relationships.
 
 ## Release 3 — Organizers, Venues and Paid Events
 
