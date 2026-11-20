@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($body === '') exit(json_encode(['error' => 'empty']));
     $id = send_message((int) $conv['id'], $uid, $body);
-    // notify the other party (once per unread burst)
+    // notify the other party (once per unread burst, unless they muted the chat)
     $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id = :c AND sender_id = :s AND read_at IS NULL');
     $pending->execute([':c' => $conv['id'], ':s' => $uid]);
-    if ((int) $pending->fetchColumn() === 1) {
+    if ((int) $pending->fetchColumn() === 1 && !conversation_muted((int) $conv['id'], $otherId)) {
         notify($otherId, 'message', user()['name'] . ' sent you a message.', 'messages.php?c=' . $conv['id']);
     }
     echo json_encode(['ok' => true, 'message' => [

@@ -453,12 +453,26 @@ function mark_conversation_read(int $convId, int $me): void {
         ->execute([':c' => $convId, ':m' => $me]);
 }
 
+function conversation_muted(int $convId, int $me): bool {
+    $stmt = db()->prepare('SELECT muted FROM conversation_state WHERE conversation_id = :c AND user_id = :u');
+    $stmt->execute([':c' => $convId, ':u' => $me]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function set_conversation_muted(int $convId, int $me, bool $muted): void {
+    db()->prepare('INSERT INTO conversation_state (conversation_id, user_id, muted) VALUES (:c, :u, :m)
+                   ON DUPLICATE KEY UPDATE muted = VALUES(muted)')
+        ->execute([':c' => $convId, ':u' => $me, ':m' => $muted ? 1 : 0]);
+}
+
 function unread_messages(int $me): int {
     $stmt = db()->prepare(
         'SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id
-         WHERE (c.user_one = :m1 OR c.user_two = :m2) AND m.sender_id != :m3 AND m.read_at IS NULL'
+         LEFT JOIN conversation_state cs ON cs.conversation_id = c.id AND cs.user_id = :m4
+         WHERE (c.user_one = :m1 OR c.user_two = :m2) AND m.sender_id != :m3 AND m.read_at IS NULL
+           AND COALESCE(cs.muted, 0) = 0'
     );
-    $stmt->execute([':m1' => $me, ':m2' => $me, ':m3' => $me]);
+    $stmt->execute([':m1' => $me, ':m2' => $me, ':m3' => $me, ':m4' => $me]);
     return (int) $stmt->fetchColumn();
 }
 

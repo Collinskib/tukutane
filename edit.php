@@ -46,6 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                capacity=:cap,invite_only=:io'
                                . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
                     ->execute($params);
+                if ($ev['venue'] !== $venue || $ev['area'] !== $area || strtotime($ev['event_at']) !== strtotime($date)) {
+                    $when = date('D j M · g:i A', strtotime($date));
+                    foreach (attendees_of($id) as $a) {
+                        if ($a['user_id']) notify((int) $a['user_id'], 'event_updated',
+                            '"' . $title . '" was updated — ' . $when . ' at ' . $venue . ', ' . $area . '.',
+                            'event.php?id=' . $id);
+                    }
+                }
                 flash('Saved.');
                 redirect('edit.php?id=' . $id);
             }
