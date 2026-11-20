@@ -8,7 +8,7 @@ $f = [
     'q'        => trim($_GET['q'] ?? ''),
     'category' => isset(categories()[$_GET['category'] ?? '']) ? $_GET['category'] : '',
     'county'   => in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '',
-    'area'     => in_array($_GET['area'] ?? '', areas($_GET['county'] ?? ''), true) ? $_GET['area'] : '',
+    'area'     => in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '',
     'view'     => $view,
 ];
 $groups = groups_list($f);

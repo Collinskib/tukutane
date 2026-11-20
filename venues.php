@@ -6,7 +6,7 @@ require_login('venues.php');
 $f = [
     'q'    => trim($_GET['q'] ?? ''),
     'county' => in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '',
-    'area' => in_array($_GET['area'] ?? '', areas($_GET['county'] ?? ''), true) ? $_GET['area'] : '',
+    'area' => in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '',
 ];
 $venues = venues_list($f);
 

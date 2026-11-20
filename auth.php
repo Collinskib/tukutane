@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             trim($_POST['email'] ?? ''),
             $_POST['password'] ?? '',
             trim($_POST['name'] ?? ''),
-            $_POST['area'] ?? '',
+            resolve_area($county ?? ($_POST['county'] ?? ''), ''),
             $_POST['county'] ?? ''
         );
     } else {

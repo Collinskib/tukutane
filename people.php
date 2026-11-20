@@ -5,7 +5,7 @@ require_login('people.php');
 
 $f = [
     'county'      => in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '',
-    'area'        => in_array($_GET['area'] ?? '', areas($_GET['county'] ?? ''), true) ? $_GET['area'] : '',
+    'area'        => in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '',
     'interest'    => isset(categories()[$_GET['interest'] ?? '']) ? $_GET['interest'] : '',
     'q'           => trim($_GET['q'] ?? ''),
     'my_interests' => array_filter(explode(',', user()['interests'] ?? '')),

@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $name = trim(mb_substr($_POST['name'] ?? '', 0, 80));
     $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
-    $area = area_valid($county, $_POST['area'] ?? '') ? $_POST['area'] : '';
+    $area = resolve_area($county, $v['area'] ?? '');
     $desc = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $photo = upload_image('photo');
     if (str_starts_with($photo, '!')) $err = substr($photo, 1);

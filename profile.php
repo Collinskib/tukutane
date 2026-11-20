@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name  = trim(mb_substr($_POST['name'] ?? '', 0, 60));
             $bio   = trim(mb_substr($_POST['bio'] ?? '', 0, 300));
             $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : '';
-            $area  = area_valid($county, $_POST['area'] ?? '') ? $_POST['area'] : '';
+            $area  = resolve_area($county);
             if ($county === '') $area = '';
             $ints  = array_values(array_filter($_POST['interests'] ?? [], fn($i) => isset(categories()[$i])));
             $disc  = !empty($_POST['discoverable']) ? 1 : 0;

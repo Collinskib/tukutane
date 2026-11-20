@@ -27,6 +27,14 @@ foreach (['users', 'gatherings', 'grps', 'venues'] as $t) {
     db()->exec("UPDATE $t SET county = 'Nairobi' WHERE county IS NULL");
 }
 
+// 2b) user-added (custom) areas flag
+try {
+    db()->exec("ALTER TABLE areas ADD COLUMN custom TINYINT(1) NOT NULL DEFAULT 0");
+    echo "OK   areas.custom\n";
+} catch (Throwable $e) {
+    echo (str_contains($e->getMessage(), 'Duplicate') ? "SKIP areas.custom\n" : 'FAIL custom: ' . $e->getMessage() . "\n");
+}
+
 // 3) seed all 47 counties + sub-counties (Nairobi neighbourhoods preserved above)
 $map = array(
         "Uasin Gishu" => ["Ainabkoi", "Kapseret", "Kesses", "Moiben", "Soy", "Turbo"],

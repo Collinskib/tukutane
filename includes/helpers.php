@@ -284,6 +284,8 @@ function location_picker(string $county = '', string $area = '', string $mode = 
     echo '</select>';
     echo '<select name="area" class="locarea" data-current="' . e($area) . '"' . ($mode === 'required' ? ' required' : '') . '>';
     echo '<option value="">' . ($filter ? 'All areas' : 'Sub-county / area…') . '</option></select>';
+    if (!$filter)
+        echo '<input class="locnew" name="area_new" maxlength="60" placeholder="Type your area / estate name" hidden>';
     echo '</div>';
     if ($jsDone) return;
     $jsDone = true;
@@ -292,12 +294,38 @@ function location_picker(string $county = '', string $area = '', string $mode = 
   function fill(sel){
     var w=sel.closest(".locpick"),a=w.querySelector(".locarea"),
         cur=a.dataset.current,list=LOC_MAP[sel.value]||[],
-        first=a.options[0]?a.options[0].textContent:"";
+        first=a.options[0]?a.options[0].textContent:"",
+        canAdd=!!w.querySelector(".locnew");
     a.innerHTML="";var d=document.createElement("option");d.value="";d.textContent=first;a.appendChild(d);
     list.forEach(function(n){var o=document.createElement("option");o.value=n;o.textContent=n;if(n===cur)o.selected=true;a.appendChild(o);});
+    if(canAdd&&sel.value){var o=document.createElement("option");o.value="__new";o.textContent="＋ Add my area…";a.appendChild(o);}
     a.dataset.current="";
+    var inp=w.querySelector(".locnew");if(inp)inp.hidden=a.value!=="__new";
   }
-  document.addEventListener("change",function(e){if(e.target.classList&&e.target.classList.contains("loccounty"))fill(e.target);});
+  document.addEventListener("change",function(e){
+    if(e.target.classList&&e.target.classList.contains("loccounty"))fill(e.target);
+    if(e.target.classList&&e.target.classList.contains("locarea")){
+      var w=e.target.closest(".locpick"),inp=w&&w.querySelector(".locnew");
+      if(inp){inp.hidden=e.target.value!=="__new";if(!inp.hidden)inp.focus();}
+    }
+  });
   document.querySelectorAll(".loccounty").forEach(function(s){if(s.value)fill(s);});
 })();</script>';
+}
+
+// Reads POSTed county+area, handling the "add my area" custom path.
+// Returns a valid stored area name, or the $fallback.
+function resolve_area(string $county, string $fallback = ''): string {
+    $a = trim(mb_substr($_POST['area'] ?? '', 0, 60));
+    if ($a === '__new') {
+        $a = trim(mb_substr($_POST['area_new'] ?? '', 0, 60));
+        $a = preg_replace('/[<>{}\\[\\]\\\\]/', '', $a);
+        if ($a !== '' && in_array($county, counties(), true)) {
+            db()->prepare('INSERT IGNORE INTO areas (county, name, sort, custom) VALUES (:c, :n, 50, 1)')
+                ->execute([':c' => $county, ':n' => $a]);
+            return $a;
+        }
+        return '';
+    }
+    return area_valid($county, $a) ? $a : $fallback;
 }

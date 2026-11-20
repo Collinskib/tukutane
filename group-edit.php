@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name    = trim(mb_substr($_POST['name'] ?? '', 0, 80));
     $desc    = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $cat     = $_POST['category'] ?? '';
-    $area    = $_POST['area'] ?? '';
+    $area    = resolve_area($_POST['county'] ?? '', $g['area'] ?? '');
     $county  = $_POST['county'] ?? '';
     $policy  = in_array($_POST['join_policy'] ?? '', ['open', 'approval'], true) ? $_POST['join_policy'] : 'open';
 

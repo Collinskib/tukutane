@@ -73,7 +73,7 @@ admin_page('Categories & areas', 'vocab', function () use ($cats, $byCounty, $fi
       </form>
       <?php foreach (($byCounty[$filterCounty] ?? []) as $a): ?>
       <div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line-soft)">
-        <b style="flex:1"><?= e($a['name']) ?></b><small style="color:var(--ink-soft)">sort <?= (int) $a['sort'] ?></small>
+        <b style="flex:1"><?= e($a['name']) ?><?= $a['custom'] ? ' <small style="color:var(--accent)">user-added</small>' : '' ?></b><small style="color:var(--ink-soft)">sort <?= (int) $a['sort'] ?></small>
         <form method="post" onsubmit="return confirm('Delete <?= e($a['name']) ?>, <?= e($a['county']) ?>?')"><?= csrf_field() ?>
           <input type="hidden" name="do" value="del_area">
           <input type="hidden" name="county" value="<?= e($a['county']) ?>"><input type="hidden" name="name" value="<?= e($a['name']) ?>">

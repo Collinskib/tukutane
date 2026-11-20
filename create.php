@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
     $category = $_POST['category'] ?? '';
-    $area     = $_POST['area'] ?? '';
+    $area     = resolve_area($_POST['county'] ?? '');
     $county   = $_POST['county'] ?? '';
     $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
     $date     = trim($_POST['date'] ?? '');

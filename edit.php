@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'save':
             $title    = trim(mb_substr($_POST['title'] ?? '', 0, 80));
             $category = $_POST['category'] ?? $ev['category'];
-            $area     = $_POST['area'] ?? $ev['area'];
+            $area     = resolve_area($_POST['county'] ?? $ev['county'], $ev['area']);
             $county   = $_POST['county'] ?? $ev['county'];
             $venue    = trim(mb_substr($_POST['venue'] ?? '', 0, 80));
             $date     = trim($_POST['date'] ?? '');

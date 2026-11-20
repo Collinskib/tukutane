@@ -10,7 +10,7 @@ if ($view === 'mine' && !user()) $view = 'discover';
 $interest = $_GET['interest'] ?? 'All interests';
 if ($interest !== 'All interests' && !isset(categories()[$interest])) $interest = 'All interests';
 $county = in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '';
-$area  = area_valid($county, $_GET['area'] ?? '') ? $_GET['area'] : '';
+$area  = in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '';
 $query = trim($_GET['q'] ?? '');
 $when  = in_array($_GET['when'] ?? '', ['today', 'tomorrow', 'weekend'], true) ? $_GET['when'] : '';
 $cost  = in_array($_GET['cost'] ?? '', ['free', 'paid'], true) ? $_GET['cost'] : '';
