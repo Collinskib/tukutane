@@ -40,13 +40,12 @@ Release 2 shipped 20 Nov. Notable fixes en route: friend-action redirects were
 broken (chopped referer path → wrong page after every friend action); event chat
 access checks both RSVP state and host-block relationships.
 
-## Release 3 — Organizers, Venues and Paid Events
+## Release 3 — Organizers and Venues
 
 | # | Feature | Status |
 |---|---------|--------|
 | 17 | Organizer profiles (bio, upcoming/past events, follow + new-event notifications) | ✅ shipped 20 Nov |
 | 18 | Venue profiles (location, photos, upcoming events; hosts link gatherings) | ✅ shipped 20 Nov |
-| 19 | M-Pesa ticket payments (Daraja), tickets on confirmed payment, refunds | ⬜ deferred |
 
 ## Platform / business items (from chat)
 
@@ -54,3 +53,13 @@ access checks both RSVP state and host-block relationships.
 - iOS App Store — skipped for now ($100/yr); PWA covers iPhone users.
 - Subscriptions monetization — deferred until user-count threshold; ads possibly later.
 - Performance: "loads quickly / smoothly" is a standing requirement — keep pages lightweight.
+
+## Release 4 — Paid Events (deferred to last)
+
+| # | Feature | Status |
+|---|---------|--------|
+| 19 | M-Pesa ticket payments (Daraja), tickets on confirmed payment, refunds | ⬜ |
+
+Deliberately last: needs Daraja sandbox→production onboarding, callback/webhook
+handling, and refund flows — worth revisiting Laravel (queues, scheduling) here.
+Build only once the free product has traction to charge for.
