@@ -57,6 +57,8 @@ a.brand{text-decoration:none}
   .bottomnav a.fab span{display:flex;align-items:center;justify-content:center;width:46px;height:46px;margin-top:-22px;border-radius:50%;background:var(--green-3);color:var(--cream);font-size:26px;box-shadow:var(--shadow)}
   .bottomnav a:active span{transform:scale(.9)}
   header.site .nav-right .btn[href="auth.php"],header.site .nav-create,header.site .nav-join{display:none}
+  header.site .nav-link{display:none}
+  header.site nav{padding-left:14px;padding-right:14px}
 }
 
 /* ============ toast ============ */
@@ -77,7 +79,7 @@ a.brand{text-decoration:none}
 .form .alt{text-align:center;margin-top:16px;font-size:14px;color:var(--ink-soft)}
 .checkrow{display:flex;flex-wrap:wrap;gap:8px}
 .checkrow label{border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 13px;font-size:14px;cursor:pointer;transition:background var(--dur-fast),border-color var(--dur-fast);user-select:none}
-.checkrow input{position:absolute;opacity:0;pointer-events:none}
+.checkrow input{position:absolute;opacity:0;pointer-events:none;width:auto}
 .checkrow label:has(input:checked){background:var(--green-3);color:var(--cream);border-color:var(--green-3)}
 .pw-wrap{position:relative}
 .pw-wrap .peek{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;font-size:13px;color:var(--ink-soft);cursor:pointer}
@@ -235,7 +237,7 @@ footer.site{border-top:1px solid var(--line);margin-top:40px;padding:30px 24px;m
 .fine{color:var(--ink-soft);font-size:13px;margin:0}
 
 /* ============ responsive extras ============ */
-@media(max-width:900px){.chat-layout{grid-template-columns:1fr;height:auto}.conv-list{border-right:0;border-bottom:1px solid var(--line-soft);max-height:220px}.admin-layout{grid-template-columns:1fr}.admin-side{position:static;display:flex;overflow-x:auto;gap:4px}}
+@media(max-width:900px){.chat-layout{grid-template-columns:1fr;height:auto}.conv-list{border-right:0;border-bottom:1px solid var(--line-soft);max-height:220px}.admin-layout{grid-template-columns:1fr}.admin-layout>*{min-width:0}.admin-layout>div:last-child{overflow-x:auto;-webkit-overflow-scrolling:touch}.admin-side{position:static;display:flex;overflow-x:auto;gap:4px}.admin-side a{white-space:nowrap}}
 @media(max-width:760px){.grid2{grid-template-columns:1fr}.foot-grid{grid-template-columns:1fr 1fr}.ev-cover img{height:220px}.form{margin:18px auto;padding:20px}}
 @media(max-width:540px){.bubble{max-width:84%}}
 
