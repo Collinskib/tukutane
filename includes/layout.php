@@ -15,7 +15,7 @@ function page_head(string $title): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=13">
+<link rel="stylesheet" href="/assets/style.css?v=14">
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 <script defer src="/assets/app.js?v=10"></script>
 </head>
