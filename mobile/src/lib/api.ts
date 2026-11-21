@@ -23,14 +23,25 @@ export async function api(route: string, params: Record<string, any> = {}, body?
     if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
   }
   const token = await getToken();
-  const res = await fetch(`${BASE}/api/app.php?${qs}`, {
-    method: body !== undefined ? 'POST' : 'GET',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/api/app.php?${qs}`, {
+      method: body !== undefined ? 'POST' : 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal,
+    });
+  } catch (e: any) {
+    if (e?.name === 'AbortError') throw new ApiError('Request timed out — check your connection.', 0);
+    throw new ApiError('Network error — check your connection.', 0);
+  } finally {
+    clearTimeout(timer);
+  }
   let data: any = null;
   try { data = await res.json(); } catch { /* non-json */ }
   if (!res.ok || (data && data.error)) {

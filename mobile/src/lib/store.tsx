@@ -45,8 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(d.user);
           setIncomplete(!!d.incomplete);
         }
-      } catch {
-        await setToken(null);
+      } catch (e: any) {
+        // Only drop the token on a real auth rejection, not a flaky network.
+        if (e?.status === 401 || e?.status === 403) await setToken(null);
       }
       setLoading(false);
     })();
