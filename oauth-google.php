@@ -58,7 +58,7 @@ $u = find_user_by_email($email);
 if (!$u) {
     $name = trim(mb_substr((string) ($info['name'] ?? ''), 0, 60));
     if ($name === '') $name = strstr($email, '@', true) ?: 'Nipange member';
-    db()->prepare('INSERT INTO users (email, pass_hash, name, photo) VALUES (:e, :p, :n, :ph)')
+    db()->prepare('INSERT INTO users (email, pass_hash, name, photo, email_verified) VALUES (:e, :p, :n, :ph, 1)')
         ->execute([
             ':e'  => $email,
             ':p'  => password_hash(bin2hex(random_bytes(24)), PASSWORD_DEFAULT),

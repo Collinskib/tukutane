@@ -402,7 +402,7 @@ function find_user_by_email(string $email): ?array {
 
 // People nearby: discoverable active users, shared interests ranked first.
 function people(array $f, int $viewerId): array {
-    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.area, u.county, u.interests,
+    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.area, u.county, u.interests, u.gender, u.age_bracket,
                    (SELECT COUNT(*) FROM friendships fr
                     WHERE fr.status = "accepted"
                       AND ((fr.requester_id = u.id AND fr.addressee_id = :vf1)

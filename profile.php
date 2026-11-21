@@ -21,8 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($name === '') { $err = 'Name is required.'; break; }
             $photo = upload_image('photo');
             if (str_starts_with($photo, '!')) { $err = substr($photo, 1); break; }
-            $sql = 'UPDATE users SET name=:n,bio=:b,area=:a,county=:c,estate=:e,interests=:i,discoverable=:d';
+            $gender = in_array($_POST['gender'] ?? '', GENDERS, true) ? $_POST['gender'] : ($u['gender'] ?? '');
+            $agebk  = in_array($_POST['age_bracket'] ?? '', AGE_BRACKETS, true) ? $_POST['age_bracket'] : ($u['age_bracket'] ?? '');
+            $sql = 'UPDATE users SET name=:n,bio=:b,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d';
             $p = [':n' => $name, ':b' => $bio, ':a' => $area, ':c' => $county, ':e' => $estate,
+                  ':g' => $gender, ':ab' => $agebk,
                   ':i' => implode(',', $ints), ':d' => $disc, ':u' => $uid];
             if ($photo) { $sql .= ',photo=:ph'; $p[':ph'] = $photo; }
             db()->prepare($sql . ' WHERE id=:u')->execute($p);
@@ -62,7 +65,7 @@ site_header();
 <div class="form rv in" style="max-width:520px">
   <div class="prof-head" style="border:0;padding:0;margin-bottom:16px">
     <?= avatar_html($u, 'lg') ?>
-    <div class="info"><h2><?= e($u['name']) ?></h2><p><?= e($u['email']) ?><?= place_label($u) ? ' · ' . e(place_label($u)) : '' ?></p></div>
+    <div class="info"><h2><?= e($u['name']) ?></h2><p><?= e($u['email']) ?><?= !empty($u['email_verified']) ? ' ✓' : '' ?><?= place_label($u) ? ' · ' . e(place_label($u)) : '' ?></p></div>
   </div>
   <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
 
@@ -75,6 +78,20 @@ site_header();
     <div class="field"><label>Name</label><input name="name" required maxlength="60" value="<?= e($u['name']) ?>"></div>
     <div class="field"><label>Bio</label><textarea name="bio" maxlength="300" rows="3"
         placeholder="A line about you"><?= e($u['bio']) ?></textarea></div>
+    <div class="field"><label>Gender</label>
+      <select name="gender">
+        <option value="">Prefer not to say</option>
+        <?php foreach (['Male', 'Female'] as $g): ?>
+        <option<?= ($u['gender'] ?? '') === $g ? ' selected' : '' ?>><?= e($g) ?></option>
+        <?php endforeach; ?>
+      </select></div>
+    <div class="field"><label>Age bracket</label>
+      <select name="age_bracket">
+        <option value="">Select…</option>
+        <?php foreach (AGE_BRACKETS as $ab): ?>
+        <option<?= ($u['age_bracket'] ?? '') === $ab ? ' selected' : '' ?>><?= e($ab) ?></option>
+        <?php endforeach; ?>
+      </select></div>
     <div class="field"><label>Where you live</label>
       <?php location_picker($_POST['county'] ?? $u['county'] ?? '', $_POST['area'] ?? $u['area'] ?? '', $_POST['estate'] ?? $u['estate'] ?? '', 'optional'); ?></div>
     <div class="field"><label>Your interests</label>

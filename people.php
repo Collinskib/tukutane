@@ -53,7 +53,10 @@ site_header('people');
     <div class="person rv" style="--d:<?= min($i * 40, 400) ?>ms">
       <a href="user.php?id=<?= (int) $p['id'] ?>"><?= avatar_html($p, 'lg') ?></a>
       <a class="name" href="user.php?id=<?= (int) $p['id'] ?>"><?= e($p['name']) ?></a>
-      <span class="meta"><?= e(place_label($p, 'Kenya')) ?></span>
+      <span class="meta"><?= e(place_label($p, 'Kenya')) ?><?php
+        $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
+        if ($demo) echo ' · ' . e(implode(', ', $demo));
+      ?></span>
       <?php if ($p['bio']): ?><span class="meta"><?= e(mb_strimwidth($p['bio'], 0, 80, '…')) ?></span><?php endif; ?>
       <div class="tags">
         <?php foreach ($p['shared'] as $s): ?><span class="tag shared">✓ <?= e($s) ?></span><?php endforeach; ?>

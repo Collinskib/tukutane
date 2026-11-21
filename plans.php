@@ -40,7 +40,7 @@ function event_row(array $ev, bool $hosted = false): void {
     </div>
     <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span>
     <?php elseif ($hosted): ?><span class="status-pill going"><?= going_count($ev) ?> going</span>
-      <a class="btn-mini" href="edit.php?id=<?= (int) $ev['id'] ?>">Manage</a>
+      <a class="btn-mini" href="edit.php?id=<?= (int) $ev['id'] ?>">Edit</a>
     <?php elseif (($ev['wl_status'] ?? '') === 'offered'): ?><span class="status-pill going">Spot open — claim it!</span>
     <?php elseif (($ev['wl_status'] ?? '') === 'waiting'): ?><span class="status-pill">Waitlisted</span>
     <?php else: ?><span class="status-pill going">Going</span>
@@ -64,11 +64,11 @@ site_header('plans');
     <div class="empty"><span class="big">📅</span>
       <p><?= match($tab) {
           'joined'   => 'You haven\'t joined anything yet — explore the Discover feed!',
-          'hosted'   => 'You haven\'t created a gathering yet.',
+          'hosted'   => 'You haven\'t created an event yet.',
           'waitlist' => 'You\'re not on any waitlists.',
           default    => 'No saved gatherings — tap ☆ Save on any event.',
       } ?></p>
-      <a class="primary btn" href="<?= $tab === 'hosted' ? 'create.php' : 'index.php' ?>"><?= $tab === 'hosted' ? '+ Create a plan' : 'Explore gatherings' ?></a>
+      <a class="primary btn" href="<?= $tab === 'hosted' ? 'create.php' : 'index.php' ?>"><?= $tab === 'hosted' ? '+ Create a plan' : 'Explore events' ?></a>
     </div>
     <?php endif; ?>
     <?php foreach ($items as $i => $ev): ?>

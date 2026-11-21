@@ -59,6 +59,12 @@ function site_header(string $active = ''): void {
     <?php endif; ?>
   </nav>
 </header>
+<?php if ($u && empty($u['email_verified'])): ?>
+<div class="verifybar">
+  ✉️ Verify your email — we sent a link to <b><?= e($u['email']) ?></b>
+  <form method="post" action="/verify.php"><?= csrf_field() ?><button type="submit">Resend</button></form>
+</div>
+<?php endif; ?>
 <?php if ($fmsg): ?>
 <div class="toast <?= e($fkind) ?>" x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false,4500)" x-transition><?= e($fmsg) ?></div>
 <?php endif; ?>
@@ -83,9 +89,9 @@ function site_footer(): void { ?>
 <footer class="site">
   <div class="foot-grid">
     <div><span class="brand sm">Nipange<i>.</i></span>
-      <p>Find gatherings and new friends near you.</p></div>
+      <p>Find events and new friends near you.</p></div>
     <div><strong>Explore</strong>
-      <a href="/index.php">Gatherings</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Venues</a><a href="/create.php">Create a plan</a></div>
+      <a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Venues</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>

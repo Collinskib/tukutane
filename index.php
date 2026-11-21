@@ -25,7 +25,7 @@ $hasMore = count($events) === 12;
 
 $partial = !empty($_GET['partial']);
 if (!$partial):
-page_head($view === 'mine' ? 'My plans' : 'Discover gatherings');
+page_head($view === 'mine' ? 'My plans' : 'Discover events');
 site_header('discover');
 ?>
 <main>
@@ -35,7 +35,7 @@ site_header('discover');
       <h1>Find your people.</h1>
       <p>Find a game to watch, a place to dance, or a group to spend your Saturday with.</p>
     </div>
-    <div class="scene" role="img" aria-label="Friends gathering in Nairobi"></div>
+    <div class="scene" role="img" aria-label="Friends at a Nairobi café"></div>
   </section>
 <?php endif; ?>
 <?php if (!$partial): ?><div id="filterzone"><?php endif; ?>
@@ -46,10 +46,10 @@ site_header('discover');
     <?php if ($cost): ?><input type="hidden" name="cost" value="<?= e($cost) ?>"><?php endif; ?>
     <?php if ($sort === 'popular'): ?><input type="hidden" name="sort" value="popular"><?php endif; ?>
     <div class="toolbar">
-      <h2 id="heading"><?= $view === 'mine' ? 'My plans' : 'Gatherings nearby' ?></h2>
+      <h2 id="heading"><?= $view === 'mine' ? 'My plans' : 'Events nearby' ?></h2>
       <span class="search-wrap">
-      <input id="search" name="q" type="search" aria-label="Search gatherings"
-             placeholder="Search gatherings" value="<?= e($query) ?>" autocomplete="off">
+      <input id="search" name="q" type="search" aria-label="Search events"
+             placeholder="Search events" value="<?= e($query) ?>" autocomplete="off">
       <div id="suggest" class="suggest" hidden></div>
       </span>
       <?php location_picker($county, $area, '', 'filter'); ?>
@@ -96,7 +96,7 @@ site_header('discover');
     <?php if (!$events): ?>
       <div class="empty rv in" style="grid-column:1/-1">
         <span class="big">🫂</span>
-        <p>No gatherings match these filters<?= $view === 'mine' ? ' — join or create one!' : '' ?>.</p>
+        <p>No events match these filters<?= $view === 'mine' ? ' — join or create one!' : '' ?>.</p>
         <a class="primary btn" href="create.php">+ Create a plan</a>
       </div>
     <?php endif; ?>

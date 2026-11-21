@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $do = $_POST['do'] ?? '';
     if (in_array($do, ['follow', 'unfollow'], true)) {
         follow_set(user_id(), $id, $do === 'follow');
-        flash($do === 'follow' ? 'Following — you\'ll get their new gathering alerts.' : 'Unfollowed.');
+        flash($do === 'follow' ? 'Following — you\'ll get their new event alerts.' : 'Unfollowed.');
     }
     redirect('user.php?id=' . $id);
 }
@@ -40,7 +40,10 @@ $pastHosted = host_gatherings($id, false, 6);
     <?= avatar_html($p, 'lg') ?>
     <div class="info">
       <h2><?= e($p['name']) ?></h2>
-      <p><?= e(place_label($p, 'Nipange user')) ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
+      <p><?= e(place_label($p, 'Nipange user')) ?><?php
+        $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
+        if ($demo) echo ' · ' . e(implode(', ', $demo));
+      ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
       <?php if ($p['bio']): ?><p style="margin-top:6px"><?= e($p['bio']) ?></p><?php endif; ?>
     </div>
   </div>

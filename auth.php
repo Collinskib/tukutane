@@ -19,7 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             trim($_POST['name'] ?? ''),
             $regArea,
             $regEstate,
-            $_POST['county'] ?? ''
+            $_POST['county'] ?? '',
+            $_POST['gender'] ?? '',
+            $_POST['age_bracket'] ?? ''
         );
     } else {
         $err = attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '');
@@ -64,6 +66,20 @@ site_header();
     </div>
 
     <?php if ($mode === 'register'): ?>
+    <div class="field"><label for="gender">Gender</label>
+      <select id="gender" name="gender" required>
+        <option value="">Select…</option>
+        <?php foreach (GENDERS as $g): ?>
+        <option<?= ($_POST['gender'] ?? '') === $g ? ' selected' : '' ?>><?= e($g) ?></option>
+        <?php endforeach; ?>
+      </select></div>
+    <div class="field"><label for="age_bracket">Age bracket</label>
+      <select id="age_bracket" name="age_bracket" required>
+        <option value="">Select…</option>
+        <?php foreach (AGE_BRACKETS as $ab): ?>
+        <option<?= ($_POST['age_bracket'] ?? '') === $ab ? ' selected' : '' ?>><?= e($ab) ?></option>
+        <?php endforeach; ?>
+      </select></div>
     <div class="field"><label>Where do you live? (optional)</label>
       <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', $_POST['estate'] ?? '', 'optional'); ?>
     </div>

@@ -8,7 +8,7 @@ $ev = find_gathering($id);
 if (!$ev || (!$ev['mine'] && !is_admin())) {
     http_response_code(403);
     page_head('Not allowed'); site_header();
-    echo '<main><div class="empty"><p>You can only manage your own gatherings.</p><a class="primary btn" href="index.php">Back</a></div></main>';
+    echo '<main><div class="empty"><p>You can only edit your own events.</p><a class="primary btn" href="index.php">Back</a></div></main>';
     bottom_nav(); site_footer(); exit;
 }
 $err = '';
@@ -140,13 +140,13 @@ if (!empty($ev['series_id'])) {
     $siblings = $sib->fetchAll(PDO::FETCH_ASSOC);
 }
 
-page_head('Manage — ' . $ev['title']);
+page_head('Edit — ' . $ev['title']);
 site_header('plans');
 ?>
 <main>
 <div class="form rv in" style="max-width:560px">
   <div style="display:flex;align-items:center;justify-content:space-between">
-    <h2>Manage gathering</h2>
+    <h2>Edit event</h2>
     <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span><?php endif; ?>
   </div>
   <?php if ($series): ?>
@@ -252,9 +252,9 @@ site_header('plans');
 
 <?php if ($ev['status'] !== 'cancelled'): ?>
 <div class="form rv in" style="max-width:560px;border-color:#eccfc8">
-  <h2 style="color:#a33a1f">Cancel gathering</h2>
+  <h2 style="color:#a33a1f">Cancel event</h2>
   <p style="color:var(--ink-soft)">Attendees get a notification. This can't be undone.</p>
-  <form method="post" onsubmit="return confirm('Cancel this gathering? Attendees will be notified.')">
+  <form method="post" onsubmit="return confirm('Cancel this event? Attendees will be notified.')">
     <?= csrf_field() ?>
     <input type="hidden" name="do" value="cancel_event"><input type="hidden" name="id" value="<?= $id ?>">
     <?php if ($series): ?>
@@ -265,7 +265,7 @@ site_header('plans');
         <input type="radio" name="scope" value="series" style="width:auto"> All upcoming dates in the series</label>
     </div>
     <?php endif; ?>
-    <button class="btn-danger" type="submit"><?= $series ? 'Cancel' : 'Cancel this gathering' ?></button>
+    <button class="btn-danger" type="submit"><?= $series ? 'Cancel' : 'Cancel this event' ?></button>
   </form>
 </div>
 <?php endif; ?>

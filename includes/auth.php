@@ -56,13 +56,31 @@ function attempt_login(string $email, string $password): ?string {
     return null;
 }
 
-function register_user(string $email, string $password, string $name, string $area = '', string $estate = '', string $county = ''): ?string {
+const GENDERS      = ['Male', 'Female', 'Prefer not to say'];
+const AGE_BRACKETS = ['18-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50+'];
+
+function send_verification(string $email, string $name): void {
+    $token = bin2hex(random_bytes(24));
+    db()->prepare('UPDATE users SET verify_token=:t WHERE email=:e')
+        ->execute([':t' => $token, ':e' => mb_strtolower($email)]);
+    $link = absolute_url('verify.php?t=' . $token);
+    smtp_send($email, 'Verify your Nipange email',
+          "Hi $name,\n\n"
+          . "Karibu to Nipange — one last step. Confirm this email is yours by opening the link below:\n\n$link\n\n"
+          . "If you didn't create this account, just ignore this email.\n\n"
+          . "— The Nipange team\nhttps://nipange.co.ke");
+}
+
+function register_user(string $email, string $password, string $name, string $area = '', string $estate = '', string $county = '', string $gender = '', string $age_bracket = ''): ?string {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return 'Enter a valid email.';
     if (mb_strlen($password) < 8) return 'Password needs at least 8 characters.';
     $name = trim(mb_substr($name, 0, 60));
     if ($name === '') return 'Tell us your name.';
+    if (!in_array($gender, GENDERS, true)) return 'Pick your gender.';
+    if (!in_array($age_bracket, AGE_BRACKETS, true)) return 'Pick your age bracket.';
     if (find_user_by_email($email)) return 'That email already has an account — log in instead.';
-    db()->prepare('INSERT INTO users (email, pass_hash, name, area, estate, county) VALUES (:e, :p, :n, :a, :es, :c)')
+    db()->prepare('INSERT INTO users (email, pass_hash, name, area, estate, county, gender, age_bracket)
+                   VALUES (:e, :p, :n, :a, :es, :c, :g, :ab)')
         ->execute([
             ':e' => mb_strtolower($email),
             ':p' => password_hash($password, PASSWORD_DEFAULT),
@@ -70,7 +88,10 @@ function register_user(string $email, string $password, string $name, string $ar
             ':a' => area_valid($county, $area) ? $area : '',
             ':es' => estate_valid($county, $area, $estate) || $estate !== '' ? $estate : '',
             ':c' => in_array($county, counties(), true) ? $county : '',
+            ':g' => $gender,
+            ':ab' => $age_bracket,
         ]);
+    send_verification($email, $name);
     return attempt_login($email, $password);
 }
 

@@ -125,7 +125,7 @@ site_header();
 
     <div class="field"><label for="repeat">Repeat</label>
       <select id="repeat" name="repeat">
-        <option value=""<?= ($_POST['repeat'] ?? '') === '' ? ' selected' : '' ?>>One-time gathering</option>
+        <option value=""<?= ($_POST['repeat'] ?? '') === '' ? ' selected' : '' ?>>One-time event</option>
         <option value="weekly"<?= ($_POST['repeat'] ?? '') === 'weekly' ? ' selected' : '' ?>>Weekly — creates the next 8 dates</option>
         <option value="monthly"<?= ($_POST['repeat'] ?? '') === 'monthly' ? ' selected' : '' ?>>Monthly — creates the next 4 dates</option>
       </select></div>
