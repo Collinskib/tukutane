@@ -36,7 +36,7 @@ case 'auth/register': {
     $err = register_user(
         trim((string) pin('email')), (string) pin('password'), trim((string) pin('name')),
         $area, $estate, (string) pin('county'),
-        (string) pin('gender'), (string) pin('age_bracket')
+        (string) pin('gender'), (string) pin('age_bracket'), (string) pin('fun_fact')
     );
     if ($err) jerr($err);
     $u = find_user_by_email(trim((string) pin('email')));
@@ -115,7 +115,7 @@ case 'event': {
         'myInvite'  => $invite,
         'canChat'   => $uid ? can_event_chat($ev, $uid) : false,
         'chatMuted' => $uid ? event_chat_muted((int) $ev['id'], $uid) : false,
-        'pinned'    => ($p = event_pinned((int) $ev['id'])) ? msg_out($p, $uid) : null,
+        'pinned'    => ($p = event_pinned((int) $ev['id'])) ? msg_out($p, $uid) + ['host' => (int) $p['sender_id'] === (int) ($ev['creator_id'] ?? 0)] : null,
         'siblings'  => $siblings,
         'friends'   => $uid ? array_map('pub_user', my_friends($uid)) : [],
         'invited'   => $uid ? invited_map((int) $ev['id']) : [],
@@ -301,12 +301,13 @@ case 'event-chat': {
         foreach (event_chat_audience($gid, $uid) as $rid) {
             notify($rid, 'event_chat', $u['name'] . ' in "' . $ev['title'] . '": ' . mb_substr($body, 0, 60), 'event.php?id=' . $gid);
         }
-        jout(['ok' => true, 'message' => msg_out($m, $uid)]);
+        jout(['ok' => true, 'message' => msg_out($m, $uid) + ['host' => (int) $ev['creator_id'] === $uid]]);
     }
     $rows = event_messages($gid, (int) pin('after', 0));
     event_chat_mark_read($gid, $uid);
-    jout(['items' => array_map(fn($m) => msg_out($m, $uid), $rows),
-          'pinned' => ($p = event_pinned($gid)) ? msg_out($p, $uid) : null]);
+    $host = fn($m) => msg_out($m, $uid) + ['host' => (int) $m['sender_id'] === (int) ($ev['creator_id'] ?? 0)];
+    jout(['items' => array_map($host, $rows),
+          'pinned' => ($p = event_pinned($gid)) ? $host($p) : null]);
 }
 
 case 'people': {
@@ -374,7 +375,8 @@ case 'conversation': {
     $t = $other ? find_user($other) : null;
     if (!$t) jerr('No such user.');
     $rel = friendship($uid, $other);
-    if (!$rel || $rel['status'] !== 'accepted' || is_blocked($uid, $other)) jerr('Messages are for friends.', 403);
+    if (is_blocked($uid, $other)) jerr('Blocked.', 403);
+    if ((!$rel || $rel['status'] !== 'accepted') && !is_business_owner($other)) jerr('Messages are for friends.', 403);
     $c = get_conversation($uid, $other);
     jout(['ok' => true, 'conv' => (int) $c['id']]);
 }
@@ -402,7 +404,7 @@ case 'messages': {
         if ($do === 'typing') { set_typing((int) $conv['id'], $uid); jout(['ok' => true]); }
         if ($do === 'mute')   { set_conversation_muted((int) $conv['id'], $uid, !empty($API_IN['on'])); jout(['ok' => true]); }
         $rel = friendship($uid, $otherId);
-        if (!$rel || $rel['status'] !== 'accepted') jerr('Messages are for friends.', 403);
+        if ((!$rel || $rel['status'] !== 'accepted') && !is_business_owner($otherId) && !is_business_owner($uid)) jerr('Messages are for friends.', 403);
         $body = trim((string) pin('body'));
         $att = api_store_attachment((string) pin('att_b64'), (string) pin('att_name'));
         if (is_string($att) && str_starts_with($att, '!')) jerr(substr($att, 1), 422);
@@ -430,6 +432,17 @@ case 'messages': {
         'other'  => pub_user($other),
         'muted'  => conversation_muted((int) $conv['id'], $uid),
     ]);
+}
+
+case 'event-chats': {
+    $u = api_need();
+    jout(['items' => array_map(fn($g) => [
+        'id' => (int) $g['id'], 'title' => $g['title'], 'cover' => $g['cover'] ?? '',
+        'at' => $g['event_at'], 'atLabel' => date('D j M', strtotime($g['event_at'])),
+        'host' => (int) $g['creator_id'],
+        'last' => $g['last_msg'] ?? '', 'unread' => (int) $g['unread'],
+        'muted' => (bool) $g['muted'],
+    ], my_event_chats((int) $u['id']))]);
 }
 
 case 'groups': {
@@ -536,7 +549,8 @@ case 'group-save': {
 
 case 'venues': {
     $u = api_need();
-    $f = ['county' => (string) pin('county'), 'area' => (string) pin('area'), 'q' => (string) pin('q')];
+    $f = ['county' => (string) pin('county'), 'area' => (string) pin('area'), 'q' => (string) pin('q'),
+          'me_county' => $u['county'] ?? '', 'me_area' => $u['area'] ?? '', 'me_estate' => $u['estate'] ?? ''];
     jout(['items' => array_map(fn($v) => [
         'id' => (int) $v['id'], 'name' => $v['name'], 'place' => place_label($v),
         'desc' => $v['description'], 'photo' => $v['photo'] ?? '',
@@ -609,8 +623,9 @@ case 'profile': {
     if (str_starts_with($photo, '!')) jerr(substr($photo, 1));
     $gender = in_array(pin('gender'), GENDERS, true) ? pin('gender') : ($u['gender'] ?? '');
     $agebk  = in_array(pin('age_bracket'), AGE_BRACKETS, true) ? pin('age_bracket') : ($u['age_bracket'] ?? '');
-    $sql = 'UPDATE users SET name=:n,bio=:b,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d';
-    $p = [':n' => $name, ':b' => $bio, ':a' => $area, ':c' => $county, ':e' => $estate,
+    $funFact = array_key_exists('fun_fact', $API_IN) ? trim(mb_substr((string) pin('fun_fact'), 0, 160)) : ($u['fun_fact'] ?? '');
+    $sql = 'UPDATE users SET name=:n,bio=:b,fun_fact=:ff,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d';
+    $p = [':n' => $name, ':b' => $bio, ':ff' => $funFact ?: null, ':a' => $area, ':c' => $county, ':e' => $estate,
           ':g' => $gender, ':ab' => $agebk, ':i' => implode(',', $ints), ':d' => $disc, ':u' => $uid];
     if ($photo) { $sql .= ',photo=:ph'; $p[':ph'] = $photo; }
     db()->prepare($sql . ' WHERE id=:u')->execute($p);
@@ -626,8 +641,10 @@ case 'complete-profile': {
     if (!in_array($age, AGE_BRACKETS, true)) jerr('Pick your age bracket.');
     [$area, $estate] = resolve_location((string) pin('county'), $u['area'] ?? '', $u['estate'] ?? '');
     $county = in_array(pin('county'), counties(), true) ? pin('county') : ($u['county'] ?? '');
-    db()->prepare('UPDATE users SET gender=:g, age_bracket=:ab, county=:c, area=:a, estate=:e WHERE id=:id')
-        ->execute([':g' => $gender, ':ab' => $age, ':c' => $county, ':a' => $area, ':e' => $estate, ':id' => $uid]);
+    $funFact = trim(mb_substr((string) pin('fun_fact'), 0, 160));
+    db()->prepare('UPDATE users SET gender=:g, age_bracket=:ab, county=:c, area=:a, estate=:e, fun_fact=:ff WHERE id=:id')
+        ->execute([':g' => $gender, ':ab' => $age, ':c' => $county, ':a' => $area, ':e' => $estate,
+                   ':ff' => $funFact ?: null, ':id' => $uid]);
     jout(['ok' => true, 'user' => api_self(find_user($uid))]);
 }
 

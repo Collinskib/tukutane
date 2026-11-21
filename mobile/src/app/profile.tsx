@@ -18,7 +18,7 @@ export default function Profile() {
   const [f, setF] = useState(() => ({
     name: user?.name ?? '', bio: user?.bio ?? '', county: user?.county ?? '',
     area: user?.area ?? '', estate: user?.estate ?? '',
-    gender: (user as any)?.genderFull ?? '', age_bracket: user?.age ?? '',
+    gender: (user as any)?.genderFull ?? '', age_bracket: user?.age ?? '', fun_fact: user?.funFact ?? '',
     interests: (user?.interests ?? '').split(',').filter(Boolean) as string[],
     discoverable: user?.discoverable ?? true,
   }));
@@ -83,6 +83,12 @@ export default function Profile() {
           <>
             <Card style={{ marginTop: 16 }}>
               {!!user.bio && <Text style={s.bio}>{user.bio}</Text>}
+              {!!user.funFact && (
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+                  <Text style={{ color: C.accent, fontFamily: serifBlack, fontSize: 22, lineHeight: 20 }}>❝</Text>
+                  <Text style={{ flex: 1, fontFamily: serifBlack, fontStyle: 'italic', fontSize: 15, lineHeight: 21, color: C.soft }}>{user.funFact}</Text>
+                </View>
+              )}
               <Text style={s.meta}>{[user.age, (user as any).genderFull].filter(Boolean).join(' · ')}</Text>
               {!!user.interests && <Text style={s.meta}>Into: {user.interests.split(',').join(', ')}</Text>}
             </Card>
@@ -90,7 +96,7 @@ export default function Profile() {
             <Card style={{ marginTop: 16 }}>
               <MenuRow label="Friends" onPress={() => router.push('/friends')} />
               <MenuRow label="Groups" onPress={() => router.push('/groups')} />
-              <MenuRow label="Venues" onPress={() => router.push('/venues')} />
+              <MenuRow label="Business" onPress={() => router.push('/venues')} />
               <MenuRow label="Notifications" onPress={() => router.push('/notifications')} />
               <MenuRow label="Change password" onPress={() => setPw(true)} />
               <MenuRow label="Log out" warn onPress={() =>
@@ -113,6 +119,10 @@ export default function Profile() {
             </Field>
             <Field label="Bio">
               <Input value={f.bio} onChangeText={(v) => setF((p) => ({ ...p, bio: v }))} multiline maxLength={300} />
+            </Field>
+            <Field label="My fun fact or silly joke">
+              <Input value={f.fun_fact} onChangeText={(v) => setF((p) => ({ ...p, fun_fact: v }))} maxLength={160}
+                placeholder="The thing people should know about you" />
             </Field>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>

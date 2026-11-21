@@ -20,15 +20,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     else {
         [$area, $estate] = resolve_location($_POST['county'] ?? '', $u['area'] ?? '', $u['estate'] ?? '');
         $county = in_array($_POST['county'] ?? '', counties(), true) ? $_POST['county'] : ($u['county'] ?? '');
-        db()->prepare('UPDATE users SET gender=:g, age_bracket=:ab, county=:c, area=:a, estate=:e WHERE id=:id')
+        $funFact = trim(mb_substr($_POST['fun_fact'] ?? '', 0, 160));
+        db()->prepare('UPDATE users SET gender=:g, age_bracket=:ab, county=:c, area=:a, estate=:e, fun_fact=:ff WHERE id=:id')
             ->execute([
                 ':g' => $gender, ':ab' => $age,
                 ':c' => $county, ':a' => $area, ':e' => $estate,
+                ':ff' => $funFact ?: null,
                 ':id' => $u['id'],
             ]);
         auth_refresh();
         flash('All set — karibu, ' . $u['name'] . '!');
-        redirect($next);
+        redirect('welcome.php?next=' . urlencode($next));
     }
 }
 
@@ -58,6 +60,9 @@ site_header();
         <option<?= ($_POST['age_bracket'] ?? $u['age_bracket'] ?? '') === $ab ? ' selected' : '' ?>><?= e($ab) ?></option>
         <?php endforeach; ?>
       </select></div>
+    <div class="field"><label for="fun_fact">My fun fact or silly joke (optional)</label>
+      <input id="fun_fact" name="fun_fact" maxlength="160" value="<?= e($_POST['fun_fact'] ?? $u['fun_fact'] ?? '') ?>"
+             placeholder="The thing people should know about you"></div>
     <div class="field"><label>Where do you live? (optional)</label>
       <?php location_picker($_POST['county'] ?? $u['county'] ?? '', $_POST['area'] ?? $u['area'] ?? '', $_POST['estate'] ?? $u['estate'] ?? '', 'optional'); ?>
     </div>

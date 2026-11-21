@@ -21,14 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $regEstate,
             $_POST['county'] ?? '',
             $_POST['gender'] ?? '',
-            $_POST['age_bracket'] ?? ''
+            $_POST['age_bracket'] ?? '',
+            $_POST['fun_fact'] ?? ''
         );
     } else {
         $err = attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '');
     }
     if (!$err) {
         flash($mode === 'register' ? 'Karibu! Your account is ready.' : 'Welcome back!');
-        redirect($next);
+        redirect($mode === 'register' ? 'welcome.php?next=' . urlencode($next) : $next);
     }
 }
 
@@ -80,6 +81,9 @@ site_header();
         <option<?= ($_POST['age_bracket'] ?? '') === $ab ? ' selected' : '' ?>><?= e($ab) ?></option>
         <?php endforeach; ?>
       </select></div>
+    <div class="field"><label for="fun_fact">My fun fact or silly joke (optional)</label>
+      <input id="fun_fact" name="fun_fact" maxlength="160" value="<?= e($_POST['fun_fact'] ?? '') ?>"
+             placeholder="The thing people should know about you"></div>
     <div class="field"><label>Where do you live? (optional)</label>
       <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', $_POST['estate'] ?? '', 'optional'); ?>
     </div>

@@ -402,7 +402,7 @@ function find_user_by_email(string $email): ?array {
 
 // People nearby: discoverable active users, shared interests ranked first.
 function people(array $f, int $viewerId): array {
-    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.area, u.county, u.interests, u.gender, u.age_bracket,
+    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.fun_fact, u.area, u.county, u.interests, u.gender, u.age_bracket,
                    (SELECT COUNT(*) FROM friendships fr
                     WHERE fr.status = "accepted"
                       AND ((fr.requester_id = u.id AND fr.addressee_id = :vf1)
@@ -986,6 +986,25 @@ function event_chat_audience(int $gid, int $except): array {
     return array_values(array_filter($uids, fn($u) => $u !== $except && !event_chat_muted($gid, $u)));
 }
 
+// event group chats the user belongs to (host or RSVP'd attendee, not blocked by host)
+function my_event_chats(int $uid): array {
+    $stmt = db()->prepare(
+        'SELECT g.id, g.title, g.event_at, g.cover, g.creator_id,
+                (SELECT m.body FROM event_messages m WHERE m.gathering_id = g.id ORDER BY m.id DESC LIMIT 1) AS last_msg,
+                (SELECT MAX(m.id) FROM event_messages m WHERE m.gathering_id = g.id) AS last_id,
+                (SELECT COUNT(*) FROM event_messages m
+                  WHERE m.gathering_id = g.id AND m.sender_id != :us
+                    AND m.id > COALESCE(s.last_read_id, 0)) AS unread,
+                COALESCE(s.muted, 0) AS muted
+         FROM gatherings g
+         LEFT JOIN event_chat_state s ON s.gathering_id = g.id AND s.user_id = :u
+         WHERE (g.creator_id = :u2 OR EXISTS(SELECT 1 FROM rsvps r WHERE r.gathering_id = g.id AND r.user_id = :u3))
+           AND NOT EXISTS(SELECT 1 FROM blocks b WHERE b.blocker_id = g.creator_id AND b.blocked_id = :u4)
+         ORDER BY (last_id IS NULL), last_id DESC');
+    $stmt->execute([':u' => $uid, ':u2' => $uid, ':u3' => $uid, ':u4' => $uid, ':us' => $uid]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // ---------- organizer follows ----------
 
 function is_following(int $me, int $them): bool {
@@ -1041,10 +1060,24 @@ function venues_list(array $f): array {
         $sql .= " AND CONCAT_WS(' ', v.name, v.description, v.area, v.county) LIKE :q";
         $p[':q'] = '%' . $f['q'] . '%';
     }
-    $sql .= ' ORDER BY upcoming DESC, v.name LIMIT 80';
+    // closest to the viewer first, then busiest
+    $sql .= ' ORDER BY (v.estate <> "" AND v.estate = :mes) DESC,
+                       (v.area <> "" AND v.area = :mea) DESC,
+                       (v.county <> "" AND v.county = :mec) DESC,
+                       upcoming DESC, v.name LIMIT 80';
+    $p[':mes'] = $f['me_estate'] ?? '';
+    $p[':mea'] = $f['me_area'] ?? '';
+    $p[':mec'] = $f['me_county'] ?? '';
     $stmt = db()->prepare($sql);
     $stmt->execute($p);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// anyone who runs a business page can be messaged by any member
+function is_business_owner(int $uid): bool {
+    $stmt = db()->prepare('SELECT 1 FROM venues WHERE creator_id = :u LIMIT 1');
+    $stmt->execute([':u' => $uid]);
+    return (bool) $stmt->fetchColumn();
 }
 
 function venue_get(int $id): ?array {

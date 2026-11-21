@@ -6,12 +6,12 @@ require_login('index.php');
 $id = (int) ($_GET['id'] ?? 0);
 $v  = venue_get($id);
 
-page_head($v ? $v['name'] : 'Venue');
+page_head($v ? $v['name'] : 'Business');
 site_header('venues');
 
 if (!$v):
 ?>
-<main><div class="empty"><span class="big">🫥</span><p>Venue not found.</p><a class="primary btn" href="venues.php">Back to Venues</a></div></main>
+<main><div class="empty"><span class="big">🫥</span><p>Business not found.</p><a class="primary btn" href="venues.php">Back to Business</a></div></main>
 <?php else:
 $events = venue_events($id);
 $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
@@ -30,7 +30,10 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
   </div>
 
   <div class="share-row">
-    <?php if ($canEdit): ?><a class="btn-mini" href="venue-edit.php?id=<?= $id ?>">Edit venue</a><?php endif; ?>
+    <?php if (!$canEdit && (int) $v['creator_id'] !== user_id()): ?>
+    <a class="btn-mini solid" href="messages.php?to=<?= (int) $v['creator_id'] ?>">💬 Message business</a>
+    <?php endif; ?>
+    <?php if ($canEdit): ?><a class="btn-mini" href="venue-edit.php?id=<?= $id ?>">Edit business</a><?php endif; ?>
     <a class="btn-mini" href="create.php">+ Plan something here</a>
   </div>
 

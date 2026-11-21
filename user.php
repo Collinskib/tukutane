@@ -45,6 +45,9 @@ $pastHosted = host_gatherings($id, false, 6);
         if ($demo) echo ' · ' . e(implode(', ', $demo));
       ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
       <?php if ($p['bio']): ?><p style="margin-top:6px"><?= e($p['bio']) ?></p><?php endif; ?>
+      <?php if (!empty($p['fun_fact'])): ?>
+      <div class="pquote" style="margin-top:10px;max-width:none"><span class="qm">❝</span><p class="qt"><?= e($p['fun_fact']) ?></p></div>
+      <?php endif; ?>
     </div>
   </div>
 

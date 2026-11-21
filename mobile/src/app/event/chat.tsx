@@ -5,7 +5,7 @@ import { api } from '../../lib/api';
 import { Avatar, Screen } from '../../components/ui';
 import { C } from '../../lib/theme';
 
-type Msg = { id: number; mine: boolean; body: string; time: string; name: string; photo: string; pinned: boolean };
+type Msg = { id: number; mine: boolean; body: string; time: string; name: string; photo: string; pinned: boolean; host?: boolean };
 
 export default function EventChat() {
   const { id, title } = useLocalSearchParams<{ id: string; title?: string }>();
@@ -76,7 +76,12 @@ export default function EventChat() {
             <Pressable onLongPress={() => isHost && !m.pinned && pin(m)} style={[s.row, m.mine && { justifyContent: 'flex-end' }]}>
               {!m.mine && <Avatar photo={m.photo} name={m.name} size={28} />}
               <View style={[s.bubble, m.mine ? s.mine : s.theirs]}>
-                {!m.mine && <Text style={s.sender}>{m.name}</Text>}
+                {!m.mine && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={s.sender}>{m.name}</Text>
+                    {!!m.host && <Text style={s.orgtag}>Event organizer</Text>}
+                  </View>
+                )}
                 <Text style={m.mine ? s.mineTxt : s.theirTxt}>{m.body}</Text>
                 <Text style={s.time}>{m.time}</Text>
               </View>
@@ -105,6 +110,11 @@ const s = StyleSheet.create({
   mine: { backgroundColor: C.green, borderBottomRightRadius: 4 },
   theirs: { backgroundColor: C.card, borderWidth: 1, borderColor: '#e4e6db', borderBottomLeftRadius: 4 },
   sender: { color: C.soft, fontSize: 11, marginBottom: 2 },
+  orgtag: {
+    color: '#fff', backgroundColor: C.accent, fontSize: 9, fontWeight: '700',
+    borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, overflow: 'hidden',
+    textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2,
+  },
   mineTxt: { color: '#fff' },
   theirTxt: { color: C.ink },
   time: { color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 3, alignSelf: 'flex-end' },

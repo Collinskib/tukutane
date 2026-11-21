@@ -3,7 +3,7 @@ import { api, getToken, setToken } from './api';
 
 export type User = {
   id: number; name: string; email: string; photo: string; place: string;
-  bio: string; interests: string; gender: string; age: string;
+  bio: string; interests: string; gender: string; age: string; funFact: string;
   county: string; area: string; estate: string; verified: boolean;
   discoverable: boolean; role: string;
 };
@@ -19,6 +19,9 @@ type Auth = {
   loading: boolean;
   incomplete: boolean;
   meta: Meta | null;
+  justJoined: boolean;
+  join: () => void;
+  clearJoin: () => void;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
   applyAuth: (d: any) => Promise<void>;
@@ -32,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [incomplete, setIncomplete] = useState(false);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [justJoined, setJustJoined] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -54,7 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<Auth>(() => ({
-    user, loading, incomplete, meta,
+    user, loading, incomplete, meta, justJoined,
+    join: () => setJustJoined(true),
+    clearJoin: () => setJustJoined(false),
     applyAuth: async (d: any) => {
       await setToken(d.token);
       setUser(d.user);
@@ -72,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setToken(null);
       setUser(null);
     },
-  }), [user, loading, incomplete, meta]);
+  }), [user, loading, incomplete, meta, justJoined]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

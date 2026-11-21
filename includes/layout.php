@@ -28,13 +28,16 @@ function site_header(string $active = ''): void {
 <header class="site">
   <nav>
     <a class="brand" href="/index.php">Nipange<i>.</i></a>
-    <a class="btn nav-link <?= $active === 'discover' ? 'active' : '' ?>" href="/index.php">Discover</a>
+    <a class="btn nav-link <?= $active === 'discover' ? 'active' : '' ?>" href="/index.php">Home</a>
     <a class="btn nav-link <?= $active === 'people' ? 'active' : '' ?>" href="/people.php">People</a>
     <a class="btn nav-link <?= $active === 'groups' ? 'active' : '' ?>" href="/groups.php">Groups</a>
     <?php if ($u): ?>
     <a class="btn nav-link <?= $active === 'plans' ? 'active' : '' ?>" href="/plans.php">My plans</a>
-    <a class="primary nav-create" href="/create.php">+ Create plan</a>
+    <a class="primary nav-create" href="/create.php">+ Create event</a>
     <span class="nav-right" x-data="{open:false}">
+      <a class="icon-btn" href="/messages.php" aria-label="Messages" id="chat">
+        💬<span class="badge" id="msg-badge" hidden>0</span>
+      </a>
       <a class="icon-btn" href="/plans.php?tab=notifications" aria-label="Notifications" id="bell">
         🔔<span class="badge" id="bell-badge" hidden>0</span>
       </a>
@@ -43,10 +46,10 @@ function site_header(string $active = ''): void {
       </button>
       <span class="dropdown" x-show="open" x-transition @click.outside="open=false" x-cloak>
         <a href="/profile.php">My profile</a>
-        <a href="/friends.php">Friends</a>
+        <a href="/people.php?tab=friends">Friends</a>
         <a href="/groups.php">Groups</a>
-        <a href="/venues.php">Venues</a>
-        <a href="/messages.php">Messages <span class="badge soft" id="msg-badge" hidden></span></a>
+        <a href="/venues.php">Business</a>
+        <a href="/messages.php">Messages</a>
         <?php if (is_admin()): ?><a href="/admin/index.php">Admin</a><?php endif; ?>
         <a href="/logout.php">Log out</a>
       </span>
@@ -73,15 +76,12 @@ function site_header(string $active = ''): void {
 function bottom_nav(string $active = ''): void {
     $u = user(); ?>
 <nav class="bottomnav" aria-label="Main">
-  <a href="/index.php" class="<?= $active === 'discover' ? 'active' : '' ?>">
-    <span>🔎</span>Discover</a>
-  <a href="/people.php" class="<?= $active === 'people' ? 'active' : '' ?>">
-    <span>🧑‍🤝‍🧑</span>People</a>
-  <a href="/create.php" class="fab" aria-label="Create a plan"><span>＋</span></a>
-  <a href="/messages.php" class="<?= $active === 'messages' ? 'active' : '' ?>">
-    <span>💬</span>Chats<i class="badge dot" id="msg-dot" hidden></i></a>
   <a href="<?= $u ? '/plans.php' : '/auth.php' ?>" class="<?= $active === 'plans' ? 'active' : '' ?>">
-    <span><?= $u ? '📅' : '👤' ?></span><?= $u ? 'Plans' : 'Join' ?></a>
+    <span><?= $u ? '📅' : '👤' ?></span><?= $u ? 'My Plans' : 'Join' ?></a>
+  <a href="/index.php" class="<?= $active === 'discover' ? 'active' : '' ?>">
+    <span>🏠</span>Home</a>
+  <a href="/messages.php" class="<?= $active === 'messages' ? 'active' : '' ?>">
+    <span>💬</span>Messages<i class="badge dot" id="msg-dot" hidden></i></a>
 </nav>
 <?php }
 
@@ -91,7 +91,7 @@ function site_footer(): void { ?>
     <div><span class="brand sm">Nipange<i>.</i></span>
       <p>Find events and new friends near you.</p></div>
     <div><strong>Explore</strong>
-      <a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Venues</a><a href="/create.php">Create a plan</a></div>
+      <a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Business</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>

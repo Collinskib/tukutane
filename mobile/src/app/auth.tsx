@@ -23,12 +23,12 @@ if (GOOGLE_OK) {
 }
 
 export default function Auth() {
-  const { applyAuth, meta } = useAuth();
+  const { applyAuth, meta, join } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const [f, setF] = useState({ email: '', password: '', name: '', gender: '', age_bracket: '' });
+  const [f, setF] = useState({ email: '', password: '', name: '', gender: '', age_bracket: '', fun_fact: '' });
   const [loc, setLoc] = useState({ county: '', area: '', estate: '' });
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
@@ -60,12 +60,13 @@ export default function Auth() {
       } else {
         const d = await api('auth/register', {}, {
           email: f.email.trim(), password: f.password, name: f.name.trim(),
-          gender: f.gender, age_bracket: f.age_bracket,
+          gender: f.gender, age_bracket: f.age_bracket, fun_fact: f.fun_fact.trim(),
           county: loc.county, area: loc.area,
           estate: loc.estate === '__new' ? '__new' : loc.estate,
           estate_new: (loc as any).estate_new,
         });
         await applyAuth(d);
+        join();
       }
     } catch (e: any) {
       setErr(e.message);
@@ -117,6 +118,12 @@ export default function Auth() {
               </View>
             </View>
             <View style={{ marginTop: 14 }}>
+              <Field label="My fun fact or silly joke (optional)">
+                <Input value={f.fun_fact} onChangeText={(v) => set('fun_fact', v)} maxLength={160}
+                  placeholder="The thing people should know about you" />
+              </Field>
+            </View>
+            <View>
               <Field label="Where do you live? (optional)">
                 <LocationPicker
                   county={loc.county} area={loc.area} estate={loc.estate} optional

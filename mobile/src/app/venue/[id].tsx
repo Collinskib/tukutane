@@ -31,11 +31,19 @@ export default function VenueDetail() {
         <Text style={s.name}>{v.name}</Text>
         <Text style={s.meta}>{v.place}</Text>
         {!!v.desc && <Text style={s.desc}>{v.desc}</Text>}
-        {mine && (
-          <View style={{ marginVertical: 12 }}>
-            <Btn label="Edit venue" small ghost onPress={() => router.push({ pathname: '/venue/edit', params: { id } })} />
-          </View>
-        )}
+        <View style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
+          {!mine && (
+            <Btn label="💬 Message business" small onPress={async () => {
+              try {
+                const r = await api('conversation', {}, { uid: v.creatorId });
+                router.push(`/chat/${r.conv}`);
+              } catch { /* gate/offline */ }
+            }} />
+          )}
+          {mine && (
+            <Btn label="Edit business" small ghost onPress={() => router.push({ pathname: '/venue/edit', params: { id } })} />
+          )}
+        </View>
         <Text style={s.h}>Upcoming events here</Text>
         {d.events.length === 0 && <Empty msg="Nothing scheduled — host something here!" />}
         {d.events.map((ev: Ev) => <EventCard key={ev.id} ev={ev} />)}

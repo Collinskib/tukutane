@@ -97,7 +97,7 @@ function send_verification(string $email, string $name): void {
           . "— The Nipange team\nhttps://nipange.co.ke");
 }
 
-function register_user(string $email, string $password, string $name, string $area = '', string $estate = '', string $county = '', string $gender = '', string $age_bracket = ''): ?string {
+function register_user(string $email, string $password, string $name, string $area = '', string $estate = '', string $county = '', string $gender = '', string $age_bracket = '', string $fun_fact = ''): ?string {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return 'Enter a valid email.';
     if (mb_strlen($password) < 8) return 'Password needs at least 8 characters.';
     $name = trim(mb_substr($name, 0, 60));
@@ -105,8 +105,8 @@ function register_user(string $email, string $password, string $name, string $ar
     if (!in_array($gender, GENDERS, true)) return 'Pick your gender.';
     if (!in_array($age_bracket, AGE_BRACKETS, true)) return 'Pick your age bracket.';
     if (find_user_by_email($email)) return 'That email already has an account — log in instead.';
-    db()->prepare('INSERT INTO users (email, pass_hash, name, area, estate, county, gender, age_bracket)
-                   VALUES (:e, :p, :n, :a, :es, :c, :g, :ab)')
+    db()->prepare('INSERT INTO users (email, pass_hash, name, area, estate, county, gender, age_bracket, fun_fact)
+                   VALUES (:e, :p, :n, :a, :es, :c, :g, :ab, :ff)')
         ->execute([
             ':e' => mb_strtolower($email),
             ':p' => password_hash($password, PASSWORD_DEFAULT),
@@ -116,6 +116,7 @@ function register_user(string $email, string $password, string $name, string $ar
             ':c' => in_array($county, counties(), true) ? $county : '',
             ':g' => $gender,
             ':ab' => $age_bracket,
+            ':ff' => trim(mb_substr($fun_fact, 0, 160)) ?: null,
         ]);
     send_verification($email, $name);
     return attempt_login($email, $password);

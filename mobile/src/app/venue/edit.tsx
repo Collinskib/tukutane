@@ -48,10 +48,10 @@ export default function VenueEdit() {
     <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()}><Text style={{ color: C.green, fontWeight: '600', marginBottom: 10 }}>‹ Back</Text></Pressable>
-        <Title>{editing ? 'Edit venue' : 'Add a venue'}</Title>
+        <Title>{editing ? 'Edit business' : 'Add your business'}</Title>
         <Sub>A spot people can pick when they create a plan.</Sub>
         <Err msg={err} />
-        <Field label="Venue name">
+        <Field label="Business name">
           <Input value={f.name} onChangeText={(v) => setF((p) => ({ ...p, name: v }))} maxLength={80} />
         </Field>
         <Field label="Where">
@@ -66,7 +66,7 @@ export default function VenueEdit() {
           {photo?.uri ? <Image source={{ uri: photo.uri }} style={s.photo} /> : null}
           <Btn label={photo ? 'Change photo' : 'Pick a photo'} ghost small onPress={pick} />
         </Field>
-        <Btn label={busy ? 'Saving…' : editing ? 'Save changes' : 'Add venue'} onPress={save} disabled={busy} />
+        <Btn label={busy ? 'Saving…' : editing ? 'Save changes' : 'Add business'} onPress={save} disabled={busy} />
       </ScrollView>
     </Screen>
   );

@@ -9,7 +9,7 @@ import { C } from '../lib/theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Gate() {
-  const { user, loading, incomplete } = useAuth();
+  const { user, loading, incomplete, justJoined, clearJoin } = useAuth();
   const segments = useSegments();
 
   useEffect(() => {
@@ -18,8 +18,11 @@ function Gate() {
     const inComplete = segments[0] === 'complete-profile';
     if (!user && !inAuth) router.replace('/auth');
     else if (user && incomplete && !inComplete) router.replace('/complete-profile');
-    else if (user && !incomplete && (inAuth || inComplete)) router.replace('/(tabs)/discover');
-  }, [user, loading, incomplete, segments]);
+    else if (user && !incomplete && (inAuth || inComplete)) {
+      if (justJoined) { clearJoin(); router.replace('/welcome'); }
+      else router.replace('/(tabs)/discover');
+    }
+  }, [user, loading, incomplete, segments, justJoined, clearJoin]);
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.cream } }}>

@@ -5,9 +5,9 @@ require_login('venues.php');
 
 $id = (int) ($_GET['id'] ?? 0);
 $v  = $id ? venue_get($id) : null;
-if ($id && !$v) { flash('Venue not found.'); redirect('venues.php'); }
+if ($id && !$v) { flash('Business not found.'); redirect('venues.php'); }
 if ($v && !user()['is_admin'] && (int) $v['creator_id'] !== user_id()) {
-    flash('Only the person who added this venue can edit it.');
+    flash('Only the person who added this business can edit it.');
     redirect('venue.php?id=' . $id);
 }
 
@@ -20,28 +20,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc = trim(mb_substr($_POST['description'] ?? '', 0, 600));
     $photo = upload_image('photo');
     if (str_starts_with($photo, '!')) $err = substr($photo, 1);
-    elseif ($name === '') $err = 'Give the venue a name.';
+    elseif ($name === '') $err = 'Give the business a name.';
     elseif ($area === '') $err = 'Pick a neighbourhood.';
     else {
         $d = ['name' => $name, 'area' => $area, 'county' => $county, 'estate' => $estate, 'description' => $desc];
         if ($photo) $d['photo'] = $photo;
         if ($v) {
             venue_update($id, $d);
-            flash('Venue updated.');
+            flash('Business updated.');
         } else {
             $id = venue_create(user_id(), $d);
-            flash('Venue added — pick it next time you create a plan!');
+            flash('Business added — pick it next time you create an event!');
         }
         redirect('venue.php?id=' . $id);
     }
 }
 
-page_head($v ? 'Edit ' . $v['name'] : 'Add a venue');
+page_head($v ? 'Edit ' . $v['name'] : 'Add your business');
 site_header('venues');
 ?>
 <main class="ev-wrap">
   <div class="card rv in"><div class="body">
-    <h2 style="margin-top:0;font-family:var(--serif);font-weight:400"><?= $v ? 'Edit ' . e($v['name']) : 'Add a venue' ?></h2>
+    <h2 style="margin-top:0;font-family:var(--serif);font-weight:400"><?= $v ? 'Edit ' . e($v['name']) : 'Add your business' ?></h2>
     <?php if ($err): ?><div class="flash err"><?= e($err) ?></div><?php endif; ?>
     <form method="post" enctype="multipart/form-data">
       <?= csrf_field() ?>
@@ -56,7 +56,7 @@ site_header('venues');
       <div class="field"><label for="photo">Photo <small>(optional)</small></label>
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
         <?php if ($v['photo'] ?? ''): ?><small>Current: <a href="<?= e($v['photo']) ?>" target="_blank">view</a> — upload to replace.</small><?php endif; ?></div>
-      <button class="primary" type="submit"><?= $v ? 'Save changes' : 'Add venue' ?></button>
+      <button class="primary" type="submit"><?= $v ? 'Save changes' :  'Add business' ?></button>
       <a class="btn-ghost" href="<?= $v ? 'venue.php?id=' . $id : 'venues.php' ?>">Cancel</a>
     </form>
   </div></div>

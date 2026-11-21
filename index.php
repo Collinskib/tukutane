@@ -29,6 +29,11 @@ page_head($view === 'mine' ? 'My plans' : 'Discover events');
 site_header('discover');
 ?>
 <main>
+  <nav class="homepills" aria-label="Explore">
+    <a href="/people.php">🧑‍🤝‍🧑 People</a>
+    <a class="on" href="/create.php">📅 Create Event</a>
+    <a href="/venues.php">🏪 Business</a>
+  </nav>
   <section class="hero">
     <div>
       <small>Across Kenya</small>

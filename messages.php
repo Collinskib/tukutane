@@ -11,7 +11,7 @@ $other = null;
 if (!empty($_GET['to'])) {
     $to = (int) $_GET['to'];
     $rel = friendship($uid, $to);
-    if (!$rel || $rel['status'] !== 'accepted') {
+    if ((!$rel || $rel['status'] !== 'accepted') && !is_business_owner($to)) {
         flash('You can only message friends.', 'err');
         redirect('user.php?id=' . $to);
     }
@@ -41,7 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $conv) {
     redirect('messages.php?c=' . (int) $conv['id']);
 }
 
+$tab   = ($_GET['tab'] ?? '') === 'groups' ? 'groups' : 'chats';
 $convs = my_conversations($uid);
+$eventChats = my_event_chats($uid);
 if ($conv) mark_conversation_read((int) $conv['id'], $uid);
 $messages = $conv ? messages_since((int) $conv['id'], 0, 80) : [];
 $convMuted = $conv ? conversation_muted((int) $conv['id'], $uid) : false;
@@ -51,6 +53,28 @@ site_header();
 ?>
 <main>
 <h2 style="margin-top:6px">Messages</h2>
+<div class="tabs" style="border:0;margin:0 0 14px;display:inline-flex">
+  <a href="messages.php" class="<?= $tab === 'chats' ? 'active' : '' ?>">Chats</a>
+  <a href="messages.php?tab=groups" class="<?= $tab === 'groups' ? 'active' : '' ?>">Groups</a>
+</div>
+<?php if ($tab === 'groups'): ?>
+<div class="conv-list" style="width:100%;border-right:0">
+  <?php if (!$eventChats): ?>
+  <div class="empty" style="margin:40px auto"><span class="big">👥</span>
+    <p>No group chats yet — join an event and its chat appears here.</p>
+    <a class="primary btn" href="index.php">Browse events</a></div>
+  <?php endif; ?>
+  <?php foreach ($eventChats as $g): ?>
+  <a href="event.php?id=<?= (int) $g['id'] ?>#chat">
+    <span class="avatar ph" aria-label="<?= e($g['title']) ?>">🎉</span>
+    <span class="who"><b><?= e($g['title']) ?></b>
+      <small><?= (int) $g['creator_id'] === $uid ? 'You host · ' : '' ?><?= e($g['last_msg'] ? mb_strimwidth($g['last_msg'], 0, 40, '…') : 'Event ' . date('j M', strtotime($g['event_at']))) ?></small></span>
+    <?php if ($g['unread']): ?><span class="unread"><?= (int) $g['unread'] ?></span><?php endif; ?>
+    <?php if ($g['muted']): ?><small title="Muted">🔇</small><?php endif; ?>
+  </a>
+  <?php endforeach; ?>
+</div>
+<?php else: ?>
 <div class="chat-layout" <?php if (!$convs && !$conv) echo 'style="display:block"'; ?>>
   <?php if ($convs || $conv): ?>
   <div class="conv-list" id="convlist">
@@ -113,6 +137,7 @@ site_header();
   </div>
   <?php endif; ?>
 </div>
+<?php endif; ?>
 </main>
 
 <?php if ($conv && $other): ?>

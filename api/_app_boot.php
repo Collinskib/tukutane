@@ -148,7 +148,7 @@ function pub_user(?array $u): ?array {
     if (!$u) return null;
     return [
         'id' => (int) $u['id'], 'name' => $u['name'], 'photo' => $u['photo'] ?? '',
-        'place' => place_label($u), 'bio' => $u['bio'] ?? '',
+        'place' => place_label($u), 'bio' => $u['bio'] ?? '', 'funFact' => $u['fun_fact'] ?? '',
         'interests' => $u['interests'] ?? '',
         'gender' => in_array($u['gender'] ?? '', ['Male', 'Female'], true) ? $u['gender'] : '',
         'age' => $u['age_bracket'] ?? '',

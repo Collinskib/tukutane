@@ -23,8 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (str_starts_with($photo, '!')) { $err = substr($photo, 1); break; }
             $gender = in_array($_POST['gender'] ?? '', GENDERS, true) ? $_POST['gender'] : ($u['gender'] ?? '');
             $agebk  = in_array($_POST['age_bracket'] ?? '', AGE_BRACKETS, true) ? $_POST['age_bracket'] : ($u['age_bracket'] ?? '');
-            $sql = 'UPDATE users SET name=:n,bio=:b,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d';
-            $p = [':n' => $name, ':b' => $bio, ':a' => $area, ':c' => $county, ':e' => $estate,
+            $funFact = trim(mb_substr($_POST['fun_fact'] ?? '', 0, 160));
+            $sql = 'UPDATE users SET name=:n,bio=:b,fun_fact=:ff,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d';
+            $p = [':n' => $name, ':b' => $bio, ':ff' => $funFact ?: null, ':a' => $area, ':c' => $county, ':e' => $estate,
                   ':g' => $gender, ':ab' => $agebk,
                   ':i' => implode(',', $ints), ':d' => $disc, ':u' => $uid];
             if ($photo) { $sql .= ',photo=:ph'; $p[':ph'] = $photo; }
@@ -78,6 +79,9 @@ site_header();
     <div class="field"><label>Name</label><input name="name" required maxlength="60" value="<?= e($u['name']) ?>"></div>
     <div class="field"><label>Bio</label><textarea name="bio" maxlength="300" rows="3"
         placeholder="A line about you"><?= e($u['bio']) ?></textarea></div>
+    <div class="field"><label>My fun fact or silly joke</label>
+      <input name="fun_fact" maxlength="160" value="<?= e($u['fun_fact'] ?? '') ?>"
+             placeholder="The thing people should know about you — it shows on your card"></div>
     <div class="field"><label>Gender</label>
       <select name="gender">
         <option value="">Prefer not to say</option>
