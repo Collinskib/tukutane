@@ -33,6 +33,31 @@ function auth_refresh(): void {
             ->execute([':u' => $u['id'], ':k' => SESSION_KEY]);
         $_SESSION['claimed'] = true;
     }
+    // Required signup fields missing (Google sign-ups, pre-demographics
+    // accounts) — force completion before anything else.
+    if (PHP_SAPI !== 'cli' && profile_incomplete($u)) {
+        $path  = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+        $script = basename($path);
+        if (!in_array($script, ['complete-profile.php', 'logout.php', 'verify.php'], true)
+            && !str_contains($path, '/api/')
+            && !str_contains($path, '/admin/')
+            && !str_contains($path, '/cron/')) {
+            $next = $_SESSION['cp_next'] ?? ($_SERVER['REQUEST_URI'] ?? 'index.php');
+            unset($_SESSION['cp_next']);
+            $host = basename(parse_url((string) $next, PHP_URL_PATH) ?: '');
+            if (!preg_match('~^[a-z0-9_./?=&#%-]+$~i', (string) $next) || str_starts_with((string) $next, '//')
+                || in_array($host, ['auth.php', 'oauth-google.php', 'complete-profile.php'], true)) {
+                $next = 'index.php';
+            }
+            flash('One more step — tell us a bit about you.');
+            redirect('complete-profile.php?next=' . urlencode((string) $next));
+        }
+    }
+}
+
+function profile_incomplete(array $u): bool {
+    return !in_array($u['gender'] ?? '', GENDERS, true)
+        || !in_array($u['age_bracket'] ?? '', AGE_BRACKETS, true);
 }
 
 function attempt_login(string $email, string $password): ?string {

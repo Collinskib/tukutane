@@ -73,6 +73,9 @@ session_regenerate_id(true);
 $_SESSION['uid'] = $u['id'];
 $_SESSION['key'] = SESSION_KEY;
 unset($_SESSION['tries'], $_SESSION['tries_at'], $_SESSION['claimed']);
+// auth_refresh() may bounce incomplete profiles to complete-profile.php —
+// keep the destination so they land there after saving.
+$_SESSION['cp_next'] = $next;
 auth_refresh();
 flash('Karibu, ' . $u['name'] . '!');
 redirect($next);
