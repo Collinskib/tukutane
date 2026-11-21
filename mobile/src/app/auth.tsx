@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -17,6 +18,7 @@ const GOOGLE_OK: boolean = !!(G.googleAndroidClientId || G.googleIosClientId || 
 
 export default function Auth() {
   const { applyAuth, meta } = useAuth();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -84,7 +86,9 @@ export default function Auth() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.cream }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[s.wrap, { paddingTop: insets.top + 30, paddingBottom: insets.bottom + 30 }]}
+        keyboardShouldPersistTaps="handled">
         <Text style={s.brand}>Nipange<Text style={{ color: C.accent }}>.</Text></Text>
         <Text style={s.tagline}>Find your people.</Text>
 
@@ -149,7 +153,7 @@ export default function Auth() {
 }
 
 const s = StyleSheet.create({
-  wrap: { padding: 22, paddingTop: 60, maxWidth: 480, width: '100%', alignSelf: 'center' },
+  wrap: { padding: 22, maxWidth: 480, width: '100%', alignSelf: 'center' },
   brand: { fontFamily: serif, fontSize: 40, color: C.deep, textAlign: 'center' },
   tagline: { color: C.soft, textAlign: 'center', marginBottom: 26, fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8, marginBottom: 18 },

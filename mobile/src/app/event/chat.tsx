@@ -53,7 +53,7 @@ export default function EventChat() {
   const toggleMute = () => api('event-chat', {}, { id: Number(id), do: 'mute', on: !muted }).then(() => setMuted(!muted));
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
         <View style={s.head}>
           <Pressable onPress={() => router.back()}><Text style={s.back}>‹</Text></Pressable>

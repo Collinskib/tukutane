@@ -14,7 +14,7 @@ export default function Friends() {
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  if (!d) return <Screen><Loading /></Screen>;
+  if (!d) return <Screen bottom><Loading /></Screen>;
 
   const act = async (uid: number, action: string) => {
     try { await api('friend', {}, { uid, do: action }); load(); }
@@ -35,7 +35,7 @@ export default function Friends() {
   );
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
         <Text style={s.h}>Friends</Text>

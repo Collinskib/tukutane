@@ -82,7 +82,7 @@ export default function ChatThread() {
   ]);
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={s.head}>
           <Pressable onPress={() => router.back()}><Text style={s.back}>‹</Text></Pressable>

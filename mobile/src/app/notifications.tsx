@@ -31,7 +31,7 @@ export default function Notifications() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
         <Text style={s.h}>Notifications</Text>

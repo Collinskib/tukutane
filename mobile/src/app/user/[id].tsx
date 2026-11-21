@@ -22,7 +22,7 @@ export default function UserProfile() {
 
   useFocusEffect(useCallback(() => { setD(null); load(); }, [load]));
 
-  if (!d) return <Screen>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
+  if (!d) return <Screen bottom>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
   const u = d.user;
   const rel = d.rel;
   const isMe = user?.id === u.id;
@@ -40,7 +40,7 @@ export default function UserProfile() {
   };
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
         <View style={s.head}>

@@ -25,7 +25,7 @@ export default function Groups() {
   const subs = f.county ? Object.keys(meta?.areas?.[f.county] ?? {}) : [];
 
   return (
-    <Screen>
+    <Screen bottom>
       <FlatList
         data={items}
         keyExtractor={(g) => String(g.id)}

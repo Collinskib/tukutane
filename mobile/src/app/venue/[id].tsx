@@ -19,12 +19,12 @@ export default function VenueDetail() {
   }, [id]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  if (!d) return <Screen>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
+  if (!d) return <Screen bottom>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
   const v = d.venue;
   const mine = v.creatorId === user?.id;
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
         {imgUrl(v.photo) ? <Image source={{ uri: imgUrl(v.photo) }} style={s.photo} /> : null}

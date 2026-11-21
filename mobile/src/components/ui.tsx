@@ -6,9 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, serif } from '../lib/theme';
 import { imgUrl } from '../lib/api';
 
-export function Screen({ children, pad = true }: { children?: React.ReactNode; pad?: boolean }) {
+export function Screen({ children, pad = true, bottom = false }: {
+  children?: React.ReactNode; pad?: boolean; bottom?: boolean;
+}) {
   return (
-    <SafeAreaView style={s.screen} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={s.screen} edges={bottom ? ['top', 'left', 'right', 'bottom'] : ['top', 'left', 'right']}>
       <View style={pad && s.pad}>{children}</View>
     </SafeAreaView>
   );

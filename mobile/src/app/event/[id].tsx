@@ -27,7 +27,7 @@ export default function EventDetail() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  if (!d) return <Screen>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
+  if (!d) return <Screen bottom>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
   const ev = d.event;
   const wl = d.waitlist;
   const full = ev.capacity !== null && ev.going >= ev.capacity;
@@ -69,7 +69,7 @@ export default function EventDetail() {
   };
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
         {imgUrl(ev.cover) ? <Image source={{ uri: imgUrl(ev.cover) }} style={s.cover} /> : null}

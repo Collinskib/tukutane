@@ -29,7 +29,7 @@ export default function CompleteProfile() {
   };
 
   return (
-    <Screen>
+    <Screen bottom>
       <ScrollView keyboardShouldPersistTaps="handled">
         <Title>One more step</Title>
         <Sub>Just the same details we ask everyone at signup — it takes ten seconds.</Sub>

@@ -5,5 +5,5 @@ import { Screen, Loading } from '../components/ui';
 // Invites live under My plans → Invites tab.
 export default function Invites() {
   useEffect(() => { router.replace('/(tabs)/plans'); }, []);
-  return <Screen><Loading /></Screen>;
+  return <Screen bottom><Loading /></Screen>;
 }

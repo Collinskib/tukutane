@@ -86,7 +86,7 @@ export default function EventEdit() {
     ...(meta?.venues ?? []).map((v) => ({ value: v.name, label: `${v.name} · ${v.place}` }))];
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()}><Text style={{ color: C.green, fontWeight: '600', marginBottom: 10 }}>‹ Back</Text></Pressable>
         <Title>{editing ? 'Edit event' : 'Create a plan'}</Title>

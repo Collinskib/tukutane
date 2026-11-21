@@ -24,7 +24,7 @@ export default function Profile() {
   }));
   const [pwF, setPwF] = useState({ current: '', new: '' });
 
-  if (!user) return <Screen />;
+  if (!user) return <Screen bottom />;
 
   const pick = async () => {
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85, base64: true });
@@ -60,7 +60,7 @@ export default function Profile() {
   };
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
 

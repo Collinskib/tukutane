@@ -25,7 +25,7 @@ export default function Venues() {
   const subs = f.county ? Object.keys(meta?.areas?.[f.county] ?? {}) : [];
 
   return (
-    <Screen>
+    <Screen bottom>
       <FlatList
         data={items}
         keyExtractor={(v) => String(v.id)}

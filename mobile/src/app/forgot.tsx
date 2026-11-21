@@ -22,7 +22,7 @@ export default function Forgot() {
   };
 
   return (
-    <Screen>
+    <Screen bottom>
       <Title>Reset password</Title>
       <Sub>We’ll email you a link to choose a new one.</Sub>
       {done ? (

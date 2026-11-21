@@ -18,7 +18,7 @@ export default function GroupDetail() {
   }, [id]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  if (!d) return <Screen>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
+  if (!d) return <Screen bottom>{err ? <Empty msg={err} /> : <Loading />}</Screen>;
   const g = d.group;
   const my = d.my;
   const isAdmin = my?.role === 'admin' || g.creatorId === user?.id;
@@ -30,7 +30,7 @@ export default function GroupDetail() {
   };
 
   return (
-    <Screen pad={false}>
+    <Screen pad={false} bottom>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Pressable onPress={() => router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
         <Text style={s.name}>{g.name}</Text>
