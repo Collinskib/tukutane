@@ -32,9 +32,9 @@ header.site.scrolled{box-shadow:0 1px 0 var(--line),var(--shadow)}
 header.site nav{display:flex;align-items:center;gap:10px}
 a.brand{text-decoration:none}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;position:relative}
-.nav-create{text-decoration:none;padding:9px 16px;border-radius:99px;font-weight:600;font-family:var(--sans);border:1px solid transparent;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-ui) var(--ease-out)}
-.nav-create:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
-.nav-create:active{transform:scale(.96)}
+.nav-create,.nav-join{text-decoration:none;padding:9px 16px;border-radius:99px;font-weight:600;font-family:var(--sans);border:1px solid transparent;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-ui) var(--ease-out)}
+.nav-create:hover,.nav-join:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.nav-create:active,.nav-join:active{transform:scale(.96)}
 .nav-link{position:relative}
 .nav-link::after{content:"";position:absolute;left:14px;right:14px;bottom:5px;height:2px;border-radius:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-ui) var(--ease-out)}
 .nav-link.active::after{transform:scaleX(1);background:var(--cream)}
