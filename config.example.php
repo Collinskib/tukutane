@@ -18,3 +18,5 @@ const DB_PASS = 'your_db_password';
 // When these are defined, the button shows on the login/signup page.
 const GOOGLE_CLIENT_ID     = 'your-client-id.apps.googleusercontent.com';
 const GOOGLE_CLIENT_SECRET = 'your-client-secret';
+// Mobile-app Google client IDs (Android + iOS) for the JSON API, comma-separated.
+const GOOGLE_APP_CLIENT_IDS = '';

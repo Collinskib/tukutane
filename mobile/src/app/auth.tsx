@@ -12,7 +12,8 @@ import { C, serif } from '../lib/theme';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_CID: string = (Constants.expoConfig?.extra as any)?.googleWebClientId ?? '';
+const G = (Constants.expoConfig?.extra as any) ?? {};
+const GOOGLE_OK: boolean = !!(G.googleAndroidClientId || G.googleIosClientId || G.googleWebClientId);
 
 export default function Auth() {
   const { applyAuth, meta } = useAuth();
@@ -23,22 +24,29 @@ export default function Auth() {
   const [loc, setLoc] = useState({ county: '', area: '', estate: '' });
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  const [, gResponse, gPrompt] = Google.useIdTokenAuthRequest(
-    GOOGLE_CID ? { clientId: GOOGLE_CID } : { clientId: 'disabled.apps.googleusercontent.com' },
+  const [, gResponse, gPrompt] = Google.useAuthRequest(
+    GOOGLE_OK
+      ? {
+          webClientId: G.googleWebClientId,
+          iosClientId: G.googleIosClientId,
+          androidClientId: G.googleAndroidClientId,
+        }
+      : { clientId: 'disabled.apps.googleusercontent.com' },
   );
 
   React.useEffect(() => {
     (async () => {
-      if (gResponse?.type === 'success' && gResponse.params.id_token) {
-        setBusy(true);
-        try {
-          const d = await api('auth/google', {}, { id_token: gResponse.params.id_token });
-          await applyAuth(d);
-        } catch (e: any) {
-          setErr(e.message);
-        }
-        setBusy(false);
+      if (gResponse?.type !== 'success') return;
+      const idToken = gResponse.params.id_token ?? gResponse.authentication?.idToken;
+      if (!idToken) return;
+      setBusy(true);
+      try {
+        const d = await api('auth/google', {}, { id_token: idToken });
+        await applyAuth(d);
+      } catch (e: any) {
+        setErr(e.message);
       }
+      setBusy(false);
     })();
   }, [gResponse, applyAuth]);
 
@@ -64,7 +72,7 @@ export default function Auth() {
     setBusy(false);
   };
 
-  const googleCidConfigured = !!GOOGLE_CID && !GOOGLE_CID.startsWith('disabled');
+  const googleCidConfigured = GOOGLE_OK;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.cream }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

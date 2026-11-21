@@ -27,6 +27,11 @@
       "expo-web-browser",
       "expo-font"
     ],
-    "scheme": "nipange"
+    "scheme": "nipange",
+    "extra": {
+      "googleWebClientId": "101117355999-s0ftf8kh122732didonknm2mscmpem0j.apps.googleusercontent.com",
+      "googleAndroidClientId": "101117355999-u87iq0f6nbnenintcqfgvt49m3446ltk.apps.googleusercontent.com",
+      "googleIosClientId": "101117355999-qdhmag4bi9na6vfqr7ko3rjrcpn5i0ph.apps.googleusercontent.com"
+    }
   }
 }
