@@ -27,7 +27,9 @@
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.11.1",
     "react-native-screens": "~4.30.1",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "react-native-nitro-google-signin": "^2.3.1",
+    "react-native-nitro-modules": "^0.37.2"
   },
   "scripts": {
     "start": "expo start",

@@ -2,19 +2,25 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
+import {
+  GoogleOneTapSignIn, isCancelledResponse, isNoSavedCredentialFoundResponse, isSuccessResponse,
+} from 'react-native-nitro-google-signin';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/store';
 import { Btn, Err, Field, Input, Select } from '../components/ui';
 import LocationPicker from '../components/LocationPicker';
 import { C, serif } from '../lib/theme';
 
-WebBrowser.maybeCompleteAuthSession();
-
 const G = (Constants.expoConfig?.extra as any) ?? {};
-const GOOGLE_OK: boolean = !!(G.googleAndroidClientId || G.googleIosClientId || G.googleWebClientId);
+const GOOGLE_OK: boolean = !!G.googleWebClientId;
+
+if (GOOGLE_OK) {
+  GoogleOneTapSignIn.configure({
+    webClientId: G.googleWebClientId,
+    iosClientId: G.googleIosClientId,
+  });
+}
 
 export default function Auth() {
   const { applyAuth, meta } = useAuth();
@@ -26,39 +32,24 @@ export default function Auth() {
   const [loc, setLoc] = useState({ county: '', area: '', estate: '' });
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  const [, gResponse, gPrompt] = Google.useAuthRequest(
-    GOOGLE_OK
-      ? {
-          webClientId: G.googleWebClientId,
-          iosClientId: G.googleIosClientId,
-          androidClientId: G.googleAndroidClientId,
-        }
-      : { clientId: 'disabled.apps.googleusercontent.com' },
-    {
-      // Native Google clients only accept the reverse-client-ID scheme.
-      native: Platform.select({
-        android: `${'com.googleusercontent.apps.' + (G.googleAndroidClientId ?? '').replace('.apps.googleusercontent.com', '')}:/oauthredirect`,
-        ios: `${'com.googleusercontent.apps.' + (G.googleIosClientId ?? '').replace('.apps.googleusercontent.com', '')}:/oauthredirect`,
-        default: 'nipange://',
-      }),
-    },
-  );
-
-  React.useEffect(() => {
-    (async () => {
-      if (gResponse?.type !== 'success') return;
-      const idToken = gResponse.params.id_token ?? gResponse.authentication?.idToken;
-      if (!idToken) return;
-      setBusy(true);
-      try {
-        const d = await api('auth/google', {}, { id_token: idToken });
+  const googleSignIn = async () => {
+    setErr(''); setBusy(true);
+    try {
+      await GoogleOneTapSignIn.checkPlayServices();
+      let res = await GoogleOneTapSignIn.signIn();
+      if (isNoSavedCredentialFoundResponse(res)) res = await GoogleOneTapSignIn.createAccount();
+      if (isNoSavedCredentialFoundResponse(res)) res = await GoogleOneTapSignIn.presentExplicitSignIn();
+      if (isSuccessResponse(res) && res.data.idToken) {
+        const d = await api('auth/google', {}, { id_token: res.data.idToken });
         await applyAuth(d);
-      } catch (e: any) {
-        setErr(e.message);
+      } else if (!isCancelledResponse(res)) {
+        setErr('Google sign-in returned no token.');
       }
-      setBusy(false);
-    })();
-  }, [gResponse, applyAuth]);
+    } catch (e: any) {
+      if (!isCancelledResponse(e)) setErr(e?.message ?? 'Google sign-in failed.');
+    }
+    setBusy(false);
+  };
 
   const submit = async () => {
     setErr(''); setBusy(true);
@@ -143,10 +134,9 @@ export default function Auth() {
           </Pressable>
         )}
 
-        {googleCidConfigured && (
-          <Btn label="Continue with Google" ghost onPress={() => gPrompt()} disabled={busy} />
+        {googleCidConfigured && Platform.OS !== 'web' && (
+          <Btn label="Continue with Google" ghost onPress={googleSignIn} disabled={busy} />
         )}
-        {!googleCidConfigured && __DEV__ ? null : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );
