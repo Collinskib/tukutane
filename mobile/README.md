@@ -60,11 +60,13 @@ first build, nothing to commit.
 
 ## Google sign-in
 
-The `auth/google` API route verifies a Google `id_token` against
-`GOOGLE_CLIENT_ID` (web) plus `GOOGLE_APP_CLIENT_IDS` (Android + iOS) on the
-server. OAuth clients live in GCP project `nipange-515310` and are wired
-into `app.json` → `expo.extra` (`googleWebClientId`,
-`googleAndroidClientId`, `googleIosClientId`). The Android client is bound
+Native sign-in uses `react-native-nitro-google-signin` (Android Credential
+Manager / iOS GIDSignIn) — no browser redirect. The `auth/google` API route
+verifies the returned Google `id_token` against `GOOGLE_CLIENT_ID` (web)
+plus `GOOGLE_APP_CLIENT_IDS` (Android + iOS) on the server. OAuth clients
+live in GCP project `nipange-515310` and are wired into `app.json` →
+`expo.extra` (`googleWebClientId`, `googleAndroidClientId`,
+`googleIosClientId`). The Android client is bound
 to package `ke.co.nipange` + the EAS-managed keystore SHA-1
 (`0B:47:30:5D:75:9D:64:AA:F6:30:FF:4D:C3:87:12:AE:07:33:CA:55`); if the
 keystore ever changes, create a new Android OAuth client with the new

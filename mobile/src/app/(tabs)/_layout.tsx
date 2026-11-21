@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs, router, useFocusEffect } from 'expo-router';
 import { api } from '../../lib/api';
 import { C } from '../../lib/theme';
@@ -10,6 +11,7 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 export default function TabsLayout() {
   const [unread, setUnread] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const poll = useCallback(async () => {
     try {
@@ -30,7 +32,10 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: C.green,
         tabBarInactiveTintColor: C.soft,
-        tabBarStyle: { backgroundColor: C.cream, borderTopColor: C.line, height: 62, paddingBottom: 8 },
+        tabBarStyle: {
+          backgroundColor: C.cream, borderTopColor: C.line,
+          height: 62 + insets.bottom, paddingBottom: 8 + insets.bottom,
+        },
         tabBarLabelStyle: { fontSize: 11 },
       }}>
       <Tabs.Screen name="discover" options={{
