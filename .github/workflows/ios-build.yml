@@ -1,0 +1,65 @@
+name: iOS build
+
+# Scaffold for an EAS iOS build. Manual trigger only — a distributable iOS
+# build needs a paid Apple Developer account ($99/yr) plus signing
+# credentials on EAS. Until then this workflow documents the path and will
+# fail fast with a clear message.
+#
+# When the Apple account exists:
+#   1. Locally run `npx eas-cli credentials` (once) so EAS stores the
+#      distribution certificate + provisioning profile, OR provide CI
+#      secrets: APPLE_TEAM_ID plus an App Store Connect API key
+#      (EXPO_ASC_API_KEY_PATH / EXPO_ASC_KEY_ID / EXPO_ASC_ISSUER_ID).
+#   2. Set the EXPO_TOKEN repo secret (same as the Android workflow).
+#   3. Uncomment the build step below.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS (EAS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check prerequisites
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::Set the EXPO_TOKEN repo secret (https://expo.dev/settings/access-tokens)."
+            exit 1
+          fi
+          if [ -z "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            echo "::error::iOS signing needs an Apple Developer account."
+            echo "Join https://developer.apple.com/programs/ (\$99/yr), then either:"
+            echo "  - run 'npx eas-cli credentials' locally once, or"
+            echo "  - set APPLE_TEAM_ID + ASC API key secrets, then uncomment the build step."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Expo and EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Link EAS project
+        working-directory: mobile
+        run: npx eas-cli project:init --non-interactive --force
+
+      # Uncomment once Apple credentials are on EAS:
+      # - name: Build iOS
+      #   working-directory: mobile
+      #   env:
+      #     EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      #   run: npx eas-cli build -p ios --profile production --non-interactive --wait

@@ -1,0 +1,71 @@
+name: Android APK
+
+# Builds a downloadable Nipange APK with EAS Build and attaches it to the
+# workflow run as an artifact.
+#
+# Required GitHub secret:
+#   EXPO_TOKEN — Expo personal access token from https://expo.dev/settings/access-tokens
+#
+# The Android keystore is generated and stored by EAS on the first build —
+# nothing to commit. To sign with your own keystore later, run
+# `npx eas-cli credentials` locally once.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ['mobile/**']
+
+jobs:
+  build:
+    name: Build APK (EAS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::Set the EXPO_TOKEN repo secret (https://expo.dev/settings/access-tokens)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Expo and EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Link EAS project
+        working-directory: mobile
+        run: npx eas-cli project:init --non-interactive --force
+
+      - name: Build APK
+        working-directory: mobile
+        run: npx eas-cli build -p android --profile apk --non-interactive --wait --json > ../eas-build.json
+
+      - name: Download APK
+        run: |
+          URL=$(jq -r '(.[0] // .).artifacts.buildUrl // empty' eas-build.json)
+          if [ -z "$URL" ]; then
+            echo "::warning::No artifact URL in eas-build.json — fetch it from the Expo dashboard."
+            exit 0
+          fi
+          curl -fSL "$URL" -o nipange.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipange-apk
+          path: nipange.apk
+          if-no-files-found: warn

@@ -39,6 +39,7 @@ function auth_refresh(): void {
         $path  = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
         $script = basename($path);
         if (!in_array($script, ['complete-profile.php', 'logout.php', 'verify.php'], true)
+            && !str_starts_with($script, 'migrate-')
             && !str_contains($path, '/api/')
             && !str_contains($path, '/admin/')
             && !str_contains($path, '/cron/')) {
