@@ -32,6 +32,14 @@ export default function Auth() {
           androidClientId: G.googleAndroidClientId,
         }
       : { clientId: 'disabled.apps.googleusercontent.com' },
+    {
+      // Native Google clients only accept the reverse-client-ID scheme.
+      native: Platform.select({
+        android: `${'com.googleusercontent.apps.' + (G.googleAndroidClientId ?? '').replace('.apps.googleusercontent.com', '')}:/oauthredirect`,
+        ios: `${'com.googleusercontent.apps.' + (G.googleIosClientId ?? '').replace('.apps.googleusercontent.com', '')}:/oauthredirect`,
+        default: 'nipange://',
+      }),
+    },
   );
 
   React.useEffect(() => {
