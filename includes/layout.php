@@ -95,6 +95,8 @@ function site_footer(): void { ?>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>
+    <div><strong>Legal</strong>
+      <a href="/privacy.php">Privacy policy</a><a href="/terms.php">Terms of service</a></div>
   </div>
   <p class="fine">Made for Nairobi · Nipange <?= date('Y') ?></p>
 </footer>
