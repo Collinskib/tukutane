@@ -37,7 +37,7 @@ $pastHosted = host_gatherings($id, false, 6);
 ?>
 <main class="ev-wrap">
   <div class="prof-head rv in">
-    <?= avatar_html($p, 'lg') ?>
+    <?= avatar_html($p, 'lg', true) ?>
     <div class="info">
       <h2><?= e($p['name']) ?></h2>
       <p><?= e(place_label($p, 'Nipange user')) ?><?php

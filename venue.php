@@ -18,7 +18,7 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
 ?>
 <main class="ev-wrap">
   <?php if ($v['photo']): ?>
-  <div class="card rv in" style="overflow:hidden"><img src="<?= e($v['photo']) ?>" alt="<?= e($v['name']) ?>" style="width:100%;max-height:220px;object-fit:cover;display:block"></div>
+  <div class="card rv in" style="overflow:hidden"><img src="<?= img_url($v['photo'], 800) ?>" alt="<?= e($v['name']) ?>" style="width:100%;max-height:220px;object-fit:cover;display:block"></div>
   <?php endif; ?>
 
   <div class="prof-head rv in">

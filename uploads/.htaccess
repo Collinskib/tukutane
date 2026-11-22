@@ -6,3 +6,12 @@ Options -ExecCGI
 <FilesMatch "\.(php|phtml|phar|cgi|pl|py|sh)$">
   Require all denied
 </FilesMatch>
+
+# Filenames are random per upload, so content at a URL never changes —
+# safe to cache forever (this also covers generated thumbs/).
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  <FilesMatch "\.(jpe?g|png|webp|gif|pdf|txt|csv|docx?|xlsx?|pptx?|zip)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>

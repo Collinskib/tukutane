@@ -25,7 +25,8 @@ $hasMore = count($events) === 12;
 
 $partial = !empty($_GET['partial']);
 if (!$partial):
-page_head($view === 'mine' ? 'My plans' : 'Discover events');
+page_head($view === 'mine' ? 'My plans' : 'Discover events',
+          '<link rel="preload" as="image" href="/assets/hero.webp" fetchpriority="high">');
 site_header('discover');
 ?>
 <main>
@@ -111,7 +112,7 @@ site_header('discover');
       $mine   = (bool) $event['mine']; ?>
     <article class="card rv" style="--d:<?= min($i * 45, 400) ?>ms">
       <?php if (!empty($event['cover'])): ?>
-      <div class="ribbon cover"><img src="uploads/<?= e($event['cover']) ?>" alt="" loading="lazy"></div>
+      <div class="ribbon cover"><img src="<?= img_url($event['cover'], 800) ?>" alt="" loading="lazy" decoding="async"></div>
       <?php else: ?>
       <div class="ribbon" style="background:<?= e($ribbon) ?>">
         <span><?= e($event['category']) ?></span><span><?= $emoji ?></span>

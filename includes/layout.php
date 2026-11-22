@@ -1,7 +1,7 @@
 <?php
 // Shared chrome: <head>, top nav, mobile bottom nav, footer.
 
-function page_head(string $title): void {
+function page_head(string $title, string $head = ''): void {
     $unread = user() ? unread_notifications(user_id()) : 0;
     $unreadMsg = user() ? unread_messages(user_id()) : 0; ?>
 <!doctype html>
@@ -16,7 +16,8 @@ function page_head(string $title): void {
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="stylesheet" href="/assets/style.css?v=14">
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+<?= $head ?>
+<script defer src="/assets/alpine.min.js?v=1"></script>
 <script defer src="/assets/app.js?v=10"></script>
 </head>
 <body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
@@ -42,7 +43,7 @@ function site_header(string $active = ''): void {
         🔔<span class="badge" id="bell-badge" hidden>0</span>
       </a>
       <button class="avatar-btn" @click="open=!open" aria-label="Account menu">
-        <?= avatar_html($u, 'sm') ?>
+        <?= avatar_html($u, 'sm', true) ?>
       </button>
       <span class="dropdown" x-show="open" x-transition @click.outside="open=false" x-cloak>
         <a href="/profile.php">My profile</a>

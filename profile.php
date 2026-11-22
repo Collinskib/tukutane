@@ -65,7 +65,7 @@ site_header();
 <main>
 <div class="form rv in" style="max-width:520px">
   <div class="prof-head" style="border:0;padding:0;margin-bottom:16px">
-    <?= avatar_html($u, 'lg') ?>
+    <?= avatar_html($u, 'lg', true) ?>
     <div class="info"><h2><?= e($u['name']) ?></h2><p><?= e($u['email']) ?><?= !empty($u['email_verified']) ? ' ✓' : '' ?><?= place_label($u) ? ' · ' . e(place_label($u)) : '' ?></p></div>
   </div>
   <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
@@ -74,7 +74,7 @@ site_header();
     <?= csrf_field() ?>
     <input type="hidden" name="do" value="save">
     <div class="field"><label>Photo</label>
-      <img id="photoprev" class="imgprev" <?= $u['photo'] ? 'src="uploads/' . e($u['photo']) . '"' : 'hidden' ?> alt="">
+      <img id="photoprev" class="imgprev" <?= $u['photo'] ? 'src="' . img_url($u['photo'], 160) . '"' : 'hidden' ?> alt="">
       <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" data-preview="#photoprev"></div>
     <div class="field"><label>Name</label><input name="name" required maxlength="60" value="<?= e($u['name']) ?>"></div>
     <div class="field"><label>Bio</label><textarea name="bio" maxlength="300" rows="3"

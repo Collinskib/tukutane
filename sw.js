@@ -1,9 +1,10 @@
 // Nipange service worker — static shell + offline fallback only.
 // NEVER caches API responses, messages, or account pages.
-const CACHE = 'nipange-v17';
+const CACHE = 'nipange-v18';
 const STATIC = [
   '/assets/style.css?v=14',
   '/assets/app.js?v=10',
+  '/assets/alpine.min.js?v=1',
   '/assets/icons/icon-192.png',
   '/offline.html',
 ];
@@ -33,8 +34,8 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // static assets: cache-first
-  if (/\.(css|js|png|jpg|webp|woff2?)$/.test(url.pathname)) {
+  // static assets + immutable image thumbs: cache-first
+  if (/\.(css|js|png|jpg|webp|woff2?)$/.test(url.pathname) || url.pathname === '/img.php') {
     e.respondWith(
       caches.match(e.request).then(hit =>
         hit || fetch(e.request).then(res => {

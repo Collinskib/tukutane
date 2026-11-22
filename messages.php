@@ -109,7 +109,7 @@ site_header();
       <?php foreach ($messages as $m): ?>
       <div class="bubble <?= (int) $m['sender_id'] === $uid ? 'me' : 'them' ?>" data-mid="<?= (int) $m['id'] ?>">
         <?php if ($m['attachment'] && $m['attachment_kind'] === 'image'): ?>
-        <a href="uploads/<?= e($m['attachment']) ?>" target="_blank"><img class="attach-img" src="uploads/<?= e($m['attachment']) ?>" alt="<?= e($m['attachment_name'] ?? 'image') ?>" loading="lazy"></a>
+        <a href="uploads/<?= e($m['attachment']) ?>" target="_blank"><img class="attach-img" src="<?= img_url($m['attachment'], 480) ?>" alt="<?= e($m['attachment_name'] ?? 'image') ?>" loading="lazy" decoding="async"></a>
         <?php elseif ($m['attachment']): ?>
         <a class="attach-file" href="uploads/<?= e($m['attachment']) ?>" target="_blank" download="<?= e($m['attachment_name'] ?? 'file') ?>">📄 <?= e($m['attachment_name'] ?? 'attachment') ?></a>
         <?php endif; ?>
@@ -168,7 +168,7 @@ site_header();
   function attachHtml(m){
     if(!m.attachment)return '';
     if(m.attachment_kind==='image')
-      return '<a href="uploads/'+m.attachment+'" target="_blank"><img class="attach-img" src="uploads/'+m.attachment+'" loading="lazy" alt="image"></a>';
+      return '<a href="uploads/'+m.attachment+'" target="_blank"><img class="attach-img" src="/img.php?f='+m.attachment+'&s=480" loading="lazy" decoding="async" alt="image"></a>';
     return '<a class="attach-file" href="uploads/'+m.attachment+'" target="_blank" download="'+escAttr(m.attachment_name||'file')+'">📄 '+esc(m.attachment_name||'attachment')+'</a>';
   }
   function add(m){

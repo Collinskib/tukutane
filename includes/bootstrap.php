@@ -15,6 +15,13 @@ session_set_cookie_params([
 ]);
 session_start();
 
+// gzip page/JSON output when the host isn't already compressing —
+// meaningful savings on slow mobile networks.
+if (!ini_get('zlib.output_compression')
+    && str_contains($_SERVER['HTTP_ACCEPT_ENCODING'] ?? '', 'gzip')) {
+    ob_start('ob_gzhandler');
+}
+
 // Anonymous visitor key — kept so old session RSVPs still display and can be
 // claimed into an account on first login.
 if (empty($_SESSION['key'])) {

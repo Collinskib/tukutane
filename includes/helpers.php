@@ -116,10 +116,19 @@ function keep(array $drop = [], array $add = []): string {
     return basename($_SERVER['PHP_SELF']) . ($p ? '?' . http_build_query($p) : '');
 }
 
-function avatar_html(?array $u, string $cls = ''): string {
+// Resized-derivative URL for an uploads/ file (see img.php). The endpoint
+// falls back to the original when GD is missing or the source is small.
+function img_url(string $f, int $s): string {
+    return '/img.php?f=' . rawurlencode($f) . '&s=' . $s;
+}
+
+function avatar_html(?array $u, string $cls = '', bool $eager = false): string {
     $name = $u['name'] ?? 'Guest';
     if (!empty($u['photo'])) {
-        return '<img class="avatar ' . $cls . '" src="/uploads/' . e($u['photo']) . '" alt="' . e($name) . '">';
+        [$s, $px] = $cls === 'lg' ? [160, 72] : ($cls === 'sm' ? [80, 34] : [80, 38]);
+        return '<img class="avatar ' . $cls . '" src="' . img_url($u['photo'], $s)
+             . '" width="' . $px . '" height="' . $px . '" alt="' . e($name)
+             . '" decoding="async"' . ($eager ? '' : ' loading="lazy"') . '>';
     }
     $initial = mb_strtoupper(mb_substr($name, 0, 1));
     return '<span class="avatar ph ' . $cls . '" aria-label="' . e($name) . '">' . e($initial) . '</span>';
@@ -127,7 +136,7 @@ function avatar_html(?array $u, string $cls = ''): string {
 
 function cover_html(array $event, string $emoji): string {
     if (!empty($event['cover'])) {
-        return '<div class="ribbon cover"><img src="/uploads/' . e($event['cover']) . '" alt="" loading="lazy"></div>';
+        return '<div class="ribbon cover"><img src="' . img_url($event['cover'], 800) . '" alt="" loading="lazy" decoding="async"></div>';
     }
     [, $ribbon] = categories()[$event['category']] ?? ['📅', '#e4e6db'];
     return '<div class="ribbon" style="background:' . e($ribbon) . '"><span>'

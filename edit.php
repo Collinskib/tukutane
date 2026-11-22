@@ -196,7 +196,7 @@ site_header('plans');
     <div class="field"><label>Details</label>
       <textarea name="description" maxlength="300" rows="3" required><?= e($ev['description']) ?></textarea></div>
     <div class="field"><label>Cover image<?= $ev['cover'] ? ' (replace)' : '' ?></label>
-      <?php if ($ev['cover']): ?><img src="uploads/<?= e($ev['cover']) ?>" class="imgprev wide" alt=""><?php endif; ?>
+      <?php if ($ev['cover']): ?><img src="<?= img_url($ev['cover'], 800) ?>" class="imgprev wide" alt=""><?php endif; ?>
       <img id="coverprev" class="imgprev wide" hidden alt="">
       <input name="cover" type="file" accept="image/jpeg,image/png,image/webp" data-preview="#coverprev"></div>
     <?php if ($series): ?>

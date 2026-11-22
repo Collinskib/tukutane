@@ -41,7 +41,7 @@ site_header('venues');
     <?php foreach ($venues as $i => $v): ?>
     <div class="card rv" style="--d:<?= min($i * 40, 400) ?>ms">
       <?php if ($v['photo']): ?>
-      <a href="venue.php?id=<?= (int) $v['id'] ?>"><img src="<?= e($v['photo']) ?>" alt="" style="width:100%;height:130px;object-fit:cover;display:block"></a>
+      <a href="venue.php?id=<?= (int) $v['id'] ?>"><img src="<?= img_url($v['photo'], 480) ?>" alt="" loading="lazy" decoding="async" style="width:100%;height:130px;object-fit:cover;display:block"></a>
       <?php else: ?>
       <div class="ribbon" style="background:var(--mist);color:var(--green-2)"><span>🏪 Business</span><span><?= (int) $v['upcoming'] ?> upcoming</span></div>
       <?php endif; ?>
