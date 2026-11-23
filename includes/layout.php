@@ -18,7 +18,7 @@ function page_head(string $title, string $head = ''): void {
 <link rel="stylesheet" href="/assets/style.css?v=18">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
-<script defer src="/assets/app.js?v=10"></script>
+<script defer src="/assets/app.js?v=11"></script>
 </head>
 <body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
 <?php }

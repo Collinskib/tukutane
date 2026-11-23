@@ -21,6 +21,13 @@
   document.querySelectorAll('.rv').forEach(function (el) {
     if (io) io.observe(el); else el.classList.add('in');
   });
+  // Safety net: IO never fires in hidden tabs/webviews — reveal everything
+  // rather than leave the page blank.
+  setTimeout(function () {
+    if (!document.querySelector('.rv.in')) {
+      document.querySelectorAll('.rv').forEach(function (el) { el.classList.add('in'); });
+    }
+  }, 1600);
 
   // Auto-open dialogs marked [data-open]
   document.querySelectorAll('dialog[data-open]').forEach(function (d) {
