@@ -1,5 +1,10 @@
 # Tukutane — agent guide
 
+**Product direction lives in [`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)** —
+read it before making product or design decisions. Nipange is a local discovery
+platform for people, businesses and event organizers; never present unbuilt
+capabilities as live features.
+
 Server-rendered PHP app (no build step). Pages are `*.php` at the root, shared
 markup lives in `includes/layout.php`, styling is a single hand-written
 stylesheet `assets/style.css`, light interactivity via Alpine.js

@@ -15,7 +15,7 @@ function page_head(string $title, string $head = ''): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=14">
+<link rel="stylesheet" href="/assets/style.css?v=15">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
 <script defer src="/assets/app.js?v=10"></script>
@@ -32,6 +32,7 @@ function site_header(string $active = ''): void {
     <a class="btn nav-link <?= $active === 'discover' ? 'active' : '' ?>" href="/index.php">Home</a>
     <a class="btn nav-link <?= $active === 'people' ? 'active' : '' ?>" href="/people.php">People</a>
     <a class="btn nav-link <?= $active === 'groups' ? 'active' : '' ?>" href="/groups.php">Groups</a>
+    <a class="btn nav-link nav-about <?= $active === 'about' ? 'active' : '' ?>" href="/about.php">About</a>
     <?php if ($u): ?>
     <a class="btn nav-link <?= $active === 'plans' ? 'active' : '' ?>" href="/plans.php">My plans</a>
     <a class="primary nav-create" href="/create.php">+ Create event</a>
@@ -92,7 +93,7 @@ function site_footer(): void { ?>
     <div><span class="brand sm">Nipange<i>.</i></span>
       <p>Find events and new friends near you.</p></div>
     <div><strong>Explore</strong>
-      <a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Business</a><a href="/create.php">Create a plan</a></div>
+      <a href="/about.php">About</a><a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Business</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>
