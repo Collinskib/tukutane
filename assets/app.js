@@ -89,6 +89,7 @@
         bump('msg-badge', j.unreadMsg);
         var dot = document.getElementById('msg-dot');
         if (dot) dot.hidden = !j.unreadMsg;
+        friendReq(j.friendReqs || 0);
       })
       .catch(function () {});
   }
@@ -100,11 +101,20 @@
     el.textContent = n > 99 ? '99+' : n;
     if (n > prev) { el.classList.add('bump'); setTimeout(function () { el.classList.remove('bump'); }, 400); }
   }
+  // Friend-request icon — only visible while requests are pending
+  function friendReq(n) {
+    var ic = document.getElementById('freq');
+    if (ic) ic.hidden = !n;
+    bump('freq-badge', n);
+    var d = document.getElementById('freq-dot');
+    if (d) d.hidden = !n;
+  }
   // seed from server-rendered values
   bump('bell-badge', parseInt(document.body.dataset.unread || '0', 10));
   bump('msg-badge', parseInt(document.body.dataset.unreadMsg || '0', 10));
   var dot0 = document.getElementById('msg-dot');
   if (dot0) dot0.hidden = !(parseInt(document.body.dataset.unreadMsg || '0', 10) > 0);
+  friendReq(parseInt(document.body.dataset.friendReqs || '0', 10));
   setInterval(pollBadges, 45000);
 
   // Image preview for file inputs [data-preview]

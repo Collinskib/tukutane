@@ -3,7 +3,8 @@
 
 function page_head(string $title, string $head = ''): void {
     $unread = user() ? unread_notifications(user_id()) : 0;
-    $unreadMsg = user() ? unread_messages(user_id()) : 0; ?>
+    $unreadMsg = user() ? unread_messages(user_id()) : 0;
+    $friendReqs = user() ? friend_request_count(user_id()) : 0; ?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -15,16 +16,17 @@ function page_head(string $title, string $head = ''): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=19">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
-<script defer src="/assets/app.js?v=11"></script>
+<script defer src="/assets/app.js?v=12"></script>
 </head>
-<body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
+<body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-friend-reqs="<?= $friendReqs ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
 <?php }
 
 function site_header(string $active = ''): void {
     $u = user();
+    $friendReqs = $u ? friend_request_count(user_id()) : 0;
     [$fmsg, $fkind] = flash() ?: [null, 'ok']; ?>
 <header class="site">
   <nav>
@@ -39,6 +41,9 @@ function site_header(string $active = ''): void {
     <span class="nav-right" x-data="{open:false}">
       <a class="icon-btn" href="/messages.php" aria-label="Messages" id="chat">
         💬<span class="badge" id="msg-badge" hidden>0</span>
+      </a>
+      <a class="icon-btn" href="/friends.php" aria-label="Friend requests" id="freq" title="Friend requests" <?= $friendReqs ? '' : 'hidden' ?>>
+        🤝<span class="badge" id="freq-badge" <?= $friendReqs ? '' : 'hidden' ?>><?= $friendReqs > 99 ? '99+' : $friendReqs ?></span>
       </a>
       <a class="icon-btn" href="/plans.php?tab=notifications" aria-label="Notifications" id="bell">
         🔔<span class="badge" id="bell-badge" hidden>0</span>
@@ -81,7 +86,7 @@ function bottom_nav(string $active = ''): void {
   <a href="/index.php" class="<?= $active === 'discover' ? 'active' : '' ?>">
     <span>🏠</span>Home</a>
   <a href="/people.php" class="<?= $active === 'people' ? 'active' : '' ?>">
-    <span>🧑‍🤝‍🧑</span>People</a>
+    <span>🧑‍🤝‍🧑</span>People<i class="badge dot" id="freq-dot" hidden></i></a>
   <a href="/groups.php" class="<?= $active === 'groups' ? 'active' : '' ?>">
     <span>👥</span>Groups</a>
   <a href="/messages.php" class="<?= $active === 'messages' ? 'active' : '' ?>">

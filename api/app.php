@@ -598,7 +598,7 @@ case 'notifications': {
         db()->prepare('UPDATE notifications SET read_at=NOW() WHERE user_id=:u AND read_at IS NULL')->execute([':u' => $uid]);
         jout(['ok' => true]);
     }
-    $out = ['unread' => unread_notifications($uid), 'unreadMsg' => unread_messages($uid)];
+    $out = ['unread' => unread_notifications($uid), 'unreadMsg' => unread_messages($uid), 'friendReqs' => friend_request_count($uid)];
     if (empty($_GET['count'])) {
         $out['items'] = array_map(fn($n) => [
             'id' => (int) $n['id'], 'type' => $n['type'], 'body' => $n['body'],

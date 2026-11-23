@@ -536,6 +536,12 @@ function pending_requests(int $uid): array {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+function friend_request_count(int $uid): int {
+    $stmt = db()->prepare('SELECT COUNT(*) FROM friendships WHERE addressee_id = :m AND status = "pending"');
+    $stmt->execute([':m' => $uid]);
+    return (int) $stmt->fetchColumn();
+}
+
 function outgoing_requests(int $uid): array {
     $stmt = db()->prepare(
         'SELECT f.id AS req_id, f.addressee_id, u.name, u.photo, u.area, u.county

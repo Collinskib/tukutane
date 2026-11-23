@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $out = [
     'unread'    => unread_notifications($uid),
     'unreadMsg' => unread_messages($uid),
+    'friendReqs' => friend_request_count($uid),
 ];
 if (empty($_GET['count'])) {
     $out['items'] = array_map(fn($n) => [
