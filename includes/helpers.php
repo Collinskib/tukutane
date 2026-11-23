@@ -338,6 +338,73 @@ function location_picker(string $county = '', string $area = '', string $estate 
 })();</script>';
 }
 
+// Optional institution association: typeahead search + campus select.
+// Renders the campus select server-side when $instId is already set
+// (edit forms), JS drives search/pick for the empty case.
+// Emits name="institution_id" and name="campus_id" — both optional.
+function institution_picker(int $instId = 0, string $instName = '', int $campId = 0, string $placeholder = 'Search universities & colleges…'): void {
+    static $jsDone = false;
+    echo '<div class="instpick">';
+    echo '<input type="text" class="instq" maxlength="80" autocomplete="off"
+          placeholder="' . e($placeholder) . '" value="' . e($instName) . '">';
+    echo '<input type="hidden" name="institution_id" class="instid" value="' . ($instId ?: '') . '">';
+    echo '<div class="instlist" hidden></div>';
+    $camps = $instId ? campuses_for($instId) : [];
+    echo '<select name="campus_id" class="instcamp"' . ($instId && $camps ? '' : ' hidden') . '>';
+    echo '<option value="">Any campus (optional)</option>';
+    foreach ($camps as $c)
+        echo '<option value="' . (int) $c['id'] . '"' . ($campId === (int) $c['id'] ? ' selected' : '') . '>'
+           . e($c['name']) . ($c['town'] ? ' — ' . e($c['town']) : '') . '</option>';
+    echo '</select>';
+    echo '</div>';
+    if ($jsDone) return;
+    $jsDone = true;
+    echo '<script>
+(function(){
+  var t;
+  function pick(w){
+    var q=w.querySelector(".instq"),hid=w.querySelector(".instid"),
+        list=w.querySelector(".instlist"),camp=w.querySelector(".instcamp");
+    list.innerHTML="";list.hidden=true;
+    if(!q.value.trim()){hid.value="";camp.hidden=true;camp.selectedIndex=0;return;}
+    t&&clearTimeout(t);
+    t=setTimeout(function(){
+      fetch("api/institutions.php?q="+encodeURIComponent(q.value.trim()))
+        .then(function(r){return r.json()}).then(function(rows){
+          list.innerHTML="";hid.value="";camp.hidden=true;camp.selectedIndex=0;
+          if(!rows.length){list.innerHTML="<div class=instempty>No matching institution</div>";list.hidden=false;return;}
+          rows.forEach(function(r){
+            var b=document.createElement("button");b.type="button";b.className="instopt";
+            b.innerHTML="<span class=instnm></span><span class=instmt></span>";
+            b.querySelector(".instnm").textContent=r.name;
+            b.querySelector(".instmt").textContent=[r.type_label,r.county].filter(Boolean).join(" · ");
+            b.onclick=function(){
+              q.value=r.name;hid.value=r.id;list.hidden=true;
+              fetch("api/institutions.php?id="+r.id).then(function(x){return x.json()}).then(function(d){
+                camp.innerHTML="<option value=\"\">Any campus (optional)</option>";
+                (d.campuses||[]).forEach(function(c){
+                  var o=document.createElement("option");o.value=c.id;
+                  o.textContent=c.name+(c.town?" — "+c.town:"");camp.appendChild(o);
+                });
+                camp.hidden=!(d.campuses&&d.campuses.length);
+              });
+            };
+            list.appendChild(b);
+          });
+          list.hidden=false;
+        });
+    },220);
+  }
+  document.addEventListener("input",function(e){
+    var t=e.target;if(t.classList&&t.classList.contains("instq"))pick(t.closest(".instpick"));
+  });
+  document.addEventListener("focusout",function(e){
+    var w=e.target.closest&&e.target.closest(".instpick");if(!w)return;
+    setTimeout(function(){var l=w.querySelector(".instlist");if(l)l.hidden=true;},180);
+  });
+})();</script>';
+}
+
 // Reads POSTed county+area+estate, handling the "add my estate" custom path.
 // Estates are stored under (county, sub) and deduped by the composite PK.
 // Returns [area, estate] — each falls back when invalid/absent.

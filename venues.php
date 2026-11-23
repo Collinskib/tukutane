@@ -3,10 +3,14 @@ require_once __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/layout.php';
 require_login('venues.php');
 
+$inst = (int) ($_GET['inst'] ?? 0);
+$instRow = $inst ? institution_get($inst) : null;
+if ($inst && !$instRow) $inst = 0;
 $f = [
     'q'    => trim($_GET['q'] ?? ''),
     'county' => in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '',
     'area' => in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '',
+    'institution' => $inst ?: null,
     'me_county' => user()['county'] ?? '', 'me_area' => user()['area'] ?? '', 'me_estate' => user()['estate'] ?? '',
 ];
 $venues = venues_list($f);
@@ -24,6 +28,10 @@ site_header('venues');
     <h1>Business</h1>
     <p>Shops, cafés and spots around Kenya — message the owners, or create your own business page.</p>
   </div>
+  <?php if ($instRow): ?>
+  <div class="chips"><span class="chip on">🎓 <?= e($instRow['name']) ?></span>
+    <a class="chip" href="venues.php">✕ Clear</a></div>
+  <?php endif; ?>
 
   <form class="toolbar" method="get" action="venues.php">
     <input name="q" value="<?= e($f['q']) ?>" placeholder="Search businesses…" maxlength="60">
@@ -50,6 +58,9 @@ site_header('venues');
         <h3><a href="venue.php?id=<?= (int) $v['id'] ?>" style="color:inherit;text-decoration:none"><?= e($v['name']) ?></a></h3>
         <?php if ($v['description']): ?><p><?= e(mb_strimwidth($v['description'], 0, 110, '…')) ?></p><?php endif; ?>
         <p class="fine" style="margin:0">📍 <?= e(place_label($v)) ?><?= $v['photo'] ? ' · ' . (int) $v['upcoming'] . ' upcoming' : '' ?><?= $v['creator_name'] ? ' · by ' . e($v['creator_name']) : '' ?></p>
+        <?php if (!empty($v['institution_name'])): ?>
+        <p class="insttag" style="margin:4px 0 0">🎓 <?= e($v['institution_name']) ?></p>
+        <?php endif; ?>
       </div>
       <div class="actions" style="padding:0 16px 16px">
         <a class="btn-mini" href="venue.php?id=<?= (int) $v['id'] ?>">Open</a>

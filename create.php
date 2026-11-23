@@ -19,6 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc     = trim(mb_substr($_POST['description'] ?? '', 0, 300));
     $repeat   = in_array($_POST['repeat'] ?? '', ['weekly', 'monthly'], true) ? $_POST['repeat'] : '';
     $venue_id = venue_by_name($venue);
+    // optional institution association — independent of the event's own geography
+    [$inst_id, $camp_id] = institution_pair(
+        (int) ($_POST['institution_id'] ?? 0), (int) ($_POST['campus_id'] ?? 0)
+    ) ?: [null, null];
 
     if ($title === '' || $venue === '' || $desc === '')            $err = 'Fill in the name, venue and details.';
     elseif (!isset(categories()[$category]))                        $err = 'Pick a category.';
@@ -43,8 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $ins = db()->prepare('INSERT INTO gatherings
                 (title, category, area, county, estate, venue, event_at, cost, audience, description,
-                 sample, creator, creator_id, capacity, invite_only, cover, series_id, venue_id)
-                VALUES (:t, :c, :a, :cy, :es, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid)');
+                 sample, creator, creator_id, capacity, invite_only, cover, series_id, venue_id,
+                 institution_id, campus_id)
+                VALUES (:t, :c, :a, :cy, :es, :v, :d, :k, :au, :ds, 0, :sk, :uid, :cap, :io, :cv, :sid, :vid,
+                        :inst, :camp)');
             $firstId = null;
             foreach ($dates as $d) {
                 $ins->execute([
@@ -52,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':d' => $d, ':k' => $cost, ':au' => $audience, ':ds' => $desc,
                     ':sk' => SESSION_KEY, ':uid' => user_id(), ':cap' => $capacity,
                     ':io' => $invite, ':cv' => $cover ?: null, ':sid' => $sid, ':vid' => $venue_id,
+                    ':inst' => $inst_id, ':camp' => $camp_id,
                 ]);
                 $firstId ??= (int) db()->lastInsertId();
             }
@@ -97,6 +104,10 @@ site_header();
         <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e(place_label($v)) ?></option><?php endforeach; ?>
       </datalist>
       <small style="color:var(--ink-soft)">Known spots autocomplete — or <a href="venue-edit.php">add a venue</a>.</small></div>
+
+    <div class="field"><label>Associate with an institution (optional)</label>
+      <?php institution_picker(); ?>
+      <small style="color:var(--ink-soft)">Tag the event to a university or college community — anyone can still see it. The venue above stays the real location.</small></div>
 
     <div class="grid2">
       <div class="field"><label for="date">Date and time (Kenya)</label>

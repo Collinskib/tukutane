@@ -23,7 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($name === '') $err = 'Give the business a name.';
     elseif ($area === '') $err = 'Pick a neighbourhood.';
     else {
-        $d = ['name' => $name, 'area' => $area, 'county' => $county, 'estate' => $estate, 'description' => $desc];
+        // optional campus/institution association — stays geographically listed too
+        [$instId, $campId] = institution_pair(
+            (int) ($_POST['institution_id'] ?? 0), (int) ($_POST['campus_id'] ?? 0)
+        ) ?: [null, null];
+        $d = ['name' => $name, 'area' => $area, 'county' => $county, 'estate' => $estate,
+              'description' => $desc, 'institution_id' => $instId, 'campus_id' => $campId];
         if ($photo) $d['photo'] = $photo;
         if ($v) {
             venue_update($id, $d);
@@ -50,6 +55,13 @@ site_header('venues');
                placeholder="e.g. Yaya Centre rooftop, Karura gate B"></div>
       <div class="field"><label>Where</label>
         <?php location_picker($_POST['county'] ?? ($v['county'] ?? ''), $_POST['area'] ?? ($v['area'] ?? ''), $_POST['estate'] ?? ($v['estate'] ?? '')); ?></div>
+      <div class="field"><label>Serves an institution? <small>(optional)</small></label>
+        <?php
+          $vInst = !empty($v['institution_id']) ? institution_get((int) $v['institution_id']) : null;
+          institution_picker((int) ($v['institution_id'] ?? 0), $vInst['name'] ?? '', (int) ($v['campus_id'] ?? 0),
+                             'e.g. a nearby university or college…');
+        ?>
+        <small style="color:var(--ink-soft)">Tag it if students are your crowd — your business still shows up in normal area search.</small></div>
       <div class="field"><label for="description">About this spot <small>(optional)</small></label>
         <textarea id="description" name="description" rows="3" maxlength="600"
                   placeholder="What is it good for? How do people find it?"><?= e($_POST['description'] ?? ($v['description'] ?? '')) ?></textarea></div>
