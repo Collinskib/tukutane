@@ -23,8 +23,10 @@ if (isset($_GET['id'])) {
     exit;
 }
 
-$q = trim((string) ($_GET['q'] ?? ''));
-$rows = institutions_search($q);
+$q      = trim((string) ($_GET['q'] ?? ''));
+$county = in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '';
+$area   = trim(mb_substr($_GET['area'] ?? '', 0, 60));
+$rows   = institutions_search($q, 12, $county, $area);
 echo json_encode(array_map(fn($r) => [
     'id' => (int) $r['id'], 'name' => $r['name'],
     'type' => $r['type'], 'type_label' => institution_type_label($r['type']),

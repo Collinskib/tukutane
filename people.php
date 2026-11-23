@@ -136,7 +136,7 @@ site_header('people');
       <div class="pinfo">
         <a class="name" href="user.php?id=<?= (int) $p['id'] ?>"><?= e($p['name']) ?></a>
         <span class="meta">📍 <?= e(place_label($p, 'Kenya')) ?><?php
-          $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
+          $demo = array_filter([in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
           if ($demo) echo ' · ' . e(implode(' · ', $demo));
         ?></span>
         <?php if ($quote): ?><p class="qt"><?= e(mb_strimwidth($quote, 0, 70, '…')) ?></p><?php endif; ?>

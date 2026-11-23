@@ -362,42 +362,65 @@ function institution_picker(int $instId = 0, string $instName = '', int $campId 
     echo '<script>
 (function(){
   var t;
-  function pick(w){
-    var q=w.querySelector(".instq"),hid=w.querySelector(".instid"),
+  function src(w){
+    var f=w.closest("form"),q=w.querySelector(".instq"),cty="",area="";
+    if(f){var cs=f.querySelector(".loccounty"),as=f.querySelector(".locarea");
+      if(cs)cty=cs.value;if(as)area=as.value;}
+    return {q:q.value.trim(),county:w.dataset.all?"":cty,area:w.dataset.all?"":area};
+  }
+  function load(w){
+    var s=src(w),q=w.querySelector(".instq"),hid=w.querySelector(".instid"),
         list=w.querySelector(".instlist"),camp=w.querySelector(".instcamp");
-    list.innerHTML="";list.hidden=true;
-    if(!q.value.trim()){hid.value="";camp.hidden=true;camp.selectedIndex=0;return;}
-    t&&clearTimeout(t);
-    t=setTimeout(function(){
-      fetch("api/institutions.php?q="+encodeURIComponent(q.value.trim()))
-        .then(function(r){return r.json()}).then(function(rows){
-          list.innerHTML="";hid.value="";camp.hidden=true;camp.selectedIndex=0;
-          if(!rows.length){list.innerHTML="<div class=instempty>No matching institution</div>";list.hidden=false;return;}
-          rows.forEach(function(r){
-            var b=document.createElement("button");b.type="button";b.className="instopt";
-            b.innerHTML="<span class=instnm></span><span class=instmt></span>";
-            b.querySelector(".instnm").textContent=r.name;
-            b.querySelector(".instmt").textContent=[r.type_label,r.county].filter(Boolean).join(" · ");
-            b.onclick=function(){
-              q.value=r.name;hid.value=r.id;list.hidden=true;
-              fetch("api/institutions.php?id="+r.id).then(function(x){return x.json()}).then(function(d){
-                camp.innerHTML="<option value=\"\">Any campus (optional)</option>";
-                (d.campuses||[]).forEach(function(c){
-                  var o=document.createElement("option");o.value=c.id;
-                  o.textContent=c.name+(c.town?" — "+c.town:"");camp.appendChild(o);
-                });
-                camp.hidden=!(d.campuses&&d.campuses.length);
-              });
-            };
-            list.appendChild(b);
+    var url="api/institutions.php?q="+encodeURIComponent(s.q);
+    if(s.county)url+="&county="+encodeURIComponent(s.county);
+    if(s.area)url+="&area="+encodeURIComponent(s.area);
+    fetch(url).then(function(r){return r.json()}).then(function(rows){
+      list.innerHTML="";
+      rows.forEach(function(r){
+        var b=document.createElement("button");b.type="button";b.className="instopt";
+        b.innerHTML="<span class=instnm></span><span class=instmt></span>";
+        b.querySelector(".instnm").textContent=r.name;
+        b.querySelector(".instmt").textContent=[r.type_label,r.town||r.county].filter(Boolean).join(" · ");
+        b.onclick=function(){
+          q.value=r.name;hid.value=r.id;list.hidden=true;
+          fetch("api/institutions.php?id="+r.id).then(function(x){return x.json()}).then(function(d){
+            camp.innerHTML="<option value=\"\">Any campus (optional)</option>";
+            (d.campuses||[]).forEach(function(c){
+              var o=document.createElement("option");o.value=c.id;
+              o.textContent=c.name+(c.town?" — "+c.town:"");camp.appendChild(o);
+            });
+            camp.hidden=!(d.campuses&&d.campuses.length);
           });
-          list.hidden=false;
-        });
-    },220);
+        };
+        list.appendChild(b);
+      });
+      if(!rows.length){
+        var em=document.createElement("div");em.className="instempty";
+        em.textContent=s.county?"No institutions listed in "+s.county:"No matching institution";
+        list.appendChild(em);
+      }
+      if(s.county){
+        var all=document.createElement("button");all.type="button";all.className="install";
+        all.textContent="Search all institutions ↗";
+        all.onclick=function(){w.dataset.all="1";load(w);};
+        list.appendChild(all);
+      }
+      list.hidden=false;
+    }).catch(function(){list.hidden=true;});
   }
   document.addEventListener("input",function(e){
-    var t=e.target;if(t.classList&&t.classList.contains("instq"))pick(t.closest(".instpick"));
+    var t=e.target;
+    if(!t.classList||!t.classList.contains("instq"))return;
+    var w=t.closest(".instpick");
+    w.querySelector(".instid").value="";
+    var c=w.querySelector(".instcamp");c.hidden=true;c.selectedIndex=0;
+    clearTimeout(this._d);var self=this;
+    this._d=setTimeout(function(){load(w)},200);
   });
+  document.addEventListener("focus",function(e){
+    var t=e.target;
+    if(t.classList&&t.classList.contains("instq"))load(t.closest(".instpick"));
+  },true);
   document.addEventListener("focusout",function(e){
     var w=e.target.closest&&e.target.closest(".instpick");if(!w)return;
     setTimeout(function(){var l=w.querySelector(".instlist");if(l)l.hidden=true;},180);

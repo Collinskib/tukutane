@@ -1273,19 +1273,22 @@ function institutions_list(array $f = []): array {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// typeahead search: prefix matches rank above substring matches
-function institutions_search(string $q, int $limit = 12): array {
+// typeahead search: prefix matches rank above substring matches.
+// $county restricts to local institutions; $area (sub-county) ranks
+// town-matching campuses/institutions first. Empty query returns the
+// local list for dropdown-on-focus.
+function institutions_search(string $q, int $limit = 12, string $county = '', string $area = ''): array {
     $q = trim($q);
-    if (mb_strlen($q) < 2) return [];
-    $stmt = db()->prepare(
-        'SELECT id, name, type, county, town FROM institutions
-         WHERE status = "active" AND name LIKE :q
-         ORDER BY (name LIKE :pre) DESC,
-                  FIELD(type, "university","university_college","national_polytechnic","tvet_college","vocational_centre"),
-                  name LIMIT :lim'
-    );
-    $stmt->bindValue(':q', '%' . $q . '%');
-    $stmt->bindValue(':pre', $q . '%');
+    $w = 'status = "active"';
+    $p = [];
+    if ($county !== '') { $w .= ' AND county = :county'; $p[':county'] = $county; }
+    if ($q !== '')      { $w .= ' AND name LIKE :q';     $p[':q'] = '%' . $q . '%'; }
+    $order = '';
+    if ($area !== '') { $order .= '(:area LIKE CONCAT("%", town, "%")) DESC, '; $p[':area'] = $area; }
+    if ($q !== '')    { $order .= '(name LIKE :pre) DESC, '; $p[':pre'] = $q . '%'; }
+    $order .= 'FIELD(type, "university","university_college","national_polytechnic","tvet_college","vocational_centre"), name';
+    $stmt = db()->prepare("SELECT id, name, type, county, town FROM institutions WHERE $w ORDER BY $order LIMIT :lim");
+    foreach ($p as $k => $v) $stmt->bindValue($k, $v);
     $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);

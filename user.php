@@ -40,7 +40,7 @@ $pastHosted = host_gatherings($id, false, 6);
     <div class="hl-avatar"><?= avatar_html($p, 'lg', true) ?></div>
     <h1><?= e($p['name']) ?></h1>
     <p class="hl-sub"><?= e(place_label($p, 'Nipange user')) ?><?php
-      $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
+      $demo = array_filter([in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
       if ($demo) echo ' · ' . e(implode(', ', $demo));
     ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
     <?php if ($p['bio']): ?><p class="hl-bio"><?= e($p['bio']) ?></p><?php endif; ?>
