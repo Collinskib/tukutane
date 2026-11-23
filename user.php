@@ -36,61 +36,59 @@ $hosted     = host_gatherings($id, true, 12);
 $pastHosted = host_gatherings($id, false, 6);
 ?>
 <main class="ev-wrap">
-  <div class="prof-head rv in">
-    <?= avatar_html($p, 'lg', true) ?>
-    <div class="info">
-      <h2><?= e($p['name']) ?></h2>
-      <p><?= e(place_label($p, 'Nipange user')) ?><?php
-        $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
-        if ($demo) echo ' · ' . e(implode(', ', $demo));
-      ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
-      <?php if ($p['bio']): ?><p style="margin-top:6px"><?= e($p['bio']) ?></p><?php endif; ?>
-      <?php if (!empty($p['fun_fact'])): ?>
-      <div class="pquote" style="margin-top:10px;max-width:none"><span class="qm">❝</span><p class="qt"><?= e($p['fun_fact']) ?></p></div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="share-row">
-    <?php if ($isFriend): ?>
-      <a class="btn-mini solid" href="messages.php?to=<?= $id ?>">💬 Message</a>
-      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
-        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="remove">
-        <button class="btn-ghost" type="submit">Remove friend</button></form>
-    <?php elseif ($rel && $rel['status'] === 'pending'): ?>
-      <?php if ((int) $rel['requester_id'] === user_id()): ?>
-      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
-        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="cancel">
-        <button class="btn-ghost" type="submit">Requested ✓ (cancel)</button></form>
-      <?php else: ?>
-      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
-        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="accept">
-        <button class="primary" type="submit">Accept request</button></form>
-      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
-        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="decline">
-        <button class="btn-ghost" type="submit">Decline</button></form>
-      <?php endif; ?>
-    <?php else: ?>
-      <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
-        <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="send">
-        <button class="primary" type="submit">+ Add friend</button></form>
+  <section class="hl-hero rv in">
+    <div class="hl-avatar"><?= avatar_html($p, 'lg', true) ?></div>
+    <h1><?= e($p['name']) ?></h1>
+    <p class="hl-sub"><?= e(place_label($p, 'Nipange user')) ?><?php
+      $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
+      if ($demo) echo ' · ' . e(implode(', ', $demo));
+    ?><?= $isFriend ? ' · <span class="status-pill going">Friends</span>' : '' ?><?= $followers ? ' · ' . $followers . ' follower' . ($followers === 1 ? '' : 's') : '' ?></p>
+    <?php if ($p['bio']): ?><p class="hl-bio"><?= e($p['bio']) ?></p><?php endif; ?>
+    <?php if (!empty($p['fun_fact'])): ?>
+    <div class="hl-quote"><span>❝</span><p><?= e($p['fun_fact']) ?></p></div>
     <?php endif; ?>
-    <form method="post" style="display:inline"><?= csrf_field() ?>
-      <input type="hidden" name="do" value="<?= $following ? 'unfollow' : 'follow' ?>">
-      <button class="btn-mini<?= $following ? '' : ' solid' ?>" type="submit"><?= $following ? '✓ Following' : '🔔 Follow' ?></button></form>
-    <button class="btn-ghost" type="button" data-dialog="#moredlg">More…</button>
-  </div>
+    <?php if ($their): ?>
+    <ul class="hl-ints">
+      <?php foreach ($their as $t): [$em,] = categories()[$t] ?? ['✨']; $sh = in_array($t, $shared, true); ?>
+      <li<?= $sh ? ' class="shared"' : '' ?>><span class="hl-ic"><?= $em ?></span><b><?= $sh ? '✓ ' : '' ?><?= e($t) ?></b></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
 
-  <?php if ($their): ?>
-  <div class="tags" style="justify-content:flex-start;margin:6px 0 18px">
-    <?php foreach ($their as $t): ?>
-    <span class="tag<?= in_array($t, $shared, true) ? ' shared' : '' ?>"><?= in_array($t, $shared, true) ? '✓ ' : '' ?><?= e($t) ?></span>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
+    <div class="hl-acts">
+      <?php if ($isFriend): ?>
+        <a class="a-btn" href="messages.php?to=<?= $id ?>">💬 Message</a>
+        <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+          <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="remove">
+          <button class="a-btn ghost" type="submit">Remove friend</button></form>
+      <?php elseif ($rel && $rel['status'] === 'pending'): ?>
+        <?php if ((int) $rel['requester_id'] === user_id()): ?>
+        <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+          <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="cancel">
+          <button class="a-btn ghost" type="submit">Requested ✓ (cancel)</button></form>
+        <?php else: ?>
+        <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+          <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="accept">
+          <button class="a-btn" type="submit">Accept request</button></form>
+        <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+          <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="decline">
+          <button class="a-btn ghost" type="submit">Decline</button></form>
+        <?php endif; ?>
+      <?php else: ?>
+        <form method="post" action="friend.php" style="display:inline"><?= csrf_field() ?>
+          <input type="hidden" name="uid" value="<?= $id ?>"><input type="hidden" name="do" value="send">
+          <button class="a-btn" type="submit">+ Add friend</button></form>
+      <?php endif; ?>
+      <form method="post" style="display:inline"><?= csrf_field() ?>
+        <input type="hidden" name="do" value="<?= $following ? 'unfollow' : 'follow' ?>">
+        <button class="a-btn ghost" type="submit"><?= $following ? '✓ Following' : '🔔 Follow' ?></button></form>
+      <button class="a-btn ghost" type="button" data-dialog="#moredlg">More…</button>
+    </div>
+    <a class="hl-goto" href="#hosted" aria-label="Scroll to gatherings">▾</a>
+  </section>
 
   <?php if ($hosted): ?>
-  <h3 style="font-family:var(--serif);font-weight:400">Upcoming gatherings by <?= e($p['name']) ?></h3>
+  <h3 id="hosted" style="font-family:var(--serif);font-weight:400;scroll-margin-top:90px">Upcoming gatherings by <?= e($p['name']) ?></h3>
   <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
     <?php foreach ($hosted as $r): [, $rc] = categories()[$r['category']] ?? ['', '#e4e6db']; ?>
     <article class="card">

@@ -24,7 +24,7 @@ site_header('about');
   <section class="a-sec a-spot rv">
     <div class="a-spot-img">
       <img src="/assets/about/story.webp" width="1080" height="1080" loading="lazy" decoding="async"
-           alt="Two women in vibrant African dresses laughing together">
+           alt="Two young friends sharing pizza and laughing in a Nairobi café">
     </div>
     <div>
       <span class="a-eyebrow">Our story</span>
@@ -88,7 +88,7 @@ site_header('about');
   <section class="a-sec a-spot flip rv" id="business">
     <div class="a-spot-img">
       <img src="/assets/about/business.webp" width="1080" height="1080" loading="lazy" decoding="async"
-           alt="A smiling shopkeeper at her market stall">
+           alt="A confident young businesswoman in Lagos">
     </div>
     <div>
       <span class="a-eyebrow">For businesses</span>

@@ -63,13 +63,29 @@ page_head('My profile');
 site_header();
 ?>
 <main>
-<div class="form rv in" style="max-width:520px">
-  <div class="prof-head" style="border:0;padding:0;margin-bottom:16px">
-    <?= avatar_html($u, 'lg', true) ?>
-    <div class="info"><h2><?= e($u['name']) ?></h2><p><?= e($u['email']) ?><?= !empty($u['email_verified']) ? ' ✓' : '' ?><?= place_label($u) ? ' · ' . e(place_label($u)) : '' ?></p></div>
-  </div>
-  <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
+<section class="hl-hero rv in">
+  <div class="hl-avatar"><?= avatar_html($u, 'lg', true) ?></div>
+  <h1><?= e($u['name']) ?></h1>
+  <p class="hl-sub"><?= e($u['email']) ?><?= !empty($u['email_verified']) ? ' ✓' : '' ?><?= place_label($u) ? ' · ' . e(place_label($u)) : '' ?></p>
+  <?php if (!empty($u['bio'])): ?><p class="hl-bio"><?= e($u['bio']) ?></p><?php endif; ?>
+  <?php if (!empty($u['fun_fact'])): ?>
+  <div class="hl-quote"><span>❝</span><p><?= e($u['fun_fact']) ?></p></div>
+  <?php endif; ?>
+  <?php if ($myInts): ?>
+  <ul class="hl-ints">
+    <?php foreach ($myInts as $t): [$em,] = categories()[$t] ?? ['✨']; ?>
+    <li><span class="hl-ic"><?= $em ?></span><b><?= e($t) ?></b></li>
+    <?php endforeach; ?>
+  </ul>
+  <?php endif; ?>
+  <a class="hl-goto" href="#details" aria-label="Scroll to your details">▾</a>
+</section>
 
+<?php if ($err): ?><p style="color:#a33a1f;max-width:520px;margin:16px auto"><?= e($err) ?></p><?php endif; ?>
+
+<section class="hl-sec" id="details">
+  <header class="hl-h"><span class="a-eyebrow">Your profile</span><h2>Tell people who you are</h2></header>
+  <div class="form hl-panel" style="max-width:560px;margin-left:auto;margin-right:auto">
   <form method="post" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="do" value="save">
@@ -110,10 +126,12 @@ site_header();
       Show me in People nearby</label></div>
     <button class="btn-block" type="submit">Save profile</button>
   </form>
-</div>
+  </div>
+</section>
 
-<div class="form rv in" style="max-width:520px">
-  <h2>Change password</h2>
+<section class="hl-sec">
+  <header class="hl-h"><span class="a-eyebrow">Security</span><h2>Change password</h2></header>
+<div class="form hl-panel" style="max-width:560px;margin-left:auto;margin-right:auto">
   <form method="post">
     <?= csrf_field() ?>
     <input type="hidden" name="do" value="password">
@@ -126,9 +144,11 @@ site_header();
     <button class="btn-block" type="submit">Change password</button>
   </form>
 </div>
+</section>
 
-<div class="form rv in" style="max-width:520px;border-color:#eccfc8">
-  <h2 style="color:#a33a1f">Delete account</h2>
+<section class="hl-sec">
+  <header class="hl-h"><span class="a-eyebrow" style="color:#a33a1f">Danger zone</span><h2 style="color:#a33a1f">Delete account</h2></header>
+<div class="form hl-panel" style="max-width:560px;margin-left:auto;margin-right:auto;border-color:#eccfc8">
   <p style="color:var(--ink-soft)">Removes your profile, RSVPs, friendships and messages. Permanent.</p>
   <form method="post" onsubmit="return confirm('Really delete your account? This is permanent.')">
     <?= csrf_field() ?>
@@ -138,5 +158,6 @@ site_header();
     <button class="btn-danger" type="submit">Delete my account</button>
   </form>
 </div>
+</section>
 </main>
 <?php bottom_nav('plans'); site_footer(); ?>

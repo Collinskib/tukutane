@@ -912,6 +912,101 @@ function group_remove_member(int $gid, int $target): bool {
     return true;
 }
 
+// ---------- group posts (reddit-style feed) ----------
+
+function gposts_list(int $gid, int $uid, string $sort = 'hot'): array {
+    $order = $sort === 'new'
+        ? 'p.pinned DESC, p.created_at DESC'
+        : 'p.pinned DESC, p.score DESC, p.comment_count DESC, p.created_at DESC';
+    $stmt = db()->prepare('SELECT p.*, u.name AS author_name, u.photo AS author_photo,
+                           (SELECT v.vote FROM grp_post_votes v WHERE v.post_id = p.id AND v.user_id = :u) AS my_vote
+                           FROM grp_posts p JOIN users u ON u.id = p.user_id
+                           WHERE p.group_id = :g ORDER BY ' . $order . ' LIMIT 100');
+    $stmt->execute([':g' => $gid, ':u' => $uid]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function gpost_get(int $pid): ?array {
+    $stmt = db()->prepare('SELECT * FROM grp_posts WHERE id = :i');
+    $stmt->execute([':i' => $pid]);
+    $p = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $p ?: null;
+}
+
+function gpost_create(int $gid, int $uid, string $title, string $body): int {
+    db()->prepare('INSERT INTO grp_posts (group_id, user_id, title, body) VALUES (:g, :u, :t, :b)')
+        ->execute([':g' => $gid, ':u' => $uid, ':t' => $title, ':b' => $body !== '' ? $body : null]);
+    return (int) db()->lastInsertId();
+}
+
+function gpost_delete(int $pid): void {
+    db()->prepare('DELETE FROM grp_post_votes WHERE post_id = :p')->execute([':p' => $pid]);
+    $cids = db()->prepare('SELECT id FROM grp_comments WHERE post_id = :p');
+    $cids->execute([':p' => $pid]);
+    $ids = $cids->fetchAll(PDO::FETCH_COLUMN);
+    if ($ids) {
+        $in = implode(',', array_map('intval', $ids));
+        db()->exec("DELETE FROM grp_comment_votes WHERE comment_id IN ($in)");
+        db()->exec("DELETE FROM grp_comments WHERE id IN ($in)");
+    }
+    db()->prepare('DELETE FROM grp_posts WHERE id = :p')->execute([':p' => $pid]);
+}
+
+function gcomments_list(int $pid, int $uid): array {
+    $stmt = db()->prepare('SELECT c.*, u.name AS author_name, u.photo AS author_photo,
+                           (SELECT v.vote FROM grp_comment_votes v WHERE v.comment_id = c.id AND v.user_id = :u) AS my_vote
+                           FROM grp_comments c JOIN users u ON u.id = c.user_id
+                           WHERE c.post_id = :p ORDER BY c.parent_id IS NOT NULL, c.score DESC, c.created_at');
+    $stmt->execute([':p' => $pid, ':u' => $uid]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function gcomment_get(int $cid): ?array {
+    $stmt = db()->prepare('SELECT * FROM grp_comments WHERE id = :i');
+    $stmt->execute([':i' => $cid]);
+    $c = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $c ?: null;
+}
+
+function gcomment_add(int $pid, int $gid, int $uid, ?int $parent, string $body): int {
+    db()->prepare('INSERT INTO grp_comments (post_id, group_id, parent_id, user_id, body) VALUES (:p, :g, :pa, :u, :b)')
+        ->execute([':p' => $pid, ':g' => $gid, ':pa' => $parent, ':u' => $uid, ':b' => $body]);
+    db()->prepare('UPDATE grp_posts SET comment_count = comment_count + 1 WHERE id = :p')->execute([':p' => $pid]);
+    return (int) db()->lastInsertId();
+}
+
+function gcomment_delete(int $cid): void {
+    db()->prepare('UPDATE grp_comments SET deleted = 1, body = "" WHERE id = :i')->execute([':i' => $cid]);
+}
+
+// up/down vote on a post or comment; returns [new score, my vote (-1|0|1)]
+function gvote(string $kind, int $id, int $uid, int $dir): array {
+    [$table, $col] = $kind === 'post'
+        ? ['grp_posts', 'post_id'] : ['grp_comments', 'comment_id'];
+    $vtable = $kind === 'post' ? 'grp_post_votes' : 'grp_comment_votes';
+    $dir = $dir > 0 ? 1 : ($dir < 0 ? -1 : 0);
+
+    $cur = db()->prepare("SELECT vote FROM $vtable WHERE $col = :i AND user_id = :u");
+    $cur->execute([':i' => $id, ':u' => $uid]);
+    $old = $cur->fetchColumn();
+    $old = $old === false ? 0 : (int) $old;
+
+    $new = $old === $dir ? 0 : $dir; // same vote toggles off
+    if ($new === 0) {
+        db()->prepare("DELETE FROM $vtable WHERE $col = :i AND user_id = :u")
+            ->execute([':i' => $id, ':u' => $uid]);
+    } else {
+        db()->prepare("INSERT INTO $vtable ($col, user_id, vote) VALUES (:i, :u, :v)
+                       ON DUPLICATE KEY UPDATE vote = :v2")
+            ->execute([':i' => $id, ':u' => $uid, ':v' => $new, ':v2' => $new]);
+    }
+    db()->prepare("UPDATE $table SET score = COALESCE((SELECT SUM(vote) FROM $vtable WHERE $col = :i2), 0) WHERE id = :i3")
+        ->execute([':i2' => $id, ':i3' => $id]);
+    $score = db()->prepare("SELECT score FROM $table WHERE id = :i");
+    $score->execute([':i' => $id]);
+    return [(int) $score->fetchColumn(), $new];
+}
+
 // ---------- event group chat ----------
 
 // host + confirmed (logged-in) attendees may use the chat;
