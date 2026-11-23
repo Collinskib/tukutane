@@ -16,7 +16,7 @@ function page_head(string $title, string $head = ''): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=22">
+<link rel="stylesheet" href="/assets/style.css?v=23">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
 <script defer src="/assets/app.js?v=12"></script>
@@ -100,16 +100,16 @@ function site_footer(): void { ?>
 <footer class="site">
   <div class="foot-grid">
     <div><span class="brand sm">Nipange<i>.</i></span>
-      <p>Find events and new friends near you.</p></div>
+      <p>Events, friends, groups and local business — around your corner and your campus.</p></div>
     <div><strong>Explore</strong>
-      <a href="/about.php">About</a><a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/venues.php">Business</a><a href="/create.php">Create a plan</a></div>
+      <a href="/about.php">About</a><a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/institutions.php">Institutions</a><a href="/venues.php">Business</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>
     <div><strong>Legal</strong>
       <a href="/privacy.php">Privacy policy</a><a href="/terms.php">Terms of service</a><a href="/guidelines.php">Community guidelines</a></div>
   </div>
-  <p class="fine">Made for Nairobi · Nipange <?= date('Y') ?></p>
+  <p class="fine">Made for Kenya · Nipange <?= date('Y') ?></p>
 </footer>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})</script>
 </body>
