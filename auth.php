@@ -67,9 +67,7 @@ site_header();
     </div>
 
     <?php if ($mode === 'login'): ?>
-    <div class="checkrow" style="margin:0 0 14px">
-      <label><input type="checkbox" name="remember" value="1" checked> Keep me logged in</label>
-    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:14px;cursor:pointer"><input type="checkbox" name="remember" value="1" checked> Keep me logged in</label>
     <?php endif; ?>
 
     <?php if ($mode === 'register'): ?>
