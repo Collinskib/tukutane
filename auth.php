@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['fun_fact'] ?? ''
         );
     } else {
-        $err = attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '');
+        $err = attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '', !empty($_POST['remember']));
     }
     if (!$err) {
         flash($mode === 'register' ? 'Karibu! Your account is ready.' : 'Welcome back!');
@@ -65,6 +65,12 @@ site_header();
         <button type="button" class="peek">Show</button>
       </div>
     </div>
+
+    <?php if ($mode === 'login'): ?>
+    <div class="checkrow" style="margin:0 0 14px">
+      <label><input type="checkbox" name="remember" value="1" checked> Keep me logged in</label>
+    </div>
+    <?php endif; ?>
 
     <?php if ($mode === 'register'): ?>
     <div class="field"><label for="gender">Gender</label>

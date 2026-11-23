@@ -6,6 +6,9 @@ require_once dirname(__DIR__) . '/config.php';
 date_default_timezone_set('Africa/Nairobi');
 
 session_name('NIPSESS');
+// Server-side session retention must outlive the cookie below — the default
+// gc_maxlifetime (24 min) was silently logging everyone out.
+ini_set('session.gc_maxlifetime', (string) (60 * 60 * 24 * 30));
 session_set_cookie_params([
     'lifetime' => 60 * 60 * 24 * 30,
     'path'     => '/',

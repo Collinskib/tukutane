@@ -289,3 +289,16 @@ ALTER TABLE messages
     ADD COLUMN attachment      VARCHAR(255) NULL,
     ADD COLUMN attachment_name VARCHAR(200) NULL,
     ADD COLUMN attachment_kind VARCHAR(10)  NULL;
+
+-- "keep me logged in" cookies (includes/auth.php remember_*)
+CREATE TABLE IF NOT EXISTS remember_tokens (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL,
+    selector   CHAR(16) NOT NULL UNIQUE,
+    token_hash CHAR(64) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used  DATETIME NULL,
+    expires_at DATETIME NOT NULL,
+    INDEX (user_id),
+    INDEX (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
