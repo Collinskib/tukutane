@@ -126,20 +126,27 @@ site_header('people');
       [, $pc] = categories()[$p['shared'][0] ?? ''] ?? ['', 'var(--line)'];
     ?>
     <div class="person rv" style="--d:<?= min($i * 40, 400) ?>ms;--pc:<?= e($pc) ?>">
-      <a class="ppic" href="user.php?id=<?= (int) $p['id'] ?>"><?= avatar_html($p, 'lg') ?></a>
+      <a class="pcov" href="user.php?id=<?= (int) $p['id'] ?>">
+        <?php if (!empty($p['photo'])): ?>
+        <img src="<?= img_url($p['photo'], 400) ?>" alt="<?= e($p['name']) ?>" loading="lazy" decoding="async">
+        <?php else: ?>
+        <span class="pcov-ph"><?= e(mb_strtoupper(mb_substr($p['name'], 0, 1))) ?></span>
+        <?php endif; ?>
+      </a>
       <div class="pinfo">
         <a class="name" href="user.php?id=<?= (int) $p['id'] ?>"><?= e($p['name']) ?></a>
         <span class="meta">📍 <?= e(place_label($p, 'Kenya')) ?><?php
           $demo = array_filter([$p['age_bracket'] ?? '', in_array($p['gender'] ?? '', ['Male', 'Female'], true) ? $p['gender'] : '']);
           if ($demo) echo ' · ' . e(implode(' · ', $demo));
         ?></span>
-        <div class="actions"><?= rel_button($p) ?>
+        <?php if ($quote): ?><p class="qt"><?= e(mb_strimwidth($quote, 0, 70, '…')) ?></p><?php endif; ?>
+        <?php if ($p['shared']): ?>
+        <div class="tags">
           <?php foreach (array_slice($p['shared'], 0, 2) as $s): ?><span class="tag shared">✓ <?= e($s) ?></span><?php endforeach; ?>
         </div>
+        <?php endif; ?>
       </div>
-      <?php if ($quote): ?>
-      <div class="pquote"><span class="qm">❝</span><p class="qt"><?= e(mb_strimwidth($quote, 0, 120, '…')) ?></p></div>
-      <?php endif; ?>
+      <div class="actions"><?= rel_button($p) ?></div>
     </div>
     <?php endforeach; ?>
   </div>
