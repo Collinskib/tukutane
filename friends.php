@@ -19,10 +19,10 @@ site_header();
   <section class="panel rv in" style="margin-bottom:18px">
     <h3 style="font-family:var(--serif);font-weight:400;padding:14px 16px 4px">Requests (<?= count($incoming) ?>)</h3>
     <?php foreach ($incoming as $r): ?>
-    <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
+    <div class="frow">
       <a href="user.php?id=<?= (int) $r['requester_id'] ?>"><?= avatar_html($r) ?></a>
-      <div style="flex:1;min-width:0"><b><?= e($r['name']) ?></b><br>
-        <small style="color:var(--ink-soft)"><?= e(place_label($r, 'Kenya')) ?></small></div>
+      <div class="who"><b><?= e($r['name']) ?></b><br>
+        <small><?= e(place_label($r, 'Kenya')) ?></small></div>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $r['requester_id'] ?>">
         <input type="hidden" name="do" value="accept"><button class="btn-mini solid" type="submit">Accept</button></form>
@@ -38,9 +38,9 @@ site_header();
   <section class="panel rv in" style="margin-bottom:18px">
     <h3 style="font-family:var(--serif);font-weight:400;padding:14px 16px 4px">Sent (<?= count($outgoing) ?>)</h3>
     <?php foreach ($outgoing as $r): ?>
-    <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
+    <div class="frow">
       <?= avatar_html($r) ?>
-      <div style="flex:1"><b><?= e($r['name']) ?></b><br><small style="color:var(--ink-soft)">pending</small></div>
+      <div class="who"><b><?= e($r['name']) ?></b><br><small>pending</small></div>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $r['addressee_id'] ?>">
         <input type="hidden" name="do" value="cancel"><button class="btn-mini" type="submit">Cancel</button></form>
@@ -55,10 +55,10 @@ site_header();
     <div class="empty"><span class="big">🧑‍🤝‍🧑</span><p>No friends yet — find people in <a href="people.php">People nearby</a>.</p></div>
     <?php endif; ?>
     <?php foreach ($friends as $fr): ?>
-    <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
+    <div class="frow">
       <a href="user.php?id=<?= (int) $fr['id'] ?>"><?= avatar_html($fr) ?></a>
-      <div style="flex:1"><a href="user.php?id=<?= (int) $fr['id'] ?>" style="color:inherit;text-decoration:none"><b><?= e($fr['name']) ?></b></a><br>
-        <small style="color:var(--ink-soft)"><?= e(place_label($fr, 'Kenya')) ?></small></div>
+      <div class="who"><a href="user.php?id=<?= (int) $fr['id'] ?>" style="color:inherit;text-decoration:none"><b><?= e($fr['name']) ?></b></a><br>
+        <small><?= e(place_label($fr, 'Kenya')) ?></small></div>
       <a class="btn-mini solid" href="messages.php?to=<?= (int) $fr['id'] ?>">💬 Message</a>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $fr['id'] ?>">
@@ -71,9 +71,9 @@ site_header();
   <section class="panel rv in" style="margin-top:18px">
     <h3 style="font-family:var(--serif);font-weight:400;padding:14px 16px 4px">Blocked (<?= count($blocked) ?>)</h3>
     <?php foreach ($blocked as $b): ?>
-    <div style="display:flex;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line-soft)">
+    <div class="frow">
       <?= avatar_html($b) ?>
-      <div style="flex:1"><b><?= e($b['name']) ?></b></div>
+      <div class="who"><b><?= e($b['name']) ?></b></div>
       <form method="post" action="friend.php"><?= csrf_field() ?>
         <input type="hidden" name="uid" value="<?= (int) $b['id'] ?>">
         <input type="hidden" name="do" value="unblock"><button class="btn-mini" type="submit">Unblock</button></form>

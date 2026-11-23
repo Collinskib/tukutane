@@ -17,24 +17,24 @@ $events = venue_events($id);
 $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
 ?>
 <main class="ev-wrap">
-  <?php if ($v['photo']): ?>
-  <div class="card rv in" style="overflow:hidden"><img src="<?= img_url($v['photo'], 800) ?>" alt="<?= e($v['name']) ?>" style="width:100%;max-height:220px;object-fit:cover;display:block"></div>
-  <?php endif; ?>
-
-  <div class="prof-head rv in">
-    <div class="info">
-      <h2>📍 <?= e($v['name']) ?></h2>
-      <p><?= e(place_label($v)) ?><?= $v['creator_name'] ? ' · added by ' . e($v['creator_name']) : '' ?></p>
-      <?php if ($v['description']): ?><p style="margin-top:6px"><?= e($v['description']) ?></p><?php endif; ?>
-    </div>
-  </div>
-
-  <div class="share-row">
-    <?php if (!$canEdit && (int) $v['creator_id'] !== user_id()): ?>
-    <a class="btn-mini solid" href="messages.php?to=<?= (int) $v['creator_id'] ?>">💬 Message business</a>
+  <div class="card rv in" style="padding:0;overflow:hidden">
+    <?php if ($v['photo']): ?>
+    <img src="<?= img_url($v['photo'], 800) ?>" alt="<?= e($v['name']) ?>" style="width:100%;height:230px;object-fit:cover;display:block">
+    <?php else: ?>
+    <div class="cband tall" style="background:linear-gradient(135deg,#f0e0bb,var(--mist))"><span class="big-emo">🏪</span></div>
     <?php endif; ?>
-    <?php if ($canEdit): ?><a class="btn-mini" href="venue-edit.php?id=<?= $id ?>">Edit business</a><?php endif; ?>
-    <a class="btn-mini" href="create.php">+ Plan something here</a>
+    <div class="body" style="padding:20px 22px">
+      <h2 style="margin:0 0 4px">📍 <?= e($v['name']) ?></h2>
+      <p class="fine" style="margin:0"><?= e(place_label($v)) ?><?= $v['creator_name'] ? ' · added by ' . e($v['creator_name']) : '' ?><?= $events ? ' · ' . count($events) . ' upcoming' : '' ?></p>
+      <?php if ($v['description']): ?><p style="margin:10px 0 0;max-width:60ch;color:var(--ink-soft)"><?= nl2br(e($v['description'])) ?></p><?php endif; ?>
+      <div class="share-row" style="margin-top:14px">
+        <?php if (!$canEdit && (int) $v['creator_id'] !== user_id()): ?>
+        <a class="btn-mini solid" href="messages.php?to=<?= (int) $v['creator_id'] ?>">💬 Message business</a>
+        <?php endif; ?>
+        <?php if ($canEdit): ?><a class="btn-mini" href="venue-edit.php?id=<?= $id ?>">Edit business</a><?php endif; ?>
+        <a class="btn-mini" href="create.php">+ Plan something here</a>
+      </div>
+    </div>
   </div>
 
   <h3 style="font-family:var(--serif);font-weight:400">Upcoming at <?= e($v['name']) ?></h3>

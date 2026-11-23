@@ -12,6 +12,9 @@ function db(): PDO {
             DB_PASS,
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
         );
+        // Keep MySQL NOW()/CURRENT_TIMESTAMP in step with PHP's Africa/Nairobi tz —
+        // the server clock runs ~8h behind EAT, which made fresh rows read "8h ago".
+        $pdo->exec("SET time_zone = '+03:00'");
     }
     return $pdo;
 }

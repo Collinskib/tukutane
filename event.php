@@ -41,7 +41,7 @@ page_head($ev['title']);
 site_header('discover');
 ?>
 <main class="ev-wrap">
-  <div class="ev-cover rv in" <?= $ev['cover'] ? '' : 'style="background:' . e($ribbon) . '"' ?>>
+  <div class="ev-cover rv in<?= $ev['cover'] ? '' : ' nocov' ?>" <?= $ev['cover'] ? '' : 'style="background-color:' . e($ribbon) . '"' ?>>
     <?php if ($ev['cover']): ?><img src="<?= img_url($ev['cover'], 800) ?>" alt="" decoding="async"><?php endif; ?>
     <div class="grad"></div>
     <div class="cap">

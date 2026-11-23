@@ -121,8 +121,11 @@ site_header('people');
       <p>No people match — try clearing filters or updating your interests in your <a href="profile.php">profile</a>.</p></div>
     <?php endif; ?>
     <?php foreach ($people as $i => $p): ?>
-    <?php $quote = trim($p['fun_fact'] ?? '') ?: trim($p['bio'] ?? ''); ?>
-    <div class="person rv" style="--d:<?= min($i * 40, 400) ?>ms">
+    <?php
+      $quote = trim($p['fun_fact'] ?? '') ?: trim($p['bio'] ?? '');
+      [, $pc] = categories()[$p['shared'][0] ?? ''] ?? ['', 'var(--line)'];
+    ?>
+    <div class="person rv" style="--d:<?= min($i * 40, 400) ?>ms;--pc:<?= e($pc) ?>">
       <a class="ppic" href="user.php?id=<?= (int) $p['id'] ?>"><?= avatar_html($p, 'lg') ?></a>
       <div class="pinfo">
         <a class="name" href="user.php?id=<?= (int) $p['id'] ?>"><?= e($p['name']) ?></a>

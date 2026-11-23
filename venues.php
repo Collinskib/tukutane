@@ -43,7 +43,8 @@ site_header('venues');
       <?php if ($v['photo']): ?>
       <a href="venue.php?id=<?= (int) $v['id'] ?>"><img src="<?= img_url($v['photo'], 480) ?>" alt="" loading="lazy" decoding="async" style="width:100%;height:130px;object-fit:cover;display:block"></a>
       <?php else: ?>
-      <div class="ribbon" style="background:var(--mist);color:var(--green-2)"><span>🏪 Business</span><span><?= (int) $v['upcoming'] ?> upcoming</span></div>
+      <a class="cband" href="venue.php?id=<?= (int) $v['id'] ?>" style="background:linear-gradient(135deg,#f0e0bb,var(--mist));text-decoration:none">
+        <span>🏪 Business</span><span class="count"><?= (int) $v['upcoming'] ?> upcoming</span><span class="big-emo">🏪</span></a>
       <?php endif; ?>
       <div class="body">
         <h3><a href="venue.php?id=<?= (int) $v['id'] ?>" style="color:inherit;text-decoration:none"><?= e($v['name']) ?></a></h3>

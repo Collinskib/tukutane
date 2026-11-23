@@ -70,7 +70,8 @@ page_head('Create a plan');
 site_header();
 ?>
 <main>
-<div class="form rv in" style="max-width:520px">
+<div class="create-layout">
+<div class="form rv in" style="max-width:560px">
   <h2>Create a plan</h2>
   <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
   <form method="post" enctype="multipart/form-data">
@@ -140,6 +141,26 @@ site_header();
 
     <button class="btn-block" type="submit">Publish plan</button>
   </form>
+</div>
+<aside class="tips">
+  <div class="card"><div class="body">
+    <h3>A great plan has…</h3>
+    <ul>
+      <li>📍 A venue people can actually find</li>
+      <li>🕖 A specific date and start time</li>
+      <li>🖼️ A cover photo — events with covers get more joins</li>
+      <li>💬 A line about what to expect or bring</li>
+    </ul>
+  </div></div>
+  <div class="card" style="margin-top:14px"><div class="body">
+    <h3>Heads up</h3>
+    <ul>
+      <li>Plans are public by default — pick "My friends only" to keep it to people you know</li>
+      <li>Repeating plans create future dates automatically</li>
+      <li>By posting you agree to the <a href="guidelines.php">community guidelines</a></li>
+    </ul>
+  </div></div>
+</aside>
 </div>
 </main>
 <?php bottom_nav('plans'); site_footer(); ?>

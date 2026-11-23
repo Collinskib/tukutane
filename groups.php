@@ -42,10 +42,13 @@ site_header('groups');
       <p><?= $view === 'mine' ? 'You have not joined any groups yet — find one below or start your own.' : 'No groups match — try different filters, or start the first one for your neighbourhood.' ?></p></div>
     <?php endif; ?>
     <?php foreach ($groups as $i => $g): ?>
+    <?php [$gemo, $gcol] = categories()[$g['category']] ?? ['👥', '#e4e6db']; ?>
     <div class="card rv" style="--d:<?= min($i * 40, 400) ?>ms">
-      <div class="ribbon" style="background:var(--mist);color:var(--green-2)">
-        <span><?= e($g['category']) ?></span><span><?= (int) $g['members'] ?> 👥</span>
-      </div>
+      <a class="cband" href="group.php?id=<?= (int) $g['id'] ?>" style="background:<?= e($gcol) ?>;text-decoration:none">
+        <span><?= e($g['category']) ?></span>
+        <span class="count"><?= (int) $g['members'] ?> 👥</span>
+        <span class="big-emo"><?= e($gemo) ?></span>
+      </a>
       <div class="body">
         <h3><a href="group.php?id=<?= (int) $g['id'] ?>" style="color:inherit;text-decoration:none"><?= e($g['name']) ?></a>
           <?php if ($g['my_status'] === 'pending'): ?><span class="status-pill">Pending</span>

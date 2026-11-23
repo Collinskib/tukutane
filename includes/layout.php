@@ -15,7 +15,7 @@ function page_head(string $title, string $head = ''): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
 <script defer src="/assets/app.js?v=10"></script>
@@ -78,12 +78,16 @@ function site_header(string $active = ''): void {
 function bottom_nav(string $active = ''): void {
     $u = user(); ?>
 <nav class="bottomnav" aria-label="Main">
-  <a href="<?= $u ? '/plans.php' : '/auth.php' ?>" class="<?= $active === 'plans' ? 'active' : '' ?>">
-    <span><?= $u ? '📅' : '👤' ?></span><?= $u ? 'My Plans' : 'Join' ?></a>
   <a href="/index.php" class="<?= $active === 'discover' ? 'active' : '' ?>">
     <span>🏠</span>Home</a>
+  <a href="/people.php" class="<?= $active === 'people' ? 'active' : '' ?>">
+    <span>🧑‍🤝‍🧑</span>People</a>
+  <a href="/groups.php" class="<?= $active === 'groups' ? 'active' : '' ?>">
+    <span>👥</span>Groups</a>
   <a href="/messages.php" class="<?= $active === 'messages' ? 'active' : '' ?>">
     <span>💬</span>Messages<i class="badge dot" id="msg-dot" hidden></i></a>
+  <a href="<?= $u ? '/plans.php' : '/auth.php' ?>" class="<?= $active === 'plans' ? 'active' : '' ?>">
+    <span><?= $u ? '📅' : '👤' ?></span><?= $u ? 'My Plans' : 'Join' ?></a>
 </nav>
 <?php }
 
