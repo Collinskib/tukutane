@@ -1281,12 +1281,15 @@ function institutions_search(string $q, int $limit = 12, string $county = '', st
     $q = trim($q);
     $w = 'status = "active"';
     $p = [];
-    if ($county !== '') { $w .= ' AND county = :county'; $p[':county'] = $county; }
-    if ($q !== '')      { $w .= ' AND name LIKE :q';     $p[':q'] = '%' . $q . '%'; }
-    $order = '';
+    if ($q !== '') { $w .= ' AND name LIKE :q'; $p[':q'] = '%' . $q . '%'; }
+    // universities first nationally; within each tier the viewer's county
+    // floats to the top, then sub-county town matches, then prefix matches.
+    $order = 'type IN ("university","university_college") DESC, ';
+    if ($county !== '') { $order .= '(county = :county) DESC, '; $p[':county'] = $county; }
+    $order .= 'FIELD(type, "university","university_college","national_polytechnic","tvet_college","vocational_centre"), ';
     if ($area !== '') { $order .= '(:area LIKE CONCAT("%", town, "%")) DESC, '; $p[':area'] = $area; }
     if ($q !== '')    { $order .= '(name LIKE :pre) DESC, '; $p[':pre'] = $q . '%'; }
-    $order .= 'FIELD(type, "university","university_college","national_polytechnic","tvet_college","vocational_centre"), name';
+    $order .= 'name';
     $stmt = db()->prepare("SELECT id, name, type, county, town FROM institutions WHERE $w ORDER BY $order LIMIT :lim");
     foreach ($p as $k => $v) $stmt->bindValue($k, $v);
     $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);

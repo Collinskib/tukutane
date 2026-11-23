@@ -396,14 +396,8 @@ function institution_picker(int $instId = 0, string $instName = '', int $campId 
       });
       if(!rows.length){
         var em=document.createElement("div");em.className="instempty";
-        em.textContent=s.county?"No institutions listed in "+s.county:"No matching institution";
+        em.textContent="No matching institution";
         list.appendChild(em);
-      }
-      if(s.county){
-        var all=document.createElement("button");all.type="button";all.className="install";
-        all.textContent="Search all institutions ↗";
-        all.onclick=function(){w.dataset.all="1";load(w);};
-        list.appendChild(all);
       }
       list.hidden=false;
     }).catch(function(){list.hidden=true;});
