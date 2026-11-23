@@ -385,6 +385,8 @@ footer.site{border-top:1px solid var(--line);margin-top:40px;padding:30px 24px;m
 .gact{border:0;background:none;color:var(--ink-soft);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;text-decoration:none}
 .gact:hover{color:var(--green-2)}
 .gact.danger:hover{color:#a33a1f}
+.gact.glike.on{color:var(--accent)}
+.greport-form{margin:8px 0 0}
 .gthread{margin-top:10px;border-top:1px solid var(--line-soft);padding-top:8px}
 .gthread summary{list-style:none;cursor:pointer;color:var(--ink-soft);font-size:13px;font-weight:600;padding:4px 0;user-select:none}
 .gthread summary::-webkit-details-marker{display:none}
@@ -392,6 +394,7 @@ footer.site{border-top:1px solid var(--line);margin-top:40px;padding:30px 24px;m
 .gthread[open] summary::after{content:' ▴'}
 .gthread summary:hover{color:var(--green-2)}
 .gcform{display:flex;gap:8px;margin:8px 0 12px}
+.gcform[hidden]{display:none!important}
 .gcform input{flex:1;border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 14px;font:inherit;font-size:14px;background:var(--bg)}
 .gcm{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--line-soft)}
 .gcm:last-child{border-bottom:0}

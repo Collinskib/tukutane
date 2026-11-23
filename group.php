@@ -204,6 +204,7 @@ site_header('groups');
       <input name="title" required maxlength="160" placeholder="Title — what's on your mind?">
       <textarea name="body" rows="3" maxlength="4000" placeholder="Add details (optional)"></textarea>
       <button class="primary" type="submit">Post to group</button>
+      <p class="fine" style="margin:8px 0 0">By posting you agree to the <a href="guidelines.php">community guidelines</a>.</p>
     </form>
   </details>
   <?php elseif (!$isPending): ?>
@@ -225,9 +226,9 @@ site_header('groups');
   ?>
   <article class="gpost card" id="p<?= (int) $p['id'] ?>">
     <div class="gvote<?= $isMember ? '' : ' ro' ?>" data-kind="post" data-id="<?= (int) $p['id'] ?>">
-      <button class="vup<?= $myVote === 1 ? ' on' : '' ?>" type="button" aria-label="Upvote" <?= $isMember ? '' : 'disabled' ?>>▲</button>
+      <button class="vup<?= $myVote === 1 ? ' on' : '' ?>" type="button" title="Upvote — like this post" aria-label="Upvote" <?= $isMember ? '' : 'disabled' ?>>▲</button>
       <b class="vscore"><?= (int) $p['score'] ?></b>
-      <button class="vdn<?= $myVote === -1 ? ' on' : '' ?>" type="button" aria-label="Downvote" <?= $isMember ? '' : 'disabled' ?>>▼</button>
+      <button class="vdn<?= $myVote === -1 ? ' on' : '' ?>" type="button" title="Downvote" aria-label="Downvote" <?= $isMember ? '' : 'disabled' ?>>▼</button>
     </div>
     <div class="gpost-main">
       <div class="gpost-meta">
@@ -237,6 +238,9 @@ site_header('groups');
       <h3><?= e($p['title']) ?></h3>
       <?php if ($p['body']): ?><p class="gpost-body"><?= nl2br(e($p['body'])) ?></p><?php endif; ?>
       <div class="gpost-acts">
+        <?php if ($isMember): ?>
+        <button class="gact glike<?= $myVote === 1 ? ' on' : '' ?>" type="button" data-kind="post" data-id="<?= (int) $p['id'] ?>" title="Like this post">🧡 <span><?= $myVote === 1 ? 'Liked' : 'Like' ?></span></button>
+        <?php endif; ?>
         <?php if ($canModerate): ?>
         <form method="post" style="display:inline"><?= csrf_field() ?>
           <input type="hidden" name="do" value="<?= $p['pinned'] ? 'post_unpin' : 'post_pin' ?>"><input type="hidden" name="pid" value="<?= (int) $p['id'] ?>">
@@ -247,7 +251,19 @@ site_header('groups');
           <input type="hidden" name="do" value="post_delete"><input type="hidden" name="pid" value="<?= (int) $p['id'] ?>">
           <button class="gact danger" type="submit">Delete</button></form>
         <?php endif; ?>
+        <?php if ((int) $p['user_id'] !== $uid): ?>
+        <button class="gact greport" type="button" data-rid="rp<?= (int) $p['id'] ?>">Report</button>
+        <?php endif; ?>
       </div>
+      <?php if ((int) $p['user_id'] !== $uid): ?>
+      <form method="post" action="report.php" class="gcform greport-form" id="rp<?= (int) $p['id'] ?>" hidden>
+        <?= csrf_field() ?>
+        <input type="hidden" name="type" value="gpost"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <input type="hidden" name="back" value="group.php?id=<?= $gid ?>#p<?= (int) $p['id'] ?>">
+        <input name="reason" required maxlength="300" placeholder="What's wrong with this post?" autocomplete="off">
+        <button class="btn-mini warn" type="submit">Send report</button>
+      </form>
+      <?php endif; ?>
 
       <details class="gthread">
         <summary>💬 <?= (int) $p['comment_count'] ?> comment<?= (int) $p['comment_count'] === 1 ? '' : 's' ?></summary>
@@ -266,9 +282,9 @@ site_header('groups');
         ?>
         <div class="gcm" id="c<?= (int) $c['id'] ?>">
           <div class="gvote sm<?= $isMember ? '' : ' ro' ?>" data-kind="comment" data-id="<?= (int) $c['id'] ?>">
-            <button class="vup<?= $cvote === 1 ? ' on' : '' ?>" type="button" aria-label="Upvote" <?= $isMember ? '' : 'disabled' ?>>▲</button>
+            <button class="vup<?= $cvote === 1 ? ' on' : '' ?>" type="button" title="Upvote" aria-label="Upvote" <?= $isMember ? '' : 'disabled' ?>>▲</button>
             <b class="vscore"><?= (int) $c['score'] ?></b>
-            <button class="vdn<?= $cvote === -1 ? ' on' : '' ?>" type="button" aria-label="Downvote" <?= $isMember ? '' : 'disabled' ?>>▼</button>
+            <button class="vdn<?= $cvote === -1 ? ' on' : '' ?>" type="button" title="Downvote" aria-label="Downvote" <?= $isMember ? '' : 'disabled' ?>>▼</button>
           </div>
           <div class="gcm-main">
             <div class="gpost-meta">
@@ -287,7 +303,19 @@ site_header('groups');
                 <input type="hidden" name="do" value="comment_delete"><input type="hidden" name="cid" value="<?= (int) $c['id'] ?>">
                 <button class="gact danger" type="submit">Delete</button></form>
               <?php endif; ?>
+              <?php if ((int) $c['user_id'] !== $uid): ?>
+              <button class="gact greport" type="button" data-rid="rc<?= (int) $c['id'] ?>">Report</button>
+              <?php endif; ?>
             </div>
+            <?php if ((int) $c['user_id'] !== $uid): ?>
+            <form method="post" action="report.php" class="gcform greport-form" id="rc<?= (int) $c['id'] ?>" hidden>
+              <?= csrf_field() ?>
+              <input type="hidden" name="type" value="gcomment"><input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+              <input type="hidden" name="back" value="group.php?id=<?= $gid ?>#c<?= (int) $c['id'] ?>">
+              <input name="reason" required maxlength="300" placeholder="What's wrong with this comment?" autocomplete="off">
+              <button class="btn-mini warn" type="submit">Send report</button>
+            </form>
+            <?php endif; ?>
             <form method="post" class="gcform greply-form" id="rf<?= (int) $c['id'] ?>" hidden>
               <?= csrf_field() ?>
               <input type="hidden" name="do" value="comment_add"><input type="hidden" name="pid" value="<?= (int) $p['id'] ?>">
@@ -302,9 +330,9 @@ site_header('groups');
             ?>
             <div class="gcm reply" id="c<?= (int) $r['id'] ?>">
               <div class="gvote sm<?= $isMember ? '' : ' ro' ?>" data-kind="comment" data-id="<?= (int) $r['id'] ?>">
-                <button class="vup<?= $rvote === 1 ? ' on' : '' ?>" type="button" aria-label="Upvote" <?= $isMember ? '' : 'disabled' ?>>▲</button>
+                <button class="vup<?= $rvote === 1 ? ' on' : '' ?>" type="button" title="Upvote" aria-label="Upvote" <?= $isMember ? '' : 'disabled' ?>>▲</button>
                 <b class="vscore"><?= (int) $r['score'] ?></b>
-                <button class="vdn<?= $rvote === -1 ? ' on' : '' ?>" type="button" aria-label="Downvote" <?= $isMember ? '' : 'disabled' ?>>▼</button>
+                <button class="vdn<?= $rvote === -1 ? ' on' : '' ?>" type="button" title="Downvote" aria-label="Downvote" <?= $isMember ? '' : 'disabled' ?>>▼</button>
               </div>
               <div class="gcm-main">
                 <div class="gpost-meta">
@@ -314,12 +342,24 @@ site_header('groups');
                 <p class="gcm-body removed">[removed]</p>
                 <?php else: ?>
                 <p class="gcm-body"><?= nl2br(e($r['body'])) ?></p>
-                <?php if ($canModerate || (int) $r['user_id'] === $uid): ?>
                 <div class="gpost-acts">
+                  <?php if ($canModerate || (int) $r['user_id'] === $uid): ?>
                   <form method="post" style="display:inline" onsubmit="return confirm('Remove this comment?')"><?= csrf_field() ?>
                     <input type="hidden" name="do" value="comment_delete"><input type="hidden" name="cid" value="<?= (int) $r['id'] ?>">
                     <button class="gact danger" type="submit">Delete</button></form>
+                  <?php endif; ?>
+                  <?php if ((int) $r['user_id'] !== $uid): ?>
+                  <button class="gact greport" type="button" data-rid="rc<?= (int) $r['id'] ?>">Report</button>
+                  <?php endif; ?>
                 </div>
+                <?php if ((int) $r['user_id'] !== $uid): ?>
+                <form method="post" action="report.php" class="gcform greport-form" id="rc<?= (int) $r['id'] ?>" hidden>
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="type" value="gcomment"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+                  <input type="hidden" name="back" value="group.php?id=<?= $gid ?>#c<?= (int) $r['id'] ?>">
+                  <input name="reason" required maxlength="300" placeholder="What's wrong with this reply?" autocomplete="off">
+                  <button class="btn-mini warn" type="submit">Send report</button>
+                </form>
                 <?php endif; ?>
                 <?php endif; ?>
               </div>
@@ -358,6 +398,24 @@ site_header('groups');
 </main>
 <script>
 const GCSRF = <?= json_encode(csrf_token()) ?>;
+function castVote(kind, id, dir) {
+  const fd = new FormData();
+  fd.append('csrf', GCSRF); fd.append('kind', kind); fd.append('id', id); fd.append('dir', dir);
+  fetch('/api/group_vote.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'fetch' } })
+    .then(r => r.json()).then(j => {
+      if (!j.ok) return;
+      const box = document.querySelector('.gvote[data-kind=' + kind + '][data-id="' + id + '"]');
+      if (box) {
+        box.querySelector('.vscore').textContent = j.score;
+        box.querySelector('.vup').classList.toggle('on', j.mine === 1);
+        box.querySelector('.vdn').classList.toggle('on', j.mine === -1);
+      }
+      if (kind === 'post') {
+        const lb = document.querySelector('.glike[data-id="' + id + '"]');
+        if (lb) { lb.classList.toggle('on', j.mine === 1); lb.querySelector('span').textContent = j.mine === 1 ? 'Liked' : 'Like'; }
+      }
+    }).catch(() => {});
+}
 document.addEventListener('click', function (ev) {
   const rb = ev.target.closest('.greply');
   if (rb) {
@@ -365,21 +423,18 @@ document.addEventListener('click', function (ev) {
     if (f) { f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input[name=body]').focus(); }
     return;
   }
+  const rp = ev.target.closest('.greport');
+  if (rp) {
+    const f = document.getElementById(rp.dataset.rid);
+    if (f) { f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input[name=reason]').focus(); }
+    return;
+  }
+  const lk = ev.target.closest('.glike');
+  if (lk) { castVote(lk.dataset.kind, lk.dataset.id, '1'); return; }
   const vb = ev.target.closest('.gvote button');
   if (!vb || vb.disabled) return;
   const box = vb.closest('.gvote');
-  const fd = new FormData();
-  fd.append('csrf', GCSRF);
-  fd.append('kind', box.dataset.kind);
-  fd.append('id', box.dataset.id);
-  fd.append('dir', vb.classList.contains('vup') ? '1' : '-1');
-  fetch('/api/group_vote.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'fetch' } })
-    .then(r => r.json()).then(j => {
-      if (!j.ok) return;
-      box.querySelector('.vscore').textContent = j.score;
-      box.querySelector('.vup').classList.toggle('on', j.mine === 1);
-      box.querySelector('.vdn').classList.toggle('on', j.mine === -1);
-    }).catch(() => {});
+  castVote(box.dataset.kind, box.dataset.id, vb.classList.contains('vup') ? '1' : '-1');
 });
 </script>
 <?php bottom_nav('groups'); site_footer(); ?>

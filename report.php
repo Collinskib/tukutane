@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('index.php');
 csrf_verify();
 require_login('index.php');
 
-$type = in_array($_POST['type'] ?? '', ['user', 'gathering', 'message', 'event_message'], true) ? $_POST['type'] : 'gathering';
+$type = in_array($_POST['type'] ?? '', ['user', 'gathering', 'message', 'event_message', 'gpost', 'gcomment'], true) ? $_POST['type'] : 'gathering';
 add_report(user_id(), $type, (int) ($_POST['id'] ?? 0), trim($_POST['reason'] ?? ''));
 
 $back = $_POST['back'] ?? 'index.php';

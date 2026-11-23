@@ -15,7 +15,7 @@ function page_head(string $title, string $head = ''): void {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=16">
+<link rel="stylesheet" href="/assets/style.css?v=17">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
 <script defer src="/assets/app.js?v=10"></script>
@@ -98,7 +98,7 @@ function site_footer(): void { ?>
       <?php if (user()): ?><a href="/profile.php">Profile</a><a href="/plans.php">My plans</a><a href="/logout.php">Log out</a>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>
     <div><strong>Legal</strong>
-      <a href="/privacy.php">Privacy policy</a><a href="/terms.php">Terms of service</a></div>
+      <a href="/privacy.php">Privacy policy</a><a href="/terms.php">Terms of service</a><a href="/guidelines.php">Community guidelines</a></div>
   </div>
   <p class="fine">Made for Nairobi · Nipange <?= date('Y') ?></p>
 </footer>

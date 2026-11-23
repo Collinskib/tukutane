@@ -54,4 +54,7 @@ db()->exec('CREATE TABLE IF NOT EXISTS grp_comment_votes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 echo "grp_comment_votes ok\n";
 
+db()->exec("ALTER TABLE reports MODIFY target_type ENUM('user','gathering','message','event_message','gpost','gcomment') NOT NULL");
+echo "reports enum ok\n";
+
 echo "done\n";
