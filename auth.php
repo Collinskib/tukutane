@@ -6,6 +6,13 @@ $mode = ($_GET['mode'] ?? 'login') === 'register' ? 'register' : 'login';
 $next = $_GET['next'] ?? 'index.php';
 if (!preg_match('~^[a-z0-9_./?=&#%-]+$~i', $next) || str_starts_with($next, '//')) $next = 'index.php';
 
+// Already signed in (e.g. came back from Google or reopened a tab) — showing
+// the login form reads like the sign-in failed, so just carry on.
+if (user()) {
+    $dest = basename((string) parse_url($next, PHP_URL_PATH) ?: '') === 'auth.php' ? 'index.php' : $next;
+    redirect($dest);
+}
+
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();

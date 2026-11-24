@@ -186,8 +186,10 @@ site_header('discover');
     <?php if ($ev['status'] !== 'cancelled'): ?>
     <form class="composer" id="ecomposer">
       <?= csrf_field() ?>
+      <button type="button" class="icon-btn" data-pop-btn="#emojipop" title="Add an emoji" aria-label="Emoji">😊</button>
       <input name="body" id="emsg" autocomplete="off" maxlength="1000" placeholder="Message the group…" required>
       <button type="submit">Send</button>
+      <?php emoji_picker('#emsg'); ?>
     </form>
     <?php endif; ?>
   </section>

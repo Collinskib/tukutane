@@ -48,7 +48,7 @@ if ($conv) mark_conversation_read((int) $conv['id'], $uid);
 $messages = $conv ? messages_since((int) $conv['id'], 0, 80) : [];
 $convMuted = $conv ? conversation_muted((int) $conv['id'], $uid) : false;
 
-page_head($other ? 'Chat with ' . $other['name'] : 'Messages');
+page_head($other ? 'Chat with ' . $other['name'] : 'Messages', '', 'chatpage');
 site_header();
 ?>
 <main>
@@ -75,7 +75,7 @@ site_header();
   <?php endforeach; ?>
 </div>
 <?php else: ?>
-<div class="chat-layout" <?php if (!$convs && !$conv) echo 'style="display:block"'; ?>>
+<div class="chat-layout <?= $conv && $other ? 'open' : '' ?>" <?php if (!$convs && !$conv) echo 'style="display:block"'; ?>>
   <?php if ($convs || $conv): ?>
   <div class="conv-list" id="convlist">
     <?php foreach ($convs as $c): ?>
@@ -93,6 +93,7 @@ site_header();
   <?php if ($conv && $other): ?>
   <div class="thread" data-conv="<?= (int) $conv['id'] ?>">
     <div class="thread-head">
+      <a class="back" href="messages.php" aria-label="Back to chats">‹</a>
       <?= avatar_html($other) ?>
       <div class="who"><b><?= e($other['name']) ?></b><?php if ($convMuted): ?><small>🔇 muted</small><?php endif; ?></div>
       <form method="post" style="display:inline"><?= csrf_field() ?>
@@ -124,10 +125,16 @@ site_header();
       <input type="hidden" name="conv" value="<?= (int) $conv['id'] ?>">
       <input type="file" name="attach" id="attach" hidden
              accept="image/jpeg,image/png,image/webp,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip">
-      <button type="button" class="icon-btn" id="attachbtn" title="Attach a photo or file" aria-label="Attach">📎</button>
+      <button type="button" class="icon-btn" data-pop-btn="#attachpop" title="Attach a photo or file" aria-label="Attach" aria-haspopup="menu">📎</button>
+      <button type="button" class="icon-btn" data-pop-btn="#emojipop" title="Add an emoji" aria-label="Emoji" aria-haspopup="dialog">😊</button>
       <span class="attach-chip" id="attachchip" hidden></span>
       <input name="body" id="msgbody" autocomplete="off" maxlength="1000" placeholder="Write a message…">
       <button type="submit" id="sendbtn">Send</button>
+      <div class="pickpop" id="attachpop" hidden role="menu" aria-label="Attach">
+        <button type="button" class="pickitem" data-accept="image/jpeg,image/png,image/webp">🖼️<span>Photo</span></button>
+        <button type="button" class="pickitem" data-accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip">📄<span>File</span></button>
+      </div>
+      <?php emoji_picker('#msgbody'); ?>
     </form>
   </div>
   <?php else: ?>
@@ -158,6 +165,15 @@ site_header();
 </dialog>
 <script>
 (function(){
+  // keep the thread above the on-screen keyboard: browsers that expose
+  // visualViewport tell us how much of the screen the keyboard took
+  var vv = window.visualViewport;
+  if (vv) {
+    var kb = function(){
+      document.documentElement.style.setProperty('--kb', Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px');
+    };
+    vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb); kb();
+  }
   var box = document.getElementById('msgs');
   var conv = <?= (int) $conv['id'] ?>;
   var last = +box.dataset.last || 0;
@@ -236,9 +252,15 @@ site_header();
       .catch(function(){btn.disabled=false;toast('Could not send — try again',true);});
   });
 
-  // attachment picker: 📎 opens the file dialog, chip shows the pick
-  var fileInp2=document.getElementById('attach'),chip2=document.getElementById('attachchip');
-  document.getElementById('attachbtn').addEventListener('click',function(){fileInp2.click();});
+  // attachment picker: 📎 opens the Photo/File menu, chip shows the pick
+  var fileInp2=document.getElementById('attach'),chip2=document.getElementById('attachchip'),
+      attpop=document.getElementById('attachpop');
+  attpop.addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-accept]');if(!b)return;
+    fileInp2.accept=b.getAttribute('data-accept');
+    attpop.hidden=true;
+    fileInp2.click();
+  });
   fileInp2.addEventListener('change',function(){
     chip2.hidden=!this.files.length;
     if(this.files.length)chip2.textContent='📎 '+this.files[0].name;

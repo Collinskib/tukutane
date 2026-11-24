@@ -1,7 +1,7 @@
 <?php
 // Shared chrome: <head>, top nav, mobile bottom nav, footer.
 
-function page_head(string $title, string $head = ''): void {
+function page_head(string $title, string $head = '', string $bodyClass = ''): void {
     $unread = user() ? unread_notifications(user_id()) : 0;
     $unreadMsg = user() ? unread_messages(user_id()) : 0;
     $friendReqs = user() ? friend_request_count(user_id()) : 0; ?>
@@ -9,19 +9,19 @@ function page_head(string $title, string $head = ''): void {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#163e31">
 <meta name="description" content="Nipange — find gatherings, meetups and new friends near you in Nairobi.">
 <title><?= e($title) ?> · Nipange</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=23">
+<link rel="stylesheet" href="/assets/style.css?v=27">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
-<script defer src="/assets/app.js?v=12"></script>
+<script defer src="/assets/app.js?v=13"></script>
 </head>
-<body data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-friend-reqs="<?= $friendReqs ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
+<body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?> data-unread="<?= $unread ?>" data-unread-msg="<?= $unreadMsg ?>" data-friend-reqs="<?= $friendReqs ?>" data-signed-in="<?= user() ? '1' : '0' ?>">
 <?php }
 
 function site_header(string $active = ''): void {
@@ -96,11 +96,21 @@ function bottom_nav(string $active = ''): void {
 </nav>
 <?php }
 
+function emoji_picker(string $target): void {
+    static $emojis = ['😀','😂','🤣','😊','😍','🥰','😘','😜','🤔','😎','🥳','😅','😢','😭','😡','🙄','😴','🤗',
+        '👍','👎','🙏','👏','🙌','💪','🤝','✌️','👌','🔥','❤️','💛','💚','💙','💜','🤍','💔','💯',
+        '🎉','🎊','🎂','🍾','🥂','⚽','🏀','🎵','🎶','🇰🇪','☕','🍵','🍛','🥑','🍍','📱','📚','✅','⭐','🌙','☀️','🌈']; ?>
+<div class="pickpop emojipop" id="emojipop" hidden data-target="<?= e($target) ?>">
+  <div class="emojigrid"><?php foreach ($emojis as $e): ?><button type="button" data-e="<?= e($e) ?>"><?= e($e) ?></button><?php endforeach; ?></div>
+</div>
+<?php }
+
 function site_footer(): void { ?>
 <footer class="site">
-  <div class="foot-grid">
-    <div><span class="brand sm">Nipange<i>.</i></span>
-      <p>Events, friends, groups and local business — around your corner and your campus.</p></div>
+  <details class="foot-details">
+    <summary><span class="brand sm">Nipange<i>.</i></span><span class="foot-hint">Links, policies &amp; info</span><span class="foot-chev" aria-hidden="true">▾</span></summary>
+    <div class="foot-grid">
+    <div><p>Events, friends, groups and local business — around your corner and your campus.</p></div>
     <div><strong>Explore</strong>
       <a href="/about.php">About</a><a href="/index.php">Events</a><a href="/people.php">People nearby</a><a href="/groups.php">Groups</a><a href="/institutions.php">Institutions</a><a href="/venues.php">Business</a><a href="/create.php">Create a plan</a></div>
     <div><strong>Account</strong>
@@ -108,8 +118,9 @@ function site_footer(): void { ?>
       <?php else: ?><a href="/auth.php">Log in</a><a href="/auth.php?mode=register">Join Nipange</a><?php endif; ?></div>
     <div><strong>Legal</strong>
       <a href="/privacy.php">Privacy policy</a><a href="/terms.php">Terms of service</a><a href="/guidelines.php">Community guidelines</a></div>
-  </div>
-  <p class="fine">Made for Kenya · Nipange <?= date('Y') ?></p>
+    </div>
+    <p class="fine">Made for Kenya · Nipange <?= date('Y') ?></p>
+  </details>
 </footer>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})</script>
 </body>

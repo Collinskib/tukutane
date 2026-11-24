@@ -17,6 +17,8 @@ $redirect = oauth_redirect_uri();
 if (isset($_GET['start'])) {
     $next = $_GET['next'] ?? 'index.php';
     if (!preg_match('~^[a-z0-9_./?=&#%-]+$~i', $next) || str_starts_with($next, '//')) $next = 'index.php';
+    // already signed in — no reason to round-trip through Google
+    if (user()) redirect($next);
     $_SESSION['oauth_next']  = $next;
     $_SESSION['oauth_state'] = bin2hex(random_bytes(16));
     redirect('https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
@@ -31,6 +33,10 @@ if (isset($_GET['start'])) {
 // ---- callback from Google ----
 if (isset($_GET['error'])) $fail('Google sign-in was cancelled.');
 if (empty($_GET['code']) || empty($_GET['state'])) $fail('Invalid response from Google.');
+// Mobile browsers replay the callback URL after a successful sign-in (tab
+// restore, back button, network retry) — by then the state is consumed and
+// the user is already signed in. Treat that as success, not an error.
+if (user()) redirect($_SESSION['oauth_next'] ?? 'index.php');
 if (!hash_equals($_SESSION['oauth_state'] ?? '', (string) $_GET['state'])) {
     $fail('Sign-in check failed — please try again.');
 }

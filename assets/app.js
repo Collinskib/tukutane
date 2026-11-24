@@ -48,6 +48,37 @@
     }
   });
 
+  // Small popovers — [data-pop-btn="#id"] toggles a .pickpop; emoji grid
+  // buttons ([data-e]) insert into the picker’s data-target input.
+  var closePops = function () {
+    document.querySelectorAll('.pickpop').forEach(function (p) { p.hidden = true; });
+  };
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-pop-btn]');
+    if (btn) {
+      var pop = document.querySelector(btn.getAttribute('data-pop-btn'));
+      if (pop) { var was = !pop.hidden; closePops(); pop.hidden = was; }
+      return;
+    }
+    var em = ev.target.closest('.emojipop [data-e]');
+    if (em) {
+      var host = em.closest('.emojipop');
+      var inp = document.querySelector(host.getAttribute('data-target') || '');
+      if (inp && typeof inp.setRangeText === 'function') {
+        inp.setRangeText(em.getAttribute('data-e'),
+          inp.selectionStart == null ? inp.value.length : inp.selectionStart,
+          inp.selectionEnd == null ? inp.value.length : inp.selectionEnd, 'end');
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        inp.focus();
+      }
+      return; // keep the grid open for more emojis
+    }
+    if (!ev.target.closest('.pickpop')) closePops();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') closePops();
+  });
+
   // Save/bookmark + RSVP via fetch where enhanced (progressive: forms still POST)
   document.addEventListener('submit', function (ev) {
     var f = ev.target.closest('form[data-ajax]');
