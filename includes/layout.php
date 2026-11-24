@@ -31,7 +31,7 @@ function site_header(string $active = ''): void {
 <header class="site">
   <nav>
     <a class="brand" href="/index.php"><img class="brand-logo" src="/assets/icons/logo.png" alt="">Nipange<i>.</i></a>
-    <a class="btn nav-link <?= $active === 'discover' ? 'active' : '' ?>" href="/index.php">Home</a>
+    <a class="btn nav-link <?= $active === 'discover' ? 'active' : '' ?>" href="<?= user() ? '/index.php' : '/index.php?view=discover' ?>">Home</a>
     <a class="btn nav-link <?= $active === 'people' ? 'active' : '' ?>" href="/people.php">People</a>
     <a class="btn nav-link <?= $active === 'groups' ? 'active' : '' ?>" href="/groups.php">Groups</a>
     <a class="btn nav-link nav-about <?= $active === 'about' ? 'active' : '' ?>" href="/about.php">About</a>
@@ -83,7 +83,7 @@ function site_header(string $active = ''): void {
 function bottom_nav(string $active = ''): void {
     $u = user(); ?>
 <nav class="bottomnav" aria-label="Main">
-  <a href="/index.php" class="<?= $active === 'discover' ? 'active' : '' ?>">
+  <a href="<?= $u ? '/index.php' : '/index.php?view=discover' ?>" class="<?= $active === 'discover' ? 'active' : '' ?>">
     <span>🏠</span>Home</a>
   <a href="/people.php" class="<?= $active === 'people' ? 'active' : '' ?>">
     <span>🧑‍🤝‍🧑</span>People<i class="badge dot" id="freq-dot" hidden></i></a>

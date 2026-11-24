@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/landing.php';
+
+// marketing landing for logged-out visitors on the bare root URL —
+// public event discovery stays available at /index.php?view=discover
+if (!user() && $_GET === []) { landing_page(); exit; }
 
 // legacy deep-link (?event=N opened the old modal) → event page
 if (!empty($_GET['event'])) redirect('event.php?id=' . (int) $_GET['event']);
