@@ -132,5 +132,12 @@ site_header('about');
       <a class="a-btn ghost" href="/index.php">Explore events</a>
     </div>
   </section>
+
+  <footer class="a-foot">
+    <a href="/privacy.php">Privacy policy</a>
+    <a href="/terms.php">Terms of service</a>
+    <a href="/guidelines.php">Community guidelines</a>
+    <span class="a-foot-note">Made for Kenya · Nipange <?= date('Y') ?></span>
+  </footer>
 </main>
 <?php bottom_nav(); site_footer(); ?>

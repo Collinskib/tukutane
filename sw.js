@@ -2,7 +2,7 @@
 // NEVER caches API responses, messages, or account pages.
 const CACHE = 'nipange-v26';
 const STATIC = [
-  '/assets/style.css?v=28',
+  '/assets/style.css?v=29',
   '/assets/app.js?v=13',
   '/assets/alpine.min.js?v=1',
   '/assets/icons/icon-192.png',
