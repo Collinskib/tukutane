@@ -10,7 +10,7 @@ function landing_page(): void {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#071A45">
+<meta name="theme-color" content="#0f2b20">
 <title>Nipange — Life is happening. Don't miss out.</title>
 <meta name="description" content="Discover businesses, events, campus activities, hangouts and new experiences around you. Nipange is Kenya's business, event & social discovery platform — free to join.">
 <link rel="canonical" href="<?= e(absolute_url('/')) ?>">
@@ -25,7 +25,7 @@ function landing_page(): void {
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preload" as="image" href="/assets/landing/hero.jpg">
-<link rel="stylesheet" href="/assets/landing.css?v=5">
+<link rel="stylesheet" href="/assets/landing.css?v=6">
 </head>
 <body class="lp">
 
@@ -75,7 +75,7 @@ function landing_page(): void {
   </section>
 
   <!-- ============ discovery categories ============ -->
-  <section class="lp-sec lp-s1">
+  <section class="lp-sec lp-s1 lp-light">
     <div class="lp-wrap">
       <h2 class="lp-rev">There's always something <em>happening</em>.</h2>
       <p class="lp-sub lp-rev">Sometimes the best plans are the ones you didn't know existed. Discover businesses, events, activities and experiences happening around you.</p>
@@ -118,7 +118,7 @@ function landing_page(): void {
   </section>
 
   <!-- ============ experiences ============ -->
-  <section class="lp-sec lp-s3 lp-split-sec">
+  <section class="lp-sec lp-s3 lp-split-sec lp-light">
     <div class="lp-wrap lp-split lp-flip">
       <div class="lp-split-txt lp-rev">
         <h2>Make room for <em>better experiences</em>.</h2>
