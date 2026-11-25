@@ -10,6 +10,18 @@ markup lives in `includes/layout.php`, styling is a single hand-written
 stylesheet `assets/style.css`, light interactivity via Alpine.js
 (`assets/alpine.min.js`) and `assets/app.js`. Deployed to cPanel/Apache + MySQL.
 
+## Deploys
+
+Pushing to `master` on GitHub deploys automatically: a repo webhook POSTs to
+`https://nipange.co.ke/deploy-hook.php`, which verifies the
+`X-Hub-Signature-256` HMAC against `~/.deploy-hook-secret` (server-only file,
+not committed) and runs `~/repositories/tukutane/deploy.sh` under a lock.
+`deploy.sh` does `git fetch` + `reset --hard origin/master` then copies files
+to `~/public_html/` — it mirrors `.cpanel.yml` (keep them in sync); cPanel's
+own deploy flag is stuck at `deployable:0` on this host, so the hook bypasses
+it. Deploy log: `~/deploy-hook.log`. `deploy.sh`/`deploy-hook.php` are the
+only deploy machinery; `deploy.sh` is not copied into the docroot.
+
 ## Design system — "Nipange" (MANDATORY for all UI work)
 
 All visual decisions are already made. Do not invent new design language.
