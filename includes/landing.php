@@ -25,7 +25,7 @@ function landing_page(): void {
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preload" as="image" href="/assets/landing/hero.jpg">
-<link rel="stylesheet" href="/assets/landing.css?v=4">
+<link rel="stylesheet" href="/assets/landing.css?v=5">
 </head>
 <body class="lp">
 
@@ -49,7 +49,11 @@ function landing_page(): void {
 <main>
   <!-- ============ hero ============ -->
   <section class="lp-hero">
-    <img class="lp-hero-img" src="/assets/landing/hero.jpg" alt="A crowd celebrating under falling confetti" fetchpriority="high">
+    <img class="lp-hero-img" src="/assets/landing/hero.jpg" alt="" fetchpriority="high" decoding="async" aria-hidden="true">
+    <img class="lp-hero-img" src="/assets/landing/students.jpg" alt="" decoding="async" aria-hidden="true">
+    <img class="lp-hero-img" src="/assets/landing/spots.jpg" alt="" decoding="async" aria-hidden="true">
+    <img class="lp-hero-img" src="/assets/landing/festival.jpg" alt="" decoding="async" aria-hidden="true">
+    <img class="lp-hero-img" src="/assets/landing/stage.jpg" alt="" decoding="async" aria-hidden="true">
     <div class="lp-hero-veil" aria-hidden="true"></div>
     <div class="lp-hero-in lp-rev">
       <p class="lp-eyebrow">Kenya's business, event &amp; social discovery platform</p>
@@ -77,19 +81,19 @@ function landing_page(): void {
       <p class="lp-sub lp-rev">Sometimes the best plans are the ones you didn't know existed. Discover businesses, events, activities and experiences happening around you.</p>
       <div class="lp-cards">
         <a class="lp-card lp-rev" href="<?= e($ev) ?>">
-          <span class="lp-card-img"><img src="/assets/landing/laptops.jpg" alt="Friends hanging out together over a table" loading="lazy" decoding="async"></span>
+          <span class="lp-card-img"><img src="/assets/landing/laptops.jpg" alt="People walking along a busy Nairobi street" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>Around you</b><small>Find interesting happenings in your area.</small><i>Browse events →</i></span>
         </a>
         <a class="lp-card lp-rev" href="/venues.php" style="--d:80ms">
-          <span class="lp-card-img"><img src="/assets/landing/spots.jpg" alt="Inside a local clothing boutique with racks and shelves" loading="lazy" decoding="async"></span>
+          <span class="lp-card-img"><img src="/assets/landing/spots.jpg" alt="A vendor's fruit stall at a local market" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>Local businesses</b><small>Shops, cafés and spots near you — find them, message the owners.</small><i>See businesses →</i></span>
         </a>
         <a class="lp-card lp-rev" href="/institutions.php" style="--d:160ms">
-          <span class="lp-card-img"><img src="/assets/landing/students.jpg" alt="Students walking together on campus" loading="lazy" decoding="async"></span>
+          <span class="lp-card-img"><img src="/assets/landing/students.jpg" alt="Two stylish young women outside a campus building" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>Campus life</b><small>Stay in the loop with activities and events around your institution.</small><i>See institutions →</i></span>
         </a>
         <a class="lp-card lp-rev" href="<?= e($ev) ?>&amp;sort=popular" style="--d:240ms">
-          <span class="lp-card-img"><img src="/assets/landing/stage.jpg" alt="A concert stage lit in pink and blue above a crowd" loading="lazy" decoding="async"></span>
+          <span class="lp-card-img"><img src="/assets/landing/stage.jpg" alt="An excited crowd cheering at a live event" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>What's trending</b><small>Discover experiences people are talking about.</small><i>Popular now →</i></span>
         </a>
       </div>
@@ -99,7 +103,7 @@ function landing_page(): void {
   <!-- ============ campus ============ -->
   <section class="lp-sec lp-s2 lp-split-sec">
     <div class="lp-wrap lp-split">
-      <figure class="lp-shot lp-rev"><img src="/assets/landing/crew.jpg" alt="Young people dancing together in the street" loading="lazy" decoding="async"></figure>
+      <figure class="lp-shot lp-rev"><img src="/assets/landing/crew.jpg" alt="Young people dancing together outdoors" loading="lazy" decoding="async"></figure>
       <div class="lp-split-txt lp-rev">
         <h2>Campus life deserves <em>more than lectures</em>.</h2>
         <p class="lp-sub">There's more to campus than classrooms. Discover activities, meet new people and stay connected to what's happening around your institution.</p>
@@ -122,8 +126,8 @@ function landing_page(): void {
         <a class="lp-btn lp-btn-line" href="<?= e($ev) ?>">See what's on</a>
       </div>
       <div class="lp-duo lp-rev">
-        <img class="lp-duo-a" src="/assets/landing/festival.jpg" alt="Friends toasting together at an outdoor gathering" loading="lazy" decoding="async">
-        <img class="lp-duo-b" src="/assets/landing/roof.jpg" alt="Young people raising their hands at sunset" loading="lazy" decoding="async">
+        <img class="lp-duo-a" src="/assets/landing/festival.jpg" alt="A colourful crowd celebrating at a festival" loading="lazy" decoding="async">
+        <img class="lp-duo-b" src="/assets/landing/roof.jpg" alt="Friends talking together in the city at night" loading="lazy" decoding="async">
       </div>
     </div>
   </section>
