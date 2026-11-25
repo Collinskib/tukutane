@@ -14,14 +14,14 @@ site_header();
 <main>
   <div class="toolbar">
     <h2 id="heading">🎓 Institutions</h2>
-    <form method="get" action="institutions.php" style="display:flex;gap:8px;flex-wrap:wrap">
-      <input name="q" type="search" placeholder="Search universities & colleges"
-             value="<?= e($q) ?>" style="max-width:280px">
-      <?php if ($type): ?><input type="hidden" name="type" value="<?= e($type) ?>"><?php endif; ?>
-      <?php if ($county): ?><input type="hidden" name="county" value="<?= e($county) ?>"><?php endif; ?>
-      <button class="btn-mini" type="submit">Search</button>
-    </form>
   </div>
+  <form method="get" action="institutions.php" class="searchbar">
+    <input name="q" type="search" placeholder="Search universities & colleges"
+           value="<?= e($q) ?>" aria-label="Search institutions">
+    <?php if ($type): ?><input type="hidden" name="type" value="<?= e($type) ?>"><?php endif; ?>
+    <?php if ($county): ?><input type="hidden" name="county" value="<?= e($county) ?>"><?php endif; ?>
+    <button type="submit">Search</button>
+  </form>
 
   <div class="chips" style="margin-bottom:8px">
     <a class="chip <?= $type === '' ? 'on' : '' ?>" href="institutions.php<?= $county || $q ? '?' . e(http_build_query(array_filter(compact('county', 'q')))) : '' ?>">All</a>

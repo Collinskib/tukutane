@@ -103,7 +103,7 @@ function landing_page(): void {
   <!-- ============ campus ============ -->
   <section class="lp-sec lp-s2 lp-split-sec">
     <div class="lp-wrap lp-split">
-      <figure class="lp-shot lp-rev"><img src="/assets/landing/crew.jpg" alt="Young people dancing together outdoors" loading="lazy" decoding="async"></figure>
+      <figure class="lp-shot lp-rev"><img src="/assets/landing/crew.jpg" alt="Students hanging out on a campus walkway" loading="lazy" decoding="async"></figure>
       <div class="lp-split-txt lp-rev">
         <h2>Campus life deserves <em>more than lectures</em>.</h2>
         <p class="lp-sub">There's more to campus than classrooms. Discover activities, meet new people and stay connected to what's happening around your institution.</p>
