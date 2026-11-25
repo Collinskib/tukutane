@@ -31,9 +31,15 @@ if ($event !== 'push' || ($payload['ref'] ?? '') !== 'refs/heads/master') {
     exit;
 }
 
+// cPanel's Git deployment flag is unreliable on this host, so deploy.sh
+// does the fetch + reset + copy itself (same steps as .cpanel.yml).
+$lock = fopen($home . '/.deploy-hook.lock', 'c');
+flock($lock, LOCK_EX);
 $out = [];
 $rc  = 0;
-exec('/usr/local/cpanel/bin/uapi VersionControl update repository_root=/home/nipangec/repositories/tukutane 2>&1', $out, $rc);
+exec('/bin/sh /home/nipangec/repositories/tukutane/deploy.sh 2>&1', $out, $rc);
+flock($lock, LOCK_UN);
+fclose($lock);
 @file_put_contents(
     $home . '/deploy-hook.log',
     date('c') . ' ' . ($payload['after'] ?? '?') . " rc=$rc\n" . implode("\n", $out) . "\n\n",
