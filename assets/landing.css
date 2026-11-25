@@ -132,7 +132,7 @@
 /* ---------- steps ---------- */
 .lp-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px}
 .lp-step{position:relative;background:var(--card-d);border:1px solid var(--line-d);border-radius:16px;padding:34px 26px 30px;overflow:hidden}
-.lp-step b{position:absolute;top:6px;right:14px;font-size:88px;font-weight:800;line-height:1;font-family:system-ui;color:var(--accent);opacity:.16}
+.lp-step b{position:absolute;top:6px;right:14px;font-size:88px;font-weight:800;line-height:1;font-family:system-ui;color:var(--accent-lt);opacity:.55}
 .lp-step h3{font-size:23px;font-family:Georgia,'Times New Roman',serif;font-weight:400;margin:44px 0 10px}
 .lp-step p{margin:0;color:var(--mut);font-size:15px}
 
