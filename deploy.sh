@@ -4,6 +4,11 @@
 # Runs from deploy-hook.php on each GitHub push to master; also safe to
 # run manually over SSH/cPanel Terminal.
 cd "$(dirname "$0")" || exit 1
+
+# Serialize concurrent deploys (hook queues one per push).
+exec 9>/home/nipangec/.deploy-hook.lock
+flock 9 || exit 1
+
 git fetch origin && git reset --hard origin/master || exit 1
 
 DEPLOYPATH=/home/nipangec/public_html/

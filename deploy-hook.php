@@ -32,19 +32,18 @@ if ($event !== 'push' || ($payload['ref'] ?? '') !== 'refs/heads/master') {
 }
 
 // cPanel's Git deployment flag is unreliable on this host, so deploy.sh
-// does the fetch + reset + copy itself (same steps as .cpanel.yml).
-$lock = fopen($home . '/.deploy-hook.lock', 'c');
-flock($lock, LOCK_EX);
-$out = [];
-$rc  = 0;
-exec('/bin/sh /home/nipangec/repositories/tukutane/deploy.sh 2>&1', $out, $rc);
-flock($lock, LOCK_UN);
-fclose($lock);
+// does the fetch + reset + copy itself (same steps as .cpanel.yml). It's
+// queued in the background so GitHub gets a fast 200 — concurrent pushes
+// serialize on the flock inside deploy.sh. Status is in ~/deploy-hook.log.
+$repo = '/home/nipangec/repositories/tukutane';
+$log  = $home . '/deploy-hook.log';
 @file_put_contents(
-    $home . '/deploy-hook.log',
-    date('c') . ' ' . ($payload['after'] ?? '?') . " rc=$rc\n" . implode("\n", $out) . "\n\n",
+    $log,
+    date('c') . ' ' . ($payload['after'] ?? '?') . " queued\n",
     FILE_APPEND | LOCK_EX
 );
-
-http_response_code($rc === 0 ? 200 : 500);
-echo json_encode(['ok' => $rc === 0, 'sha' => $payload['after'] ?? null]);
+exec(
+    'cd ' . escapeshellarg($repo)
+    . ' && nohup /bin/sh deploy.sh >> ' . escapeshellarg($log) . ' 2>&1 &'
+);
+echo json_encode(['ok' => true, 'queued' => true, 'sha' => $payload['after'] ?? null]);
