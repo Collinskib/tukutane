@@ -12,12 +12,12 @@ function landing_page(): void {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#071A45">
 <title>Nipange — Life is happening. Don't miss out.</title>
-<meta name="description" content="Discover events, campus activities, hangouts and new experiences around you. Nipange is Kenya's event & social discovery platform — free to join.">
+<meta name="description" content="Discover businesses, events, campus activities, hangouts and new experiences around you. Nipange is Kenya's business, event & social discovery platform — free to join.">
 <link rel="canonical" href="<?= e(absolute_url('/')) ?>">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nipange">
 <meta property="og:title" content="Nipange — Life is happening. Don't miss out.">
-<meta property="og:description" content="From campus experiences and exciting hangouts to live events and new discoveries — find what's happening around you.">
+<meta property="og:description" content="From local businesses and campus experiences to hangouts, live events and new discoveries — find what's happening around you.">
 <meta property="og:image" content="<?= e(absolute_url('/assets/landing/hero.jpg')) ?>">
 <meta property="og:url" content="<?= e(absolute_url('/')) ?>">
 <meta name="twitter:card" content="summary_large_image">
@@ -25,7 +25,7 @@ function landing_page(): void {
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preload" as="image" href="/assets/landing/hero.jpg">
-<link rel="stylesheet" href="/assets/landing.css?v=3">
+<link rel="stylesheet" href="/assets/landing.css?v=4">
 </head>
 <body class="lp">
 
@@ -52,9 +52,15 @@ function landing_page(): void {
     <img class="lp-hero-img" src="/assets/landing/hero.jpg" alt="A crowd celebrating under falling confetti" fetchpriority="high">
     <div class="lp-hero-veil" aria-hidden="true"></div>
     <div class="lp-hero-in lp-rev">
-      <p class="lp-eyebrow">Kenya's event &amp; social discovery platform</p>
+      <p class="lp-eyebrow">Kenya's business, event &amp; social discovery platform</p>
       <h1>Life is happening.<br>Don't miss out.</h1>
-      <p class="lp-lead">From campus experiences and exciting hangouts to live events and new discoveries — find what's happening around you. Your next favourite experience could be just around the corner.</p>
+      <p class="lp-lead">From local businesses and campus experiences to hangouts and live events — find what's happening around you. Your next favourite spot could be just around the corner.</p>
+      <form class="lp-search" action="/index.php" method="get" role="search">
+        <input type="hidden" name="view" value="discover">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <input name="q" type="search" placeholder="Search events, businesses, places…" aria-label="Search events and businesses" autocomplete="off">
+        <button type="submit">Search</button>
+      </form>
       <div class="lp-ctas">
         <a class="lp-btn lp-btn-hot" href="<?= e($ev) ?>">Explore what's happening</a>
         <a class="lp-btn lp-btn-ghost" href="/auth.php?mode=register">Join Nipange</a>
@@ -68,17 +74,21 @@ function landing_page(): void {
   <section class="lp-sec lp-s1">
     <div class="lp-wrap">
       <h2 class="lp-rev">There's always something <em>happening</em>.</h2>
-      <p class="lp-sub lp-rev">Sometimes the best plans are the ones you didn't know existed. Discover events, activities and experiences happening around you.</p>
+      <p class="lp-sub lp-rev">Sometimes the best plans are the ones you didn't know existed. Discover businesses, events, activities and experiences happening around you.</p>
       <div class="lp-cards">
         <a class="lp-card lp-rev" href="<?= e($ev) ?>">
           <span class="lp-card-img"><img src="/assets/landing/laptops.jpg" alt="Friends hanging out together over a table" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>Around you</b><small>Find interesting happenings in your area.</small><i>Browse events →</i></span>
         </a>
-        <a class="lp-card lp-rev" href="/institutions.php" style="--d:80ms">
+        <a class="lp-card lp-rev" href="/venues.php" style="--d:80ms">
+          <span class="lp-card-img"><img src="/assets/landing/spots.jpg" alt="Inside a local clothing boutique with racks and shelves" loading="lazy" decoding="async"></span>
+          <span class="lp-card-body"><b>Local businesses</b><small>Shops, cafés and spots near you — find them, message the owners.</small><i>See businesses →</i></span>
+        </a>
+        <a class="lp-card lp-rev" href="/institutions.php" style="--d:160ms">
           <span class="lp-card-img"><img src="/assets/landing/students.jpg" alt="Students walking together on campus" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>Campus life</b><small>Stay in the loop with activities and events around your institution.</small><i>See institutions →</i></span>
         </a>
-        <a class="lp-card lp-rev" href="<?= e($ev) ?>&amp;sort=popular" style="--d:160ms">
+        <a class="lp-card lp-rev" href="<?= e($ev) ?>&amp;sort=popular" style="--d:240ms">
           <span class="lp-card-img"><img src="/assets/landing/stage.jpg" alt="A concert stage lit in pink and blue above a crowd" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>What's trending</b><small>Discover experiences people are talking about.</small><i>Popular now →</i></span>
         </a>
@@ -108,7 +118,7 @@ function landing_page(): void {
     <div class="lp-wrap lp-split lp-flip">
       <div class="lp-split-txt lp-rev">
         <h2>Make room for <em>better experiences</em>.</h2>
-        <p class="lp-sub">Find your next hangout, discover something new or get involved in what's happening around you. Nipange makes discovering experiences easier.</p>
+        <p class="lp-sub">Find your next hangout, a new favourite spot or get involved in what's happening around you. Nipange makes discovering businesses and experiences easier.</p>
         <a class="lp-btn lp-btn-line" href="<?= e($ev) ?>">See what's on</a>
       </div>
       <div class="lp-duo lp-rev">
@@ -123,7 +133,7 @@ function landing_page(): void {
     <div class="lp-wrap">
       <h2 class="lp-rev">Your next experience is <em>closer than you think</em>.</h2>
       <div class="lp-steps">
-        <div class="lp-step lp-rev"><b>01</b><h3>Discover</h3><p>Explore events and activities around you.</p></div>
+        <div class="lp-step lp-rev"><b>01</b><h3>Discover</h3><p>Explore businesses, events and activities around you.</p></div>
         <div class="lp-step lp-rev" style="--d:90ms"><b>02</b><h3>Find your vibe</h3><p>Browse experiences that interest you.</p></div>
         <div class="lp-step lp-rev" style="--d:180ms"><b>03</b><h3>Get involved</h3><p>Join in, participate and make the most of what's happening.</p></div>
       </div>
@@ -149,11 +159,12 @@ function landing_page(): void {
   <div class="lp-wrap lp-foot-in">
     <div class="lp-foot-brand">
       <a class="lp-logo" href="/index.php"><img src="/assets/icons/logo.png" alt=""><span>Nipange<i>.</i></span></a>
-      <p>Find gatherings, events, people and experiences around you — across Kenya.</p>
+      <p>Find businesses, events, people and experiences around you — across Kenya.</p>
     </div>
     <nav class="lp-foot-links" aria-label="Footer">
       <div><strong>Explore</strong>
         <a href="<?= e($ev) ?>">Events</a>
+        <a href="/venues.php">Businesses</a>
         <a href="/about.php">About Nipange</a>
         <a href="/institutions.php">Institutions</a>
       </div>
