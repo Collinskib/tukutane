@@ -25,7 +25,7 @@ function landing_page(): void {
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preload" as="image" href="/assets/landing/hero.jpg">
-<link rel="stylesheet" href="/assets/landing.css?v=7">
+<link rel="stylesheet" href="/assets/landing.css?v=8">
 </head>
 <body class="lp">
 
