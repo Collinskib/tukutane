@@ -69,7 +69,7 @@ React) — PHP + hand CSS + Alpine only.
 
 ## UI workflow for agents
 
-1. Read `assets/style.css` and a comparable existing page before writing markup.
+1. Read `assets/style.css` and a comparable existing page before writing markup. After editing `assets/style.css`, bump its `?v=` in `includes/layout.php` AND the `STATIC` entry in `sw.js` (bump the `CACHE` name too) — both the HTTP cache and the service worker cache-first CSS by full URL, so an unchanged `?v=` serves stale styles indefinitely.
 2. Reuse token vars and component classes; add new CSS only for genuinely new
    components, in the same single-line, section-commented style.
 3. After changing a page, render it (PHP's built-in server works:
