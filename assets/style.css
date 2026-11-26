@@ -124,7 +124,7 @@ a.brand{text-decoration:none}
 .actions .primary{border-radius:var(--r-pill);transition:transform var(--dur-fast) var(--ease-out)}
 .actions .primary:active{transform:scale(.95)}
 .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-top:16px}
 .person{position:relative;overflow:hidden;background:var(--green-1);border:1px solid var(--line-soft);border-radius:var(--r-card);display:flex;flex-direction:column;justify-content:flex-end;aspect-ratio:3/4;transition:transform var(--dur-ui) var(--ease-out),box-shadow var(--dur-ui)}
 .person::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--pc,var(--line));z-index:3}
 @media(hover:hover) and (pointer:fine){.person:hover{transform:translateY(-3px);box-shadow:var(--shadow)}}
