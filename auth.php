@@ -45,7 +45,7 @@ site_header();
 ?>
 <main class="auth-stage">
   <div class="auth-bg" aria-hidden="true">
-    <img src="/assets/landing/hero.jpg" alt="" decoding="async">
+    <img src="/assets/landing/crew.jpg" alt="" decoding="async">
     <img src="/assets/landing/students.jpg" alt="" decoding="async">
     <img src="/assets/landing/spots.jpg" alt="" decoding="async">
     <img src="/assets/landing/festival.jpg" alt="" decoding="async">
