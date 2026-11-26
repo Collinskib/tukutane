@@ -47,7 +47,7 @@ site_header('discover');
     <?php if ($ev['cover']): ?><img src="<?= img_url($ev['cover'], 800) ?>" alt="" decoding="async"><?php endif; ?>
     <div class="grad"></div>
     <div class="cap">
-      <small><?= e($ev['category']) ?> <?= $emoji ?><?= $ev['invite_only'] ? ' · 🔒 Invite only' : '' ?><?= $ev['series_id'] ? ' · 🔁 Series' : '' ?></small>
+      <small><?= e($ev['category']) ?> <?= $emoji ?><?= $ev['invite_only'] ? ' · 🔒 Invite only' : '' ?><?= $ev['series_id'] ? ' · 🔁 ' . e(ucfirst($ev['series_freq'] ?? 'series')) : '' ?></small>
       <h1><?= e($ev['title']) ?></h1>
     </div>
   </div>
@@ -151,7 +151,7 @@ site_header('discover');
           <button class="btn-ghost" type="submit"><?= $ev['saved'] ? '★ Saved' : '☆ Save' ?></button>
         </form>
       <?php else: ?>
-        <a class="primary" href="auth.php?next=<?= urlencode('event.php?id=' . $id) ?>">Join event</a>
+        <a class="primary btn" href="auth.php?next=<?= urlencode('event.php?id=' . $id) ?>">Join event</a>
       <?php endif; ?>
     <?php endif; ?>
     <a class="btn-ghost" href="<?= e(whatsapp_share($ev['title'], $shareUrl)) ?>" target="_blank" rel="noopener">Share on WhatsApp</a>

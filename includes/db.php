@@ -103,12 +103,21 @@ function place_label(array $r, string $fallback = ''): string {
 
 // ---------- gatherings ----------
 
+// A recurring series shows as ONE card per list — the earliest upcoming
+// (or latest past) active occurrence — not a row per date.
+function series_next_sql(string $a = 'g', bool $upcoming = true): string {
+    $agg = $upcoming ? 'MIN' : 'MAX';
+    $cmp = $upcoming ? '>' : '<=';
+    return "($a.series_id IS NULL OR $a.event_at = (SELECT $agg(x.event_at) FROM gatherings x
+            WHERE x.series_id = $a.series_id AND x.status != 'cancelled' AND x.event_at $cmp NOW()))";
+}
+
 // Filtered, paginated event feed. $f keys:
 // view(discover|mine|saved|hosted), interest, area, q, when(today|tomorrow|weekend),
 // cost(free|paid), sort(soon|popular|featured), page, per
 function gatherings(array $f): array {
     $uid  = user_id();
-    $sql  = 'SELECT g.*, i.name AS institution_name,
+    $sql  = 'SELECT g.*, i.name AS institution_name, gs.freq AS series_freq,
                     (g.creator_id = :um OR (g.creator_id IS NULL AND g.creator = :sm)) AS mine,
                     EXISTS(SELECT 1 FROM rsvps r WHERE r.gathering_id = g.id
                            AND (r.user_id = :uj OR r.session_key = :sj)) AS joined,
@@ -117,6 +126,7 @@ function gatherings(array $f): array {
                     (SELECT COUNT(*) FROM rsvps r2 WHERE r2.gathering_id = g.id) AS real_rsvps
              FROM gatherings g
              LEFT JOIN institutions i ON i.id = g.institution_id
+             LEFT JOIN gathering_series gs ON gs.id = g.series_id
              WHERE g.status != "cancelled" AND g.event_at > NOW()';
     $p = [':um' => $uid, ':sm' => SESSION_KEY, ':uj' => $uid, ':sj' => SESSION_KEY, ':usv' => $uid];
 
@@ -127,10 +137,12 @@ function gatherings(array $f): array {
     switch ($f['view'] ?? 'discover') {
         case 'mine':
             $sql .= " AND ($meClause OR $myJoin)";
+            // my own series dedupes; dates I merely joined always show
+            $sql .= ' AND (NOT ' . $meClause . ' OR ' . series_next_sql() . ')';
             $p += [':um2' => $uid, ':sm2' => SESSION_KEY, ':um3' => $uid, ':sm3' => SESSION_KEY];
             break;
         case 'hosted':
-            $sql .= " AND $meClause";
+            $sql .= " AND $meClause AND " . series_next_sql();
             $p += [':um2' => $uid, ':sm2' => SESSION_KEY];
             break;
         case 'saved':
@@ -139,7 +151,7 @@ function gatherings(array $f): array {
             break;
         default:
             // public feed: not invite-only unless I created or was invited
-            $sql .= ' AND g.audience = "public"
+            $sql .= ' AND ' . series_next_sql() . ' AND g.audience = "public"
                       AND (g.invite_only = 0
                            OR g.creator_id = :um5
                            OR EXISTS(SELECT 1 FROM invites i WHERE i.gathering_id = g.id
@@ -202,14 +214,15 @@ function gatherings(array $f): array {
 
 function find_gathering(int $id): ?array {
     $stmt = db()->prepare(
-        'SELECT g.*,
+        'SELECT g.*, gs.freq AS series_freq,
                 (g.creator_id = :um OR (g.creator_id IS NULL AND g.creator = :sm)) AS mine,
                 EXISTS(SELECT 1 FROM rsvps r WHERE r.gathering_id = g.id
                        AND (r.user_id = :uj OR r.session_key = :sj)) AS joined,
                 EXISTS(SELECT 1 FROM saves sv WHERE sv.gathering_id = g.id
                        AND sv.user_id = :usv) AS saved,
                 (SELECT COUNT(*) FROM rsvps r2 WHERE r2.gathering_id = g.id) AS real_rsvps
-         FROM gatherings g WHERE g.id = :id'
+         FROM gatherings g LEFT JOIN gathering_series gs ON gs.id = g.series_id
+         WHERE g.id = :id'
     );
     $stmt->execute([':id' => $id, ':um' => user_id(), ':sm' => SESSION_KEY,
                     ':uj' => user_id(), ':sj' => SESSION_KEY, ':usv' => user_id()]);
@@ -1158,9 +1171,12 @@ function host_gatherings(int $uid, bool $upcoming = true, int $limit = 12): arra
     $cmp = $upcoming ? '>=' : '<';
     $ord = $upcoming ? 'ASC' : 'DESC';
     $stmt = db()->prepare(
-        "SELECT g.*, (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
-         FROM gatherings g WHERE g.creator_id = :u AND g.status != 'cancelled'
-         AND g.event_at $cmp NOW() ORDER BY g.event_at $ord LIMIT " . (int) $limit);
+        "SELECT g.*, gs.freq AS series_freq,
+                (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
+         FROM gatherings g LEFT JOIN gathering_series gs ON gs.id = g.series_id
+         WHERE g.creator_id = :u AND g.status != 'cancelled'
+         AND g.event_at $cmp NOW() AND " . series_next_sql('g', $upcoming) .
+        " ORDER BY g.event_at $ord LIMIT " . (int) $limit);
     $stmt->execute([':u' => $uid]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -1209,8 +1225,11 @@ function venue_get(int $id): ?array {
 }
 
 function venue_events(int $id): array {
-    $stmt = db()->prepare("SELECT g.*, (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
-                           FROM gatherings g WHERE g.venue_id = :v AND g.status = 'active' AND g.event_at >= NOW()
+    $stmt = db()->prepare("SELECT g.*, gs.freq AS series_freq,
+                                  (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
+                           FROM gatherings g LEFT JOIN gathering_series gs ON gs.id = g.series_id
+                           WHERE g.venue_id = :v AND g.status = 'active' AND g.event_at >= NOW()
+                             AND " . series_next_sql() . "
                            ORDER BY g.event_at LIMIT 24");
     $stmt->execute([':v' => $id]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1327,9 +1346,12 @@ function institution_pair(?int $instId, ?int $campId): ?array {
 // upcoming public events associated with an institution (any campus)
 function institution_events(int $id, int $limit = 24): array {
     $stmt = db()->prepare(
-        'SELECT g.*, (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
-         FROM gatherings g WHERE g.institution_id = :i AND g.status = "active"
+        'SELECT g.*, gs.freq AS series_freq,
+                (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
+         FROM gatherings g LEFT JOIN gathering_series gs ON gs.id = g.series_id
+         WHERE g.institution_id = :i AND g.status = "active"
            AND g.event_at >= NOW() AND g.audience = "public"
+           AND ' . series_next_sql() . '
          ORDER BY g.event_at LIMIT :lim'
     );
     $stmt->bindValue(':i', $id, PDO::PARAM_INT);

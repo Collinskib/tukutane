@@ -43,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':io' => $invite, ':vid' => $venue_id, ':id' => $id,
                 ];
                 if ($cover) $params[':cv'] = $cover;
-                $scope = ($_POST['scope'] ?? '') === 'series' && $ev['series_id'] ? 'series' : 'one';
+                $scope = $ev['series_id'] && in_array($_POST['scope'] ?? '', ['series', 'stop'], true)
+                       ? $_POST['scope'] : 'one';
                 if ($scope === 'series') {
                     // shared fields on every upcoming occurrence; date stays per-occurrence
                     $shared = $params; unset($shared[':d'], $shared[':cv'], $shared[':id']);
@@ -69,11 +70,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     flash('Saved across the whole series.');
                 } else {
+                    // 'stop' converts to a one-time event: save this date, detach it
+                    // from the series, cancel the remaining upcoming dates.
                     db()->prepare('UPDATE gatherings SET title=:t,category=:c,area=:a,county=:cy,estate=:es,venue=:v,
                                    event_at=:d,cost=:k,audience=:au,description=:ds,
                                    capacity=:cap,invite_only=:io,venue_id=:vid'
+                                   . ($scope === 'stop' ? ',series_id=NULL' : '')
                                    . ($cover ? ',cover=:cv' : '') . ' WHERE id=:id')
                         ->execute($params);
+                    if ($scope === 'stop') {
+                        $occs = db()->prepare('SELECT id FROM gatherings WHERE series_id=:s
+                                               AND status="active" AND event_at >= NOW()');
+                        $occs->execute([':s' => $ev['series_id']]);
+                        $ids = array_map('intval', $occs->fetchAll(PDO::FETCH_COLUMN));
+                        db()->prepare('UPDATE gatherings SET status="cancelled" WHERE series_id=:s
+                                       AND status="active" AND event_at >= NOW()')
+                            ->execute([':s' => $ev['series_id']]);
+                        foreach ($ids as $oid) {
+                            foreach (attendees_of($oid) as $a) {
+                                if ($a['user_id']) notify((int) $a['user_id'], 'event_cancelled',
+                                    '"' . $title . '" is now a one-time event — this date was cancelled by the host.',
+                                    'index.php');
+                            }
+                        }
+                        // drop the series row once nothing active points at it
+                        db()->prepare('DELETE FROM gathering_series WHERE id=:s AND NOT EXISTS
+                                       (SELECT 1 FROM gatherings WHERE series_id=:s2 AND status != "cancelled")')
+                            ->execute([':s' => $ev['series_id'], ':s2' => $ev['series_id']]);
+                    }
                     if ($ev['venue'] !== $venue || $ev['area'] !== $area || strtotime($ev['event_at']) !== strtotime($date)) {
                         $when = date('D j M · g:i A', strtotime($date));
                         foreach (attendees_of($id) as $a) {
@@ -82,7 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'event.php?id=' . $id);
                         }
                     }
-                    flash('Saved.');
+                    flash($scope === 'stop'
+                        ? 'Now a one-time event — the other upcoming dates were cancelled.'
+                        : 'Saved.');
                 }
                 if ($capacity === null || $ev['capacity'] === null || $capacity > (int) $ev['capacity']) {
                     waitlist_promote($id);
@@ -205,6 +231,8 @@ site_header('plans');
         <input type="radio" name="scope" value="one" style="width:auto" checked> This date only</label>
       <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:6px">
         <input type="radio" name="scope" value="series" style="width:auto"> All upcoming dates — keeps each date's own time</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:6px">
+        <input type="radio" name="scope" value="stop" style="width:auto"> Stop repeating — keep only this date, cancel the rest</label>
     </div>
     <?php endif; ?>
     <button class="btn-block" type="submit">Save changes</button>

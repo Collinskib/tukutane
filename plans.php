@@ -35,7 +35,7 @@ function event_row(array $ev, bool $hosted = false): void {
   <div class="plan-card">
     <div class="ribbon" style="background:<?= e($col) ?>;height:64px;width:74px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none"><?= $em ?></div>
     <div class="info">
-      <b><a href="event.php?id=<?= (int) $ev['id'] ?>" style="color:inherit;text-decoration:none"><?= e($ev['title']) ?></a></b>
+      <b><a href="event.php?id=<?= (int) $ev['id'] ?>" style="color:inherit;text-decoration:none"><?= e($ev['title']) ?></a><?= !empty($ev['series_id']) ? ' <span title="Repeats — next date shown">🔁</span>' : '' ?></b>
       <small><?= e(when($ev['event_at'])) ?> · <?= e(place_label($ev)) ?> · <?= e(price((int) $ev['cost'])) ?></small>
     </div>
     <?php if ($ev['status'] === 'cancelled'): ?><span class="status-pill warn">Cancelled</span>

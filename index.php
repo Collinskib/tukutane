@@ -178,7 +178,7 @@ site_header('discover');
       </div>
       <?php endif; ?>
       <div class="body">
-        <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a><?= !empty($event['series_id']) ? ' <span title="Repeating series">🔁</span>' : '' ?></h3>
+        <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a><?= !empty($event['series_id']) ? ' <span title="Repeats — next date shown">🔁 ' . e(ucfirst($event['series_freq'] ?? 'series')) . '</span>' : '' ?></h3>
         <p><?= e(when($event['event_at'])) ?></p>
         <p><?= e(place_label($event)) ?> · <?= e(price((int) $event['cost'])) ?></p>
         <?php if (!empty($event['institution_name'])): ?>
@@ -199,7 +199,7 @@ site_header('discover');
               <button class="primary" type="submit"><?= $joined ? 'Cancel RSVP' : 'Join' ?></button>
             </form>
             <?php else: ?>
-            <a class="primary" href="auth.php?next=<?= urlencode('event.php?id=' . $event['id']) ?>">Join</a>
+            <a class="primary btn" href="auth.php?next=<?= urlencode('event.php?id=' . $event['id']) ?>">Join</a>
             <?php endif; ?>
           <?php endif; ?>
         </div>

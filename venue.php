@@ -51,7 +51,7 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
       <div class="ribbon" style="background:<?= e($rc) ?>"><span><?= e($r['category']) ?></span><span><?= e((categories()[$r['category']] ?? ['📅'])[0]) ?></span></div>
       <div class="body">
         <h3><a href="event.php?id=<?= (int) $r['id'] ?>" style="color:inherit;text-decoration:none"><?= e($r['title']) ?></a>
-          <?= $r['series_id'] ? '🔁' : '' ?></h3>
+          <?= $r['series_id'] ? ' <span title="Repeats — next date shown">🔁 ' . e(ucfirst($r['series_freq'] ?? 'series')) . '</span>' : '' ?></h3>
         <p><?= e(when($r['event_at'])) ?> · <?= (int) $r['real_rsvps'] + (int) $r['going_base'] ?> going<?= $r['capacity'] ? ' / ' . (int) $r['capacity'] : '' ?></p>
       </div>
     </article>

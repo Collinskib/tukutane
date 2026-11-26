@@ -174,6 +174,7 @@ function ev_out(array $e): array {
         'saved' => (bool) ($e['saved'] ?? 0),
         'hostId' => (int) ($e['creator_id'] ?? 0),
         'seriesId' => (int) ($e['series_id'] ?? 0),
+        'seriesFreq' => $e['series_freq'] ?? '',
         'venueId' => (int) ($e['venue_id'] ?? 0),
         'featured' => (bool) ($e['featured'] ?? 0),
     ];
