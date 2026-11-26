@@ -19,7 +19,7 @@ site_header('groups');
 <main>
   <div class="toolbar" style="justify-content:flex-start;gap:10px">
     <h2>Local groups</h2>
-    <a class="primary" href="group-edit.php" style="margin-left:auto">+ Start a group</a>
+    <a class="btn primary" href="group-edit.php" style="margin-left:auto">+ Start a group</a>
   </div>
   <nav class="tabs" style="margin:4px 0 14px">
     <a href="groups.php" class="<?= $view === 'discover' ? 'active' : '' ?>">Discover</a>

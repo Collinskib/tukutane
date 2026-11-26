@@ -43,7 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 page_head($mode === 'register' ? 'Join Nipange' : 'Log in');
 site_header();
 ?>
-<main>
+<main class="auth-stage">
+  <div class="auth-bg" aria-hidden="true">
+    <img src="/assets/landing/hero.jpg" alt="" decoding="async">
+    <img src="/assets/landing/students.jpg" alt="" decoding="async">
+    <img src="/assets/landing/spots.jpg" alt="" decoding="async">
+    <img src="/assets/landing/festival.jpg" alt="" decoding="async">
+    <img src="/assets/landing/stage.jpg" alt="" decoding="async">
+  </div>
+  <div class="auth-veil" aria-hidden="true"></div>
 <div class="form rv in">
   <div class="tabs" style="border:0;margin:0 0 14px">
     <a href="?<?= $mode === 'login' ? '' : 'mode=login&' ?>next=<?= urlencode($next) ?>" class="<?= $mode === 'login' ? 'active' : '' ?>">Log in</a>
@@ -119,5 +127,6 @@ site_header();
     <?php endif; ?>
   </p>
 </div>
+  <p class="auth-tag">Discover. Connect. Experience more.</p>
 </main>
 <?php bottom_nav(); site_footer(); ?>
