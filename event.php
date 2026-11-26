@@ -62,6 +62,19 @@ site_header('discover');
     <?php endif; ?>
   </div>
 
+  <?php if ($ev['venue_id'] && ($evVenue = venue_get((int) $ev['venue_id'])) && $evVenue['creator_id']
+          && (int) $evVenue['creator_id'] === user_id() && (int) $ev['creator_id'] !== user_id()): ?>
+  <div class="card rv" style="--d:120ms;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <span style="font-size:14px">🏪 This plan is at your business <b><?= e($evVenue['name']) ?></b></span>
+    <form method="post" action="venue-plan.php"
+          onsubmit="return confirm('Decline this plan at your business? The host will be asked to pick another venue.')">
+      <?= csrf_field() ?><input type="hidden" name="g" value="<?= (int) $id ?>">
+      <input type="hidden" name="back" value="<?= e('event.php?id=' . $id) ?>">
+      <button class="btn-mini warn" type="submit">Decline plan</button>
+    </form>
+  </div>
+  <?php endif; ?>
+
   <p class="rv" style="--d:140ms;color:var(--ink-soft);font-size:17px;line-height:1.55"><?= nl2br(e($ev['description'])) ?></p>
 
   <?php if (!empty($ev['series_id'])):

@@ -35,7 +35,7 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
         <a class="btn-mini solid" href="messages.php?to=<?= (int) $v['creator_id'] ?>">💬 Message business</a>
         <?php endif; ?>
         <?php if ($canEdit): ?><a class="btn-mini" href="venue-edit.php?id=<?= $id ?>">Edit business</a><?php endif; ?>
-        <a class="btn-mini" href="create.php">+ Plan something here</a>
+        <a class="btn-mini" href="create.php?venue=<?= $id ?>">+ Plan something here</a>
       </div>
     </div>
   </div>
@@ -43,7 +43,7 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
   <h3 style="font-family:var(--serif);font-weight:400">Upcoming at <?= e($v['name']) ?></h3>
   <?php if (!$events): ?>
   <div class="empty"><span class="big">🗓️</span><p>Nothing planned here yet — be the first.</p>
-    <a class="primary btn" href="create.php">Create a plan</a></div>
+    <a class="primary btn" href="create.php?venue=<?= $id ?>">Create a plan</a></div>
   <?php else: ?>
   <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
     <?php foreach ($events as $r): [, $rc] = categories()[$r['category']] ?? ['', '#e4e6db']; ?>

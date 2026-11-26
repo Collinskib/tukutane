@@ -3,6 +3,13 @@ require_once __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/layout.php';
 require_login('create.php');
 
+// "Plan something here" from a business page — prefill venue + its location.
+$pref = null;
+if (isset($_GET['venue'])) {
+    $pref = venue_get((int) $_GET['venue']) ?: null;
+}
+$preInst = $pref && $pref['institution_id'] ? institution_get((int) $pref['institution_id']) : null;
+
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
@@ -67,6 +74,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     user()['name'] . ' posted "' . $title . '" — ' . date('D j M · g:i A', strtotime($date)) . ' at ' . $venue . ', ' . $area . '.',
                     'event.php?id=' . $firstId);
             }
+            // heads-up to the business owner — they can decline the plan
+            // from the event page, which detaches it from their listing.
+            if ($venue_id) {
+                $ov = venue_get($venue_id);
+                if ($ov && $ov['creator_id'] && (int) $ov['creator_id'] !== user_id()) {
+                    notify((int) $ov['creator_id'], 'venue_plan',
+                        user()['name'] . ' planned "' . $title . '" at your business ' . $ov['name'] . ' — '
+                            . date('D j M · g:i A', strtotime($date)) . '.',
+                        'event.php?id=' . $firstId);
+                }
+            }
             flash($repeat ? 'Series created — ' . count($dates) . ' dates are live!' : 'Your plan is live! Share it with friends.');
             redirect('event.php?id=' . $firstId);
         }
@@ -80,6 +98,7 @@ site_header();
 <div class="create-layout">
 <div class="form rv in" style="max-width:560px">
   <h2>Create a plan</h2>
+  <?php if ($pref): ?><p style="margin:-6px 0 12px;color:var(--ink-soft);font-size:14px">🏪 Planning at <b><?= e($pref['name']) ?></b> — the business owner will be notified and can decline it.</p><?php endif; ?>
   <?php if ($err): ?><p style="color:#a33a1f"><?= e($err) ?></p><?php endif; ?>
   <form method="post" enctype="multipart/form-data">
     <?= csrf_field() ?>
@@ -94,11 +113,11 @@ site_header();
           <?php endforeach; ?>
         </select></div>
       <div class="field"><label>Where</label>
-        <?php location_picker($_POST['county'] ?? '', $_POST['area'] ?? '', $_POST['estate'] ?? ''); ?></div>
+        <?php location_picker($_POST['county'] ?? ($pref['county'] ?? ''), $_POST['area'] ?? ($pref['area'] ?? ''), $_POST['estate'] ?? ($pref['estate'] ?? '')); ?></div>
     </div>
 
     <div class="field"><label for="venue">Venue</label>
-      <input id="venue" name="venue" required maxlength="80" list="venuelist" value="<?= e($_POST['venue'] ?? '') ?>"
+      <input id="venue" name="venue" required maxlength="80" list="venuelist" value="<?= e($_POST['venue'] ?? ($pref['name'] ?? '')) ?>"
              placeholder="e.g. rooftop lounge, sports café">
       <datalist id="venuelist">
         <?php foreach (venues_all() as $v): ?><option value="<?= e($v['name']) ?>"><?= e(place_label($v)) ?></option><?php endforeach; ?>
@@ -106,7 +125,7 @@ site_header();
       <small style="color:var(--ink-soft)">Known spots autocomplete — or <a href="venue-edit.php">add a venue</a>.</small></div>
 
     <div class="field"><label>Associate with an institution (optional)</label>
-      <?php institution_picker(); ?>
+      <?php institution_picker((int) ($preInst['id'] ?? 0), (string) ($preInst['name'] ?? '')); ?>
       <small style="color:var(--ink-soft)">Tag the event to a university or college community — anyone can still see it. The venue above stays the real location.</small></div>
 
     <div class="grid2">
