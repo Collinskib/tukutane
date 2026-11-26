@@ -128,7 +128,7 @@ site_header('people');
     <div class="person rv" style="--d:<?= min($i * 40, 400) ?>ms;--pc:<?= e($pc) ?>">
       <a class="pcov" href="user.php?id=<?= (int) $p['id'] ?>">
         <?php if (!empty($p['photo'])): ?>
-        <img src="<?= img_url($p['photo'], 400) ?>" alt="<?= e($p['name']) ?>" loading="lazy" decoding="async">
+        <img src="<?= img_url($p['photo'], 480) ?>" alt="<?= e($p['name']) ?>" loading="lazy" decoding="async">
         <?php else: ?>
         <span class="pcov-ph"><?= e(mb_strtoupper(mb_substr($p['name'], 0, 1))) ?></span>
         <?php endif; ?>
