@@ -432,7 +432,7 @@ function find_user_by_email(string $email): ?array {
 
 // People nearby: discoverable active users, shared interests ranked first.
 function people(array $f, int $viewerId): array {
-    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.fun_fact, u.area, u.county, u.interests, u.gender, u.age_bracket,
+    $sql = 'SELECT u.id, u.name, u.photo, u.bio, u.fun_fact, u.area, u.county, u.estate, u.interests, u.gender, u.age_bracket,
                    (SELECT COUNT(*) FROM friendships fr
                     WHERE fr.status = "accepted"
                       AND ((fr.requester_id = u.id AND fr.addressee_id = :vf1)
@@ -481,10 +481,26 @@ function people(array $f, int $viewerId): array {
         }
         if ($cols) $shared = $cols;
     }
-    $sql .= $shared
-        ? ' ORDER BY (' . implode(' + ', array_map(fn($c) => "$c", $shared)) . ') DESC, u.created_at DESC'
-        : ' ORDER BY u.created_at DESC';
-    $sql .= ' LIMIT 60';
+
+    // proximity score — same estate > same area > same county — ahead of
+    // the interest score so "People nearby" actually starts nearby.
+    $prox = [];
+    if (!empty($f['my_estate'])) {
+        $prox[] = 'IF(u.estate != "" AND u.estate = :mest, 4, 0)';
+        $p[':mest'] = $f['my_estate'];
+    }
+    if (!empty($f['my_area'])) {
+        $prox[] = 'IF(u.area != "" AND u.area = :mar, 2, 0)';
+        $p[':mar'] = $f['my_area'];
+    }
+    if (!empty($f['my_county'])) {
+        $prox[] = 'IF(u.county != "" AND u.county = :mco, 1, 0)';
+        $p[':mco'] = $f['my_county'];
+    }
+    $sql .= ' ORDER BY ';
+    if ($prox)   $sql .= '(' . implode(' + ', $prox) . ') DESC, ';
+    if ($shared) $sql .= '(' . implode(' + ', $shared) . ') DESC, ';
+    $sql .= 'u.created_at DESC LIMIT 60';
 
     $stmt = db()->prepare($sql);
     foreach ($p as $k => $v) $stmt->bindValue($k, $v);

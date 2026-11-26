@@ -314,7 +314,9 @@ case 'people': {
     $u = api_need(); // people list requires login on site too (require_login in people.php)
     $f = ['county' => (string) pin('county'), 'area' => (string) pin('area'),
           'q' => (string) pin('q'), 'interest' => (string) pin('interest'),
-          'my_interests' => array_filter(explode(',', $u['interests'] ?? ''))];
+          'my_interests' => array_filter(explode(',', $u['interests'] ?? '')),
+          'my_county' => (string) ($u['county'] ?? ''), 'my_area' => (string) ($u['area'] ?? ''),
+          'my_estate' => (string) ($u['estate'] ?? '')];
     jout(['items' => array_map(fn($p) => pub_user($p) + [
         'isFriend' => (bool) ($p['is_friend'] ?? 0),
         'rel' => $p['rel_status'] ?? null,

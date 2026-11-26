@@ -9,6 +9,9 @@ $f = [
     'interest'    => isset(categories()[$_GET['interest'] ?? '']) ? $_GET['interest'] : '',
     'q'           => trim($_GET['q'] ?? ''),
     'my_interests' => array_filter(explode(',', user()['interests'] ?? '')),
+    'my_county'    => user()['county'] ?? '',
+    'my_area'      => user()['area'] ?? '',
+    'my_estate'    => user()['estate'] ?? '',
 ];
 $tab      = in_array($_GET['tab'] ?? '', ['friends', 'requests'], true) ? $_GET['tab'] : 'add';
 $uid      = user_id();
