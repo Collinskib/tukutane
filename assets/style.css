@@ -96,6 +96,7 @@ a.brand{text-decoration:none}
 .btn-google:hover{background:#fff;box-shadow:var(--shadow)}
 .btn-google:active{transform:scale(.98)}
 .form .alt{text-align:center;margin-top:16px;font-size:14px;color:var(--ink-soft)}
+.auth-consent{text-align:center;margin:12px 0 0;font-size:12.5px;color:var(--ink-soft)}.auth-consent a{color:inherit}
 .checkrow{display:flex;flex-wrap:wrap;gap:8px}
 .checkrow label{border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 13px;font-size:14px;cursor:pointer;transition:background var(--dur-fast),border-color var(--dur-fast);user-select:none}
 .checkrow input{position:absolute;opacity:0;pointer-events:none;width:auto}

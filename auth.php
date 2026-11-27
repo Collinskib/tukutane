@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $regEstate,
             $_POST['county'] ?? '',
             $_POST['gender'] ?? '',
-            $_POST['age_bracket'] ?? '',
+            '',
             $_POST['fun_fact'] ?? ''
         );
     } else {
@@ -93,13 +93,6 @@ site_header();
         <option<?= ($_POST['gender'] ?? '') === $g ? ' selected' : '' ?>><?= e($g) ?></option>
         <?php endforeach; ?>
       </select></div>
-    <div class="field"><label for="age_bracket">Age bracket</label>
-      <select id="age_bracket" name="age_bracket" required>
-        <option value="">Select…</option>
-        <?php foreach (AGE_BRACKETS as $ab): ?>
-        <option<?= ($_POST['age_bracket'] ?? '') === $ab ? ' selected' : '' ?>><?= e($ab) ?></option>
-        <?php endforeach; ?>
-      </select></div>
     <div class="field"><label for="fun_fact">My fun fact or silly joke (optional)</label>
       <input id="fun_fact" name="fun_fact" maxlength="160" value="<?= e($_POST['fun_fact'] ?? '') ?>"
              placeholder="The thing people should know about you"></div>
@@ -109,6 +102,9 @@ site_header();
     <?php endif; ?>
 
     <button class="btn-block" type="submit"><?= $mode === 'register' ? 'Create account' : 'Log in' ?></button>
+    <?php if ($mode === 'register'): ?>
+    <p class="auth-consent">By creating an account you agree to our <a href="terms.php">Terms of Service</a> and confirm you're 18 or older.</p>
+    <?php endif; ?>
   </form>
 
   <?php if (defined('GOOGLE_CLIENT_ID')): ?>
@@ -117,6 +113,9 @@ site_header();
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C41 35.4 44 30.2 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
     Continue with Google
   </a>
+  <?php if ($mode === 'register'): ?>
+  <p class="auth-consent">By continuing with Google you agree to our <a href="terms.php">Terms of Service</a> and confirm you're 18 or older.</p>
+  <?php endif; ?>
   <?php endif; ?>
 
   <p class="alt">

@@ -191,7 +191,7 @@ function register_user(string $email, string $password, string $name, string $ar
     $name = trim(mb_substr($name, 0, 60));
     if ($name === '') return 'Tell us your name.';
     if (!in_array($gender, GENDERS, true)) return 'Pick your gender.';
-    if (!in_array($age_bracket, AGE_BRACKETS, true)) return 'Pick your age bracket.';
+    if ($age_bracket !== '' && !in_array($age_bracket, AGE_BRACKETS, true)) return 'Pick your age bracket.';
     if (find_user_by_email($email)) return 'That email already has an account — log in instead.';
     db()->prepare('INSERT INTO users (email, pass_hash, name, area, estate, county, gender, age_bracket, fun_fact)
                    VALUES (:e, :p, :n, :a, :es, :c, :g, :ab, :ff)')
@@ -203,7 +203,7 @@ function register_user(string $email, string $password, string $name, string $ar
             ':es' => estate_valid($county, $area, $estate) || $estate !== '' ? $estate : '',
             ':c' => in_array($county, counties(), true) ? $county : '',
             ':g' => $gender,
-            ':ab' => $age_bracket,
+            ':ab' => $age_bracket !== '' ? $age_bracket : null,
             ':ff' => trim(mb_substr($fun_fact, 0, 160)) ?: null,
         ]);
     send_verification($email, $name);
