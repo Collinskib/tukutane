@@ -32,7 +32,12 @@ rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php \
       $DEPLOYPATH/api/institutions.php
 
 # One-off DB migrations — idempotent; drop these lines after they've run.
-PHP_BIN=$(command -v php || command -v ea-php83 || command -v ea-php82 || echo /usr/bin/php)
-$PHP_BIN migrate-cat.php || true
+PHP_BIN=""
+for p in php ea-php84 ea-php83 ea-php82 ea-php81 /usr/local/bin/php /usr/bin/php \
+         /opt/cpanel/ea-php84/root/usr/bin/php /opt/cpanel/ea-php83/root/usr/bin/php \
+         /opt/cpanel/ea-php82/root/usr/bin/php /opt/cpanel/ea-php81/root/usr/bin/php; do
+    command -v "$p" >/dev/null 2>&1 && PHP_BIN=$(command -v "$p") && break
+done
+if [ -n "$PHP_BIN" ]; then "$PHP_BIN" migrate-cat.php || true; fi
 
 echo "deployed $(git rev-parse --short HEAD) -> $DEPLOYPATH"
