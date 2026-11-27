@@ -3,7 +3,8 @@
 // separate app) and move its events to Hangouts. Runs from deploy.sh over CLI;
 // also admin-gated if hit in the browser. Idempotent — delete after cleanup.
 require_once __DIR__ . '/includes/bootstrap.php';
-if (PHP_SAPI !== 'cli') {
+$deployCli = PHP_SAPI === 'cli' || getenv('NIP_DEPLOY') === '1';
+if (!$deployCli) {
     require_login('migrate-cat.php');
     if (!is_admin()) exit('admin only');
 }

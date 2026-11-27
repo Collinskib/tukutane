@@ -44,7 +44,10 @@ STATUS=$DEPLOYPATH/deploy-status.txt
         command -v "$p" >/dev/null 2>&1 && PHP_BIN=$(command -v "$p") && break
     done
     echo "php_bin=$PHP_BIN"
-    if [ -n "$PHP_BIN" ]; then "$PHP_BIN" migrate-cat.php; fi
+    if [ -n "$PHP_BIN" ]; then
+        "$PHP_BIN" -v | head -1
+        NIP_DEPLOY=1 "$PHP_BIN" -d display_errors=1 -d error_reporting=E_ALL migrate-cat.php
+    fi
     echo
 } > $STATUS 2>&1 || true
 
