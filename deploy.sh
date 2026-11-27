@@ -11,6 +11,10 @@ flock 9 || exit 1
 
 git fetch origin && git reset --hard origin/master || exit 1
 
+# reset --hard may have replaced this script itself; re-exec so the rest of
+# the deploy (copy, rm, migrations) always runs the version just pulled.
+if [ -z "$DEPLOY_REEXEC" ]; then export DEPLOY_REEXEC=1; exec "$0"; fi
+
 DEPLOYPATH=/home/nipangec/public_html/
 cp -f *.php $DEPLOYPATH
 cp -f manifest.webmanifest sw.js offline.html google*.html $DEPLOYPATH
@@ -26,5 +30,9 @@ cp -f uploads/.htaccess $DEPLOYPATH/uploads/
 rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php \
       $DEPLOYPATH/seed-institutions.php $DEPLOYPATH/migrate-institutions.php \
       $DEPLOYPATH/api/institutions.php
+
+# One-off DB migrations — idempotent; drop these lines after they've run.
+PHP_BIN=$(command -v php || command -v ea-php83 || command -v ea-php82 || echo /usr/bin/php)
+$PHP_BIN migrate-cat.php || true
 
 echo "deployed $(git rev-parse --short HEAD) -> $DEPLOYPATH"
