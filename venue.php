@@ -26,9 +26,6 @@ $canEdit = user()['is_admin'] || (int) $v['creator_id'] === user_id();
     <div class="body" style="padding:20px 22px">
       <h2 style="margin:0 0 4px">📍 <?= e($v['name']) ?></h2>
       <p class="fine" style="margin:0"><?= e(place_label($v)) ?><?= $v['creator_name'] ? ' · added by ' . e($v['creator_name']) : '' ?><?= $events ? ' · ' . count($events) . ' upcoming' : '' ?></p>
-      <?php if (!empty($v['institution_id']) && ($vInst = institution_get((int) $v['institution_id']))): ?>
-      <p class="insttag" style="margin:6px 0 0">🎓 <a href="institution.php?id=<?= (int) $vInst['id'] ?>"><?= e($vInst['name']) ?></a></p>
-      <?php endif; ?>
       <?php if ($v['description']): ?><p style="margin:10px 0 0;max-width:60ch;color:var(--ink-soft)"><?= nl2br(e($v['description'])) ?></p><?php endif; ?>
       <div class="share-row" style="margin-top:14px">
         <?php if (!$canEdit && (int) $v['creator_id'] !== user_id()): ?>

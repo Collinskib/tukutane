@@ -28,8 +28,6 @@ if ($ev['invite_only'] && !$ev['mine'] && !is_admin()) {
 [$emoji, $ribbon] = categories()[$ev['category']] ?? ['📅', '#e4e6db'];
 $host   = $ev['creator_id'] ? find_user((int) $ev['creator_id']) : null;
 $going  = going_count($ev);
-$evInst = !empty($ev['institution_id']) ? institution_get((int) $ev['institution_id']) : null;
-$evCamp = !empty($ev['campus_id']) ? campus_get((int) $ev['campus_id']) : null;
 $full   = $ev['capacity'] !== null && $going >= (int) $ev['capacity'];
 $wl     = user() ? waitlist_status($id, user_id()) : null;
 $attendees = attendees_of($id);
@@ -57,9 +55,6 @@ site_header('discover');
     <div class="m"><b>Where</b><?php if ($ev['venue_id']): ?><a href="venue.php?id=<?= (int) $ev['venue_id'] ?>" style="color:inherit"><?= e($ev['venue']) ?></a><?php else: ?><?= e($ev['venue']) ?><?php endif; ?>, <?= e(place_label($ev)) ?></div>
     <div class="m"><b>Cost</b><?= e(price((int) $ev['cost'])) ?></div>
     <div class="m"><b>Going</b><?= $going ?><?= $ev['capacity'] ? ' / ' . (int) $ev['capacity'] : '' ?></div>
-    <?php if ($evInst): ?>
-    <div class="m"><b>Institution</b><a href="institution.php?id=<?= (int) $evInst['id'] ?>" style="color:inherit"><?= e($evInst['name']) ?></a><?= $evCamp ? ' · ' . e($evCamp['name']) : '' ?></div>
-    <?php endif; ?>
   </div>
 
   <?php if ($ev['venue_id'] && ($evVenue = venue_get((int) $ev['venue_id'])) && $evVenue['creator_id']

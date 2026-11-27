@@ -21,4 +21,10 @@ cp -rf admin/. $DEPLOYPATH/admin/
 cp -rf assets/. $DEPLOYPATH/assets/
 cp -f uploads/.htaccess $DEPLOYPATH/uploads/
 
+# Removed pages/features — cp only adds, so deleted repo files need
+# explicit removal or they stay live in the docroot.
+rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php \
+      $DEPLOYPATH/seed-institutions.php $DEPLOYPATH/migrate-institutions.php \
+      $DEPLOYPATH/api/institutions.php
+
 echo "deployed $(git rev-parse --short HEAD) -> $DEPLOYPATH"

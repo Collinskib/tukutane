@@ -12,12 +12,11 @@ if (!empty($_GET['event'])) redirect('event.php?id=' . (int) $_GET['event']);
 
 $view     = in_array($_GET['view'] ?? '', ['discover', 'mine'], true) ? $_GET['view'] : 'discover';
 if ($view === 'mine' && !user()) $view = 'discover';
-$scope    = in_array($_GET['scope'] ?? '', ['foryou', 'near', 'inst', 'all'], true) ? $_GET['scope'] : 'foryou';
+$scope    = in_array($_GET['scope'] ?? '', ['foryou', 'near', 'all'], true) ? $_GET['scope'] : 'foryou';
 $interest = $_GET['interest'] ?? 'All interests';
 if ($interest !== 'All interests' && !isset(categories()[$interest])) $interest = 'All interests';
 $county = in_array($_GET['county'] ?? '', counties(), true) ? $_GET['county'] : '';
 $area  = in_array($_GET['area'] ?? '', areas(), true) ? $_GET['area'] : '';
-$inst  = (int) ($_GET['inst'] ?? $_GET['institution_id'] ?? 0);
 $query = trim($_GET['q'] ?? '');
 $when  = in_array($_GET['when'] ?? '', ['today', 'tomorrow', 'weekend'], true) ? $_GET['when'] : '';
 $cost  = in_array($_GET['cost'] ?? '', ['free', 'paid'], true) ? $_GET['cost'] : '';
@@ -27,8 +26,7 @@ $me    = user();
 $interests = [];
 
 // scope resolution — shortcuts on top of the same filter machinery.
-// "near" defaults geo filters to the profile location; "inst" defaults the
-// institution filter to the profile preference; "foryou" matches interests.
+// "near" defaults geo filters to the profile location; "foryou" matches interests.
 $scopeNote = '';
 if ($view === 'discover') {
     if ($scope === 'near') {
@@ -36,9 +34,6 @@ if ($view === 'discover') {
             $county = $county ?: $me['county'];
             $area   = $area ?: $me['area'];
         } else $scopeNote = $me ? 'Add your location in your profile to use Near Me.' : 'Log in and set your location to use Near Me.';
-    } elseif ($scope === 'inst') {
-        $inst = $inst ?: (int) ($me['institution_id'] ?? 0);
-        if (!$inst) $scopeNote = 'Pick an institution below — or set yours in your profile.';
     } elseif ($scope === 'foryou' && $me) {
         $interests = array_values(array_filter(
             array_map('trim', explode(',', $me['interests'] ?? '')),
@@ -46,12 +41,10 @@ if ($view === 'discover') {
         ));
     }
 }
-$instRow = $inst ? institution_get($inst) : null;
-if ($inst && !$instRow) $inst = 0;
 
 $events = gatherings(compact('view', 'interest', 'area', 'county') + [
     'q' => $query, 'when' => $when, 'cost' => $cost, 'sort' => $sort,
-    'interests' => $interests, 'institution' => $inst ?: null,
+    'interests' => $interests,
     'page' => $page, 'per' => 12,
 ]);
 $hasMore = count($events) === 12;
@@ -83,7 +76,6 @@ site_header('discover');
     <?php foreach ([
         'foryou' => '✨ For You',
         'near'   => '📍 Near Me',
-        'inst'   => '🎓 My Institution',
         'all'    => '🌍 All Events',
       ] as $s => $label): ?>
     <a class="chip <?= $scope === $s ? 'on' : '' ?>" href="index.php?scope=<?= $s ?>"><?= $label ?></a>
@@ -93,15 +85,13 @@ site_header('discover');
   <form method="get" action="index.php" id="filter-form">
     <?php if ($view === 'mine'): ?><input type="hidden" name="view" value="mine"><?php endif; ?>
     <?php if ($view === 'discover' && $scope !== 'foryou'): ?><input type="hidden" name="scope" value="<?= e($scope) ?>"><?php endif; ?>
-    <?php if ($inst && $scope !== 'inst'): ?><input type="hidden" name="inst" value="<?= (int) $inst ?>"><?php endif; ?>
     <?php if ($interest !== 'All interests'): ?><input type="hidden" name="interest" value="<?= e($interest) ?>"><?php endif; ?>
     <?php if ($when): ?><input type="hidden" name="when" value="<?= e($when) ?>"><?php endif; ?>
     <?php if ($cost): ?><input type="hidden" name="cost" value="<?= e($cost) ?>"><?php endif; ?>
     <?php if ($sort === 'popular'): ?><input type="hidden" name="sort" value="popular"><?php endif; ?>
     <div class="toolbar">
       <h2 id="heading"><?= $view === 'mine' ? 'My plans'
-          : ($scope === 'inst' && $instRow ? e($instRow['name'])
-          : ['foryou' => 'Events for you', 'near' => 'Events near you', 'inst' => 'My institution', 'all' => 'All events'][$scope]) ?></h2>
+          : ['foryou' => 'Events for you', 'near' => 'Events near you', 'all' => 'All events'][$scope] ?></h2>
       <span class="search-wrap">
       <input id="search" name="q" type="search" aria-label="Search events"
              placeholder="Search events" value="<?= e($query) ?>" autocomplete="off">
@@ -131,15 +121,8 @@ site_header('discover');
   </form>
 
   <?php if ($scopeNote): ?><p class="scopenote"><?= e($scopeNote) ?></p><?php endif; ?>
-  <?php if ($scope === 'inst' && !$inst): ?>
-  <form method="get" action="index.php" class="instjump">
-    <input type="hidden" name="scope" value="inst">
-    <?php institution_picker(); ?>
-    <button class="btn-mini" type="submit">Show events</button>
-  </form>
-  <?php endif; ?>
 
-  <?php if ($query || $interest !== 'All interests' || $county || $area || $when || $cost || $inst): ?>
+  <?php if ($query || $interest !== 'All interests' || $county || $area || $when || $cost): ?>
   <div class="chips">
     <?php
       $active = array_filter([
@@ -148,7 +131,6 @@ site_header('discover');
         $county ? ($area ? "$area, $county" : $county) : null,
         $when ? ucfirst($when === 'weekend' ? 'This weekend' : $when) : null,
         $cost ? ucfirst($cost) . ' events' : null,
-        $instRow ? '🎓 ' . $instRow['name'] : null,
       ]);
       foreach ($active as $a): ?>
     <span class="chip on rv in"><?= e($a) ?></span>
@@ -181,9 +163,6 @@ site_header('discover');
         <h3><a href="event.php?id=<?= (int) $event['id'] ?>" style="color:inherit;text-decoration:none"><?= e($event['title']) ?></a><?= !empty($event['series_id']) ? ' <span title="Repeats — next date shown">🔁 ' . e(ucfirst($event['series_freq'] ?? 'series')) . '</span>' : '' ?></h3>
         <p><?= e(when($event['event_at'])) ?></p>
         <p><?= e(place_label($event)) ?> · <?= e(price((int) $event['cost'])) ?></p>
-        <?php if (!empty($event['institution_name'])): ?>
-        <p class="insttag">🎓 <a href="institution.php?id=<?= (int) $event['institution_id'] ?>"><?= e($event['institution_name']) ?></a></p>
-        <?php endif; ?>
         <p><?= $mine
             ? '<span class="status-pill going">Hosted by you</span>'
             : e(going_count($event) . ' going' . ($event['sample'] ? ' · Sample' : '')) ?></p>

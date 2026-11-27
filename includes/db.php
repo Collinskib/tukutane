@@ -117,7 +117,7 @@ function series_next_sql(string $a = 'g', bool $upcoming = true): string {
 // cost(free|paid), sort(soon|popular|featured), page, per
 function gatherings(array $f): array {
     $uid  = user_id();
-    $sql  = 'SELECT g.*, i.name AS institution_name, gs.freq AS series_freq,
+    $sql  = 'SELECT g.*, gs.freq AS series_freq,
                     (g.creator_id = :um OR (g.creator_id IS NULL AND g.creator = :sm)) AS mine,
                     EXISTS(SELECT 1 FROM rsvps r WHERE r.gathering_id = g.id
                            AND (r.user_id = :uj OR r.session_key = :sj)) AS joined,
@@ -125,7 +125,6 @@ function gatherings(array $f): array {
                            AND sv.user_id = :usv) AS saved,
                     (SELECT COUNT(*) FROM rsvps r2 WHERE r2.gathering_id = g.id) AS real_rsvps
              FROM gatherings g
-             LEFT JOIN institutions i ON i.id = g.institution_id
              LEFT JOIN gathering_series gs ON gs.id = g.series_id
              WHERE g.status != "cancelled" AND g.event_at > NOW()';
     $p = [':um' => $uid, ':sm' => SESSION_KEY, ':uj' => $uid, ':sj' => SESSION_KEY, ':usv' => $uid];
@@ -178,10 +177,6 @@ function gatherings(array $f): array {
     if (!empty($f['area'])) {
         $sql .= ' AND g.area = :area';
         $p[':area'] = $f['area'];
-    }
-    if (!empty($f['institution'])) {
-        $sql .= ' AND g.institution_id = :inst';
-        $p[':inst'] = (int) $f['institution'];
     }
     if (!empty($f['q'])) {
         $sql .= " AND CONCAT_WS(' ', g.title, g.area, g.county, g.venue, g.category, g.description) LIKE :q";
@@ -1200,14 +1195,12 @@ function host_gatherings(int $uid, bool $upcoming = true, int $limit = 12): arra
 // ---------- venue profiles ----------
 
 function venues_list(array $f): array {
-    $sql = 'SELECT v.*, u.name AS creator_name, i.name AS institution_name,
+    $sql = 'SELECT v.*, u.name AS creator_name,
                    (SELECT COUNT(*) FROM gatherings g WHERE g.venue_id = v.id AND g.status = "active" AND g.event_at >= NOW()) AS upcoming
-            FROM venues v LEFT JOIN users u ON u.id = v.creator_id
-            LEFT JOIN institutions i ON i.id = v.institution_id WHERE 1=1';
+            FROM venues v LEFT JOIN users u ON u.id = v.creator_id WHERE 1=1';
     $p = [];
     if (!empty($f['county'])) { $sql .= ' AND v.county = :c'; $p[':c'] = $f['county']; }
     if (!empty($f['area'])) { $sql .= ' AND v.area = :a'; $p[':a'] = $f['area']; }
-    if (!empty($f['institution'])) { $sql .= ' AND v.institution_id = :inst'; $p[':inst'] = (int) $f['institution']; }
     if (!empty($f['q'])) {
         $sql .= " AND CONCAT_WS(' ', v.name, v.description, v.area, v.county) LIKE :q";
         $p[':q'] = '%' . $f['q'] . '%';
@@ -1259,20 +1252,18 @@ function venue_by_name(string $name): ?int {
 }
 
 function venue_create(int $uid, array $d): int {
-    db()->prepare('INSERT INTO venues (name, area, county, estate, description, photo, creator_id, institution_id, campus_id)
-                   VALUES (:n, :a, :cy, :es, :d, :p, :u, :inst, :camp)')
+    db()->prepare('INSERT INTO venues (name, area, county, estate, description, photo, creator_id)
+                   VALUES (:n, :a, :cy, :es, :d, :p, :u)')
         ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':es' => $d['estate'] ?? '',
-                   ':d' => $d['description'], ':p' => $d['photo'] ?? null, ':u' => $uid,
-                   ':inst' => $d['institution_id'] ?? null, ':camp' => $d['campus_id'] ?? null]);
+                   ':d' => $d['description'], ':p' => $d['photo'] ?? null, ':u' => $uid]);
     return (int) db()->lastInsertId();
 }
 
 function venue_update(int $id, array $d): void {
-    db()->prepare('UPDATE venues SET name = :n, area = :a, county = :cy, estate = :es, description = :d,
-                          institution_id = :inst, campus_id = :camp'
+    db()->prepare('UPDATE venues SET name = :n, area = :a, county = :cy, estate = :es, description = :d'
                   . (isset($d['photo']) ? ', photo = :p' : '') . ' WHERE id = :i')
         ->execute([':n' => $d['name'], ':a' => $d['area'], ':cy' => $d['county'] ?? '', ':es' => $d['estate'] ?? '',
-                   ':d' => $d['description'], ':inst' => $d['institution_id'] ?? null, ':camp' => $d['campus_id'] ?? null]
+                   ':d' => $d['description']]
                   + (isset($d['photo']) ? [':p' => $d['photo']] : []) + [':i' => $id]);
 }
 
@@ -1280,108 +1271,3 @@ function venues_all(): array {
     return db()->query('SELECT id, name, area, county FROM venues ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// ---------- institutions & campuses ----------
-
-const INSTITUTION_TYPES = [
-    'university'           => 'University',
-    'university_college'   => 'University college',
-    'national_polytechnic' => 'National polytechnic',
-    'tvet_college'         => 'TVET college',
-    'vocational_centre'    => 'Vocational training centre',
-];
-
-function institution_type_label(string $t): string {
-    return INSTITUTION_TYPES[$t] ?? ucwords(str_replace('_', ' ', $t));
-}
-
-function institutions_list(array $f = []): array {
-    $sql = 'SELECT i.*, (SELECT COUNT(*) FROM campuses c WHERE c.institution_id = i.id) AS campus_count
-            FROM institutions i WHERE i.status = "active"';
-    $p = [];
-    if (!empty($f['type']))   { $sql .= ' AND i.type = :t';   $p[':t'] = $f['type']; }
-    if (!empty($f['county'])) { $sql .= ' AND i.county = :c'; $p[':c'] = $f['county']; }
-    if (!empty($f['q']))      { $sql .= ' AND i.name LIKE :q'; $p[':q'] = '%' . $f['q'] . '%'; }
-    // universities first, then alphabetical within type rank
-    $sql .= ' ORDER BY FIELD(i.type, "university","university_college","national_polytechnic","tvet_college","vocational_centre"), i.name LIMIT 600';
-    $stmt = db()->prepare($sql);
-    $stmt->execute($p);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// typeahead search: prefix matches rank above substring matches.
-// $county restricts to local institutions; $area (sub-county) ranks
-// town-matching campuses/institutions first. Empty query returns the
-// local list for dropdown-on-focus.
-function institutions_search(string $q, int $limit = 12, string $county = '', string $area = ''): array {
-    $q = trim($q);
-    $w = 'status = "active"';
-    $p = [];
-    if ($q !== '') { $w .= ' AND name LIKE :q'; $p[':q'] = '%' . $q . '%'; }
-    // universities first nationally; within each tier the viewer's county
-    // floats to the top, then sub-county town matches, then prefix matches.
-    $order = 'type IN ("university","university_college") DESC, ';
-    if ($county !== '') { $order .= '(county = :county) DESC, '; $p[':county'] = $county; }
-    $order .= 'FIELD(type, "university","university_college","national_polytechnic","tvet_college","vocational_centre"), ';
-    if ($area !== '') { $order .= '(:area LIKE CONCAT("%", town, "%")) DESC, '; $p[':area'] = $area; }
-    if ($q !== '')    { $order .= '(name LIKE :pre) DESC, '; $p[':pre'] = $q . '%'; }
-    $order .= 'name';
-    $stmt = db()->prepare("SELECT id, name, type, county, town FROM institutions WHERE $w ORDER BY $order LIMIT :lim");
-    foreach ($p as $k => $v) $stmt->bindValue($k, $v);
-    $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-function institution_get(int $id): ?array {
-    $stmt = db()->prepare('SELECT * FROM institutions WHERE id = :i');
-    $stmt->execute([':i' => $id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
-}
-
-function campuses_for(int $institutionId): array {
-    $stmt = db()->prepare('SELECT * FROM campuses WHERE institution_id = :i ORDER BY name');
-    $stmt->execute([':i' => $institutionId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-function campus_get(int $id): ?array {
-    $stmt = db()->prepare('SELECT * FROM campuses WHERE id = :i');
-    $stmt->execute([':i' => $id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
-}
-
-// validates an institution/campus pair from a form; returns [institution_id, campus_id]
-// or null when the pair is invalid (campus must belong to the institution)
-function institution_pair(?int $instId, ?int $campId): ?array {
-    if (!$instId || !institution_get($instId)) return null;
-    if (!$campId) return [$instId, null];
-    $c = campus_get($campId);
-    return ($c && (int) $c['institution_id'] === $instId) ? [$instId, $campId] : [$instId, null];
-}
-
-// upcoming public events associated with an institution (any campus)
-function institution_events(int $id, int $limit = 24): array {
-    $stmt = db()->prepare(
-        'SELECT g.*, gs.freq AS series_freq,
-                (SELECT COUNT(*) FROM rsvps r WHERE r.gathering_id = g.id) AS real_rsvps
-         FROM gatherings g LEFT JOIN gathering_series gs ON gs.id = g.series_id
-         WHERE g.institution_id = :i AND g.status = "active"
-           AND g.event_at >= NOW() AND g.audience = "public"
-           AND ' . series_next_sql() . '
-         ORDER BY g.event_at LIMIT :lim'
-    );
-    $stmt->bindValue(':i', $id, PDO::PARAM_INT);
-    $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-function institution_venues(int $id): array {
-    $stmt = db()->prepare(
-        'SELECT v.*, u.name AS creator_name FROM venues v
-         LEFT JOIN users u ON u.id = v.creator_id
-         WHERE v.institution_id = :i ORDER BY v.name LIMIT 40'
-    );
-    $stmt->execute([':i' => $id]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}

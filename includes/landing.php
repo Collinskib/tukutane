@@ -12,12 +12,12 @@ function landing_page(): void {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f2b20">
 <title>Nipange — Life is happening. Don't miss out.</title>
-<meta name="description" content="Discover businesses, events, campus activities, hangouts and new experiences around you. Nipange is Kenya's business, event & social discovery platform — free to join.">
+<meta name="description" content="Discover businesses, events, hangouts and new experiences around you. Nipange is Kenya's business, event & social discovery platform — free to join.">
 <link rel="canonical" href="<?= e(absolute_url('/')) ?>">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nipange">
 <meta property="og:title" content="Nipange — Life is happening. Don't miss out.">
-<meta property="og:description" content="From local businesses and campus experiences to hangouts, live events and new discoveries — find what's happening around you.">
+<meta property="og:description" content="From local businesses to hangouts, live events and new discoveries — find what's happening around you.">
 <meta property="og:image" content="<?= e(absolute_url('/assets/landing/hero.jpg')) ?>">
 <meta property="og:url" content="<?= e(absolute_url('/')) ?>">
 <meta name="twitter:card" content="summary_large_image">
@@ -58,7 +58,7 @@ function landing_page(): void {
     <div class="lp-hero-in lp-rev">
       <p class="lp-eyebrow">Kenya's business, event &amp; social discovery platform</p>
       <h1>Life is happening.<br>Don't miss out.</h1>
-      <p class="lp-lead">From local businesses and campus experiences to hangouts and live events — find what's happening around you. Your next favourite spot could be just around the corner.</p>
+      <p class="lp-lead">From local businesses to hangouts and live events — find what's happening around you. Your next favourite spot could be just around the corner.</p>
       <form class="lp-search" action="/index.php" method="get" role="search">
         <input type="hidden" name="view" value="discover">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -88,31 +88,10 @@ function landing_page(): void {
           <span class="lp-card-img"><img src="/assets/landing/spots.jpg" alt="A vendor's fruit stall at a local market" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>Local businesses</b><small>Shops, cafés and spots near you — find them, message the owners.</small><i>See businesses →</i></span>
         </a>
-        <a class="lp-card lp-rev" href="/institutions.php" style="--d:160ms">
-          <span class="lp-card-img"><img src="/assets/landing/students.jpg" alt="Two stylish young women outside a campus building" loading="lazy" decoding="async"></span>
-          <span class="lp-card-body"><b>Campus life</b><small>Stay in the loop with activities and events around your institution.</small><i>See institutions →</i></span>
-        </a>
         <a class="lp-card lp-rev" href="<?= e($ev) ?>&amp;sort=popular" style="--d:240ms">
           <span class="lp-card-img"><img src="/assets/landing/stage.jpg" alt="An excited crowd cheering at a live event" loading="lazy" decoding="async"></span>
           <span class="lp-card-body"><b>What's trending</b><small>Discover experiences people are talking about.</small><i>Popular now →</i></span>
         </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ campus ============ -->
-  <section class="lp-sec lp-s2 lp-split-sec">
-    <div class="lp-wrap lp-split">
-      <figure class="lp-shot lp-rev"><img src="/assets/landing/crew.jpg" alt="Students hanging out on a campus walkway" loading="lazy" decoding="async"></figure>
-      <div class="lp-split-txt lp-rev">
-        <h2>Campus life deserves <em>more than lectures</em>.</h2>
-        <p class="lp-sub">There's more to campus than classrooms. Discover activities, meet new people and stay connected to what's happening around your institution.</p>
-        <ul class="lp-ticks">
-          <li>Events and activities around tertiary institutions</li>
-          <li>Find your people inside campus communities</li>
-          <li>Share what's on — post events where you can</li>
-        </ul>
-        <a class="lp-btn lp-btn-line" href="/institutions.php">Explore institutions</a>
       </div>
     </div>
   </section>
@@ -170,7 +149,6 @@ function landing_page(): void {
         <a href="<?= e($ev) ?>">Events</a>
         <a href="/venues.php">Businesses</a>
         <a href="/about.php">About Nipange</a>
-        <a href="/institutions.php">Institutions</a>
       </div>
       <div><strong>Company</strong>
         <a href="/privacy.php">Contact &amp; privacy</a>

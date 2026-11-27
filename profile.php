@@ -24,14 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $gender = in_array($_POST['gender'] ?? '', GENDERS, true) ? $_POST['gender'] : ($u['gender'] ?? '');
             $agebk  = in_array($_POST['age_bracket'] ?? '', AGE_BRACKETS, true) ? $_POST['age_bracket'] : ($u['age_bracket'] ?? '');
             $funFact = trim(mb_substr($_POST['fun_fact'] ?? '', 0, 160));
-            // optional preferred institution — used for the My Institution feed;
-            // stored as a preference, never treated as verified enrolment
-            [$instId, $campId] = institution_pair(
-                (int) ($_POST['institution_id'] ?? 0), (int) ($_POST['campus_id'] ?? 0)
-            ) ?: [null, null];
-            $sql = 'UPDATE users SET name=:n,bio=:b,fun_fact=:ff,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d,institution_id=:inst,campus_id=:camp';
+            $sql = 'UPDATE users SET name=:n,bio=:b,fun_fact=:ff,area=:a,county=:c,estate=:e,gender=:g,age_bracket=:ab,interests=:i,discoverable=:d';
             $p = [':n' => $name, ':b' => $bio, ':ff' => $funFact ?: null, ':a' => $area, ':c' => $county, ':e' => $estate,
-                  ':g' => $gender, ':ab' => $agebk, ':inst' => $instId, ':camp' => $campId,
+                  ':g' => $gender, ':ab' => $agebk,
                   ':i' => implode(',', $ints), ':d' => $disc, ':u' => $uid];
             if ($photo) { $sql .= ',photo=:ph'; $p[':ph'] = $photo; }
             db()->prepare($sql . ' WHERE id=:u')->execute($p);
@@ -119,13 +114,6 @@ site_header();
       </select></div>
     <div class="field"><label>Where you live</label>
       <?php location_picker($_POST['county'] ?? $u['county'] ?? '', $_POST['area'] ?? $u['area'] ?? '', $_POST['estate'] ?? $u['estate'] ?? '', 'optional'); ?></div>
-    <div class="field"><label>My institution (optional)</label>
-      <?php
-        $myInst = !empty($u['institution_id']) ? institution_get((int) $u['institution_id']) : null;
-        institution_picker((int) ($u['institution_id'] ?? 0), $myInst['name'] ?? '', (int) ($u['campus_id'] ?? 0),
-                           'Your university or college…');
-      ?>
-      <small style="color:var(--ink-soft)">Powers the 🎓 My Institution feed — it's a preference, not proof of enrolment.</small></div>
     <div class="field"><label>Your interests</label>
       <div class="checkrow">
         <?php foreach (categories() as $cat => [$em, $col]): ?>
