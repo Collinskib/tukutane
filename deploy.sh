@@ -13,7 +13,7 @@ git fetch origin && git reset --hard origin/master || exit 1
 
 # reset --hard may have replaced this script itself; re-exec so the rest of
 # the deploy (copy, rm, migrations) always runs the version just pulled.
-if [ -z "$DEPLOY_REEXEC" ]; then export DEPLOY_REEXEC=1; exec "$0"; fi
+if [ -z "$DEPLOY_REEXEC" ]; then export DEPLOY_REEXEC=1; exec /bin/sh "$0"; fi
 
 DEPLOYPATH=/home/nipangec/public_html/
 cp -f *.php $DEPLOYPATH
