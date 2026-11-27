@@ -25,7 +25,6 @@ const CATEGORIES_FALLBACK = [
     'Football'  => ['⚽', '#dce9d3'],
     'Nightlife' => ['🍹', '#f4d8d0'],
     'Business'  => ['☕', '#f0e0bb'],
-    'Campus'    => ['🎓', '#e3def0'],
     'Faith'     => ['📖', '#d9e8f0'],
     'Wellness'  => ['🌿', '#dce9d3'],
     'Dance'     => ['🎵', '#f5d9cb'],

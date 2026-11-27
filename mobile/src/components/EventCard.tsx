@@ -12,7 +12,7 @@ export type Ev = {
 
 const CAT_ICON: Record<string, string> = {
   Football: '⚽', Dance: '💃', Nightlife: '🌙', Wellness: '🧘', Faith: '🙏',
-  Hangouts: '☕', Campus: '🎓', Business: '💼',
+  Hangouts: '☕', Business: '💼',
 };
 
 export default function EventCard({ ev }: { ev: Ev }) {
