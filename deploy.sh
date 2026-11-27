@@ -29,26 +29,7 @@ cp -f uploads/.htaccess $DEPLOYPATH/uploads/
 # explicit removal or they stay live in the docroot.
 rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php \
       $DEPLOYPATH/seed-institutions.php $DEPLOYPATH/migrate-institutions.php \
-      $DEPLOYPATH/api/institutions.php
-
-# One-off DB migrations — idempotent; drop these lines (and the status file)
-# after they've run. Status lands in the docroot for a quick remote check.
-STATUS=$DEPLOYPATH/deploy-status.txt
-{
-    echo "deploy $(git rev-parse --short HEAD) $(date -Iseconds) reexec=$DEPLOY_REEXEC"
-    PHP_BIN=""
-    for p in php ea-php84 ea-php83 ea-php82 ea-php81 ea-php80 php84 php83 php82 php81 \
-             /usr/local/bin/php /usr/bin/php /opt/cpanel/ea-php84/root/usr/bin/php \
-             /opt/cpanel/ea-php83/root/usr/bin/php /opt/cpanel/ea-php82/root/usr/bin/php \
-             /opt/cpanel/ea-php81/root/usr/bin/php /opt/cpanel/ea-php80/root/usr/bin/php; do
-        command -v "$p" >/dev/null 2>&1 && PHP_BIN=$(command -v "$p") && break
-    done
-    echo "php_bin=$PHP_BIN"
-    if [ -n "$PHP_BIN" ]; then
-        "$PHP_BIN" -v | head -1
-        NIP_DEPLOY=1 "$PHP_BIN" -d display_errors=1 -d error_reporting=E_ALL $DEPLOYPATH/migrate-cat.php
-    fi
-    echo
-} > $STATUS 2>&1 || true
+      $DEPLOYPATH/api/institutions.php \
+      $DEPLOYPATH/migrate-cat.php $DEPLOYPATH/deploy-status.txt
 
 echo "deployed $(git rev-parse --short HEAD) -> $DEPLOYPATH"

@@ -17,6 +17,4 @@ deployment:
     - /bin/cp -f uploads/.htaccess $DEPLOYPATH/uploads/
     # Removed pages/features — cp only adds, so deleted repo files need
     # explicit removal or they stay live in the docroot.
-    - /bin/rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php $DEPLOYPATH/seed-institutions.php $DEPLOYPATH/migrate-institutions.php $DEPLOYPATH/api/institutions.php
-    # One-off DB migrations — idempotent; drop these lines after they've run.
-    - /usr/bin/php migrate-cat.php || true
+    - /bin/rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php $DEPLOYPATH/seed-institutions.php $DEPLOYPATH/migrate-institutions.php $DEPLOYPATH/api/institutions.php $DEPLOYPATH/migrate-cat.php $DEPLOYPATH/deploy-status.txt
