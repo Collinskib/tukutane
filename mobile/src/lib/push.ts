@@ -34,18 +34,20 @@ export async function registerForPush(): Promise<void> {
     const status = existing === 'granted'
       ? existing
       : (await Notifications.requestPermissionsAsync()).status;
-    if (status !== 'granted') return;
+    if (status !== 'granted') { console.warn('[push] permission', status); return; }
 
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-    if (!projectId) return; // no EAS project linked yet (e.g. Expo Go)
+    if (!projectId) { console.warn('[push] no EAS projectId in config'); return; }
 
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    if (!token) return;
+    if (!token) { console.warn('[push] empty token'); return; }
     currentToken = token;
     await api('push/register', {}, { token, platform: Platform.OS });
-  } catch {
+    console.log('[push] registered', token.slice(0, 24));
+  } catch (e: any) {
     // Push is best-effort — never break auth or app boot over it.
+    console.warn('[push] register failed:', e?.message ?? e);
   }
 }
 
