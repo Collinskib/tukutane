@@ -86,7 +86,12 @@ function maybe_drain_push(int $interval = 45): void {
         if (!$fh || !flock($fh, LOCK_EX | LOCK_NB)) { if ($fh) fclose($fh); return; }
         $mark = sys_get_temp_dir() . '/nipange-push-drain';
         if (is_file($mark) && time() - filemtime($mark) < $interval) { fclose($fh); return; }
-        try { drain_push_notifications(); } catch (Throwable $e) {}
+        $s = null;
+        try { $s = drain_push_notifications(); } catch (Throwable $e) {}
+        if (is_array($s)) {
+            @file_put_contents(dirname(__DIR__) . '/push-status.txt', date('Y-m-d H:i:s')
+                . " lazy drained={$s['drained']} pushed={$s['pushed']} tokens={$s['tokens']} users={$s['users']}\n");
+        }
         @touch($mark);
         fclose($fh);
     } catch (Throwable $e) {
