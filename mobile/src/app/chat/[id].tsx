@@ -49,7 +49,10 @@ function AudioBubble({ uri, mine, seed }: { uri: string; mine: boolean; seed: nu
   const bars = useMemo(() => wave(seed), [seed]);
   const dur = st.duration || 0;
   const pos = st.playing || st.currentTime > 0 ? st.currentTime : 0;
-  const toggle = () => { st.playing ? player.pause() : (pos >= dur - 0.2 ? (player.seekTo(0), player.play()) : player.play()); };
+  const toggle = () => {
+    if (st.playing) player.pause();
+    else { if (pos >= dur - 0.2) player.seekTo(0); player.play(); }
+  };
   const fg = mine ? '#fff' : C.green;
   const dim = mine ? 'rgba(255,255,255,.35)' : 'rgba(33,78,60,.22)';
   return (
