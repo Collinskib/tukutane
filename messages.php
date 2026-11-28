@@ -109,8 +109,23 @@ site_header();
     <div class="msgs" id="msgs" data-last="<?= $messages ? (int) end($messages)['id'] : 0 ?>">
       <?php foreach ($messages as $m): ?>
       <div class="bubble <?= (int) $m['sender_id'] === $uid ? 'me' : 'them' ?>" data-mid="<?= (int) $m['id'] ?>">
-        <?php if ($m['attachment'] && $m['attachment_kind'] === 'image'): ?>
+        <?php if ($m['view_once'] && $m['attachment']): ?>
+          <?php
+            $voIcon = match ($m['attachment_kind']) { 'audio' => '🎤 voice note', 'video' => '🎬 video', default => '📷 photo' };
+            $voLabel = 'View once ' . $voIcon;
+            $voOpened = !empty($m['consumed_at']);
+            $voMine = (int) $m['sender_id'] === $uid;
+          ?>
+          <?php if ($voOpened): ?><span class="attach-once opened">✓ <?= e($voLabel) ?> — opened</span>
+          <?php elseif ($voMine): ?><span class="attach-once">🔥 <?= e($voLabel) ?></span>
+          <?php else: ?><button type="button" class="attach-once unopened" data-viewonce="<?= (int) $m['id'] ?>" data-kind="<?= e($m['attachment_kind']) ?>">🔥 <?= e($voLabel) ?> — tap to open</button>
+          <?php endif; ?>
+        <?php elseif ($m['attachment'] && $m['attachment_kind'] === 'image'): ?>
         <a href="uploads/<?= e($m['attachment']) ?>" target="_blank"><img class="attach-img" src="<?= img_url($m['attachment'], 480) ?>" alt="<?= e($m['attachment_name'] ?? 'image') ?>" loading="lazy" decoding="async"></a>
+        <?php elseif ($m['attachment'] && $m['attachment_kind'] === 'audio'): ?>
+        <audio class="attach-audio" controls preload="metadata" src="uploads/<?= e($m['attachment']) ?>"></audio>
+        <?php elseif ($m['attachment'] && $m['attachment_kind'] === 'video'): ?>
+        <video class="attach-video" controls preload="metadata" playsinline src="uploads/<?= e($m['attachment']) ?>"></video>
         <?php elseif ($m['attachment']): ?>
         <a class="attach-file" href="uploads/<?= e($m['attachment']) ?>" target="_blank" download="<?= e($m['attachment_name'] ?? 'file') ?>">📄 <?= e($m['attachment_name'] ?? 'attachment') ?></a>
         <?php endif; ?>
@@ -127,11 +142,15 @@ site_header();
              accept="image/jpeg,image/png,image/webp,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip">
       <button type="button" class="icon-btn" data-pop-btn="#attachpop" title="Attach a photo or file" aria-label="Attach" aria-haspopup="menu">📎</button>
       <button type="button" class="icon-btn" data-pop-btn="#emojipop" title="Add an emoji" aria-label="Emoji" aria-haspopup="dialog">😊</button>
+      <button type="button" class="icon-btn" id="micbtn" title="Record a voice note" aria-label="Record a voice note">🎤</button>
       <span class="attach-chip" id="attachchip" hidden></span>
+      <label class="once-toggle" id="oncetoggle" hidden><input type="checkbox" name="view_once" value="1"> 🔥 view once</label>
       <input name="body" id="msgbody" autocomplete="off" maxlength="1000" placeholder="Write a message…">
       <button type="submit" id="sendbtn">Send</button>
       <div class="pickpop" id="attachpop" hidden role="menu" aria-label="Attach">
         <button type="button" class="pickitem" data-accept="image/jpeg,image/png,image/webp">🖼️<span>Photo</span></button>
+        <button type="button" class="pickitem" data-accept="video/mp4,video/webm,video/quicktime,video/3gpp">🎬<span>Video</span></button>
+        <button type="button" class="pickitem" data-accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/ogg,audio/webm,audio/wav,.m4a,.mp3,.aac,.ogg,.opus,.wav">🎵<span>Audio</span></button>
         <button type="button" class="pickitem" data-accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip">📄<span>File</span></button>
       </div>
       <?php emoji_picker('#msgbody'); ?>
@@ -181,10 +200,21 @@ site_header();
 
   function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/\n/g,'<br>');}
   function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
+  var voLabel = function(k){return 'View once '+(k==='audio'?'🎤 voice note':k==='video'?'🎬 video':'📷 photo');};
   function attachHtml(m){
+    if(m.view_once&&m.attachment){
+      var mine=m.sender_id==<?= $uid ?>;
+      if(m.consumed_at)return '<span class="attach-once opened">✓ '+voLabel(m.attachment_kind)+' — opened</span>';
+      if(mine)return '<span class="attach-once">🔥 '+voLabel(m.attachment_kind)+'</span>';
+      return '<button type="button" class="attach-once unopened" data-viewonce="'+m.id+'" data-kind="'+m.attachment_kind+'">🔥 '+voLabel(m.attachment_kind)+' — tap to open</button>';
+    }
     if(!m.attachment)return '';
     if(m.attachment_kind==='image')
       return '<a href="uploads/'+m.attachment+'" target="_blank"><img class="attach-img" src="/img.php?f='+m.attachment+'&s=480" loading="lazy" decoding="async" alt="image"></a>';
+    if(m.attachment_kind==='audio')
+      return '<audio class="attach-audio" controls preload="metadata" src="uploads/'+m.attachment+'"></audio>';
+    if(m.attachment_kind==='video')
+      return '<video class="attach-video" controls preload="metadata" playsinline src="uploads/'+m.attachment+'"></video>';
     return '<a class="attach-file" href="uploads/'+m.attachment+'" target="_blank" download="'+escAttr(m.attachment_name||'file')+'">📄 '+esc(m.attachment_name||'attachment')+'</a>';
   }
   function add(m){
@@ -246,7 +276,7 @@ site_header();
       .then(function(r){return r.json()})
       .then(function(j){
         btn.disabled=false;
-        if(j.ok&&j.message){add(j.message);last=+j.message.id;inp.value='';fileInp.value='';chip.hidden=true;inp.focus();}
+        if(j.ok&&j.message){add(j.message);last=+j.message.id;inp.value='';fileInp.value='';chip.hidden=true;syncOnce();inp.focus();}
         else if(j.error)toast(j.error,true);
       })
       .catch(function(){btn.disabled=false;toast('Could not send — try again',true);});
@@ -264,6 +294,55 @@ site_header();
   fileInp2.addEventListener('change',function(){
     chip2.hidden=!this.files.length;
     if(this.files.length)chip2.textContent='📎 '+this.files[0].name;
+    syncOnce();
+  });
+  // view-once toggle only makes sense for image/audio/video attachments
+  var oncetoggle=document.getElementById('oncetoggle');
+  function syncOnce(){
+    var ok=fileInp2.files.length&&/^(image|audio|video)\//.test(fileInp2.files[0].type||'x/');
+    oncetoggle.hidden=!ok;
+    if(!ok)oncetoggle.querySelector('input').checked=false;
+  }
+
+  // voice note recorder — 🎤 starts, tap again stops and stages the file
+  var mic=document.getElementById('micbtn'),rec=null,recChunks=[],recTimer=null,recStart=0;
+  mic.addEventListener('click',function(){
+    if(rec&&rec.state==='recording'){rec.stop();return;}
+    if(!navigator.mediaDevices||!window.MediaRecorder){toast('Recording needs a modern browser',true);return;}
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      rec=new MediaRecorder(stream);recChunks=[];
+      rec.ondataavailable=function(e){if(e.data.size)recChunks.push(e.data);};
+      rec.onstop=function(){
+        stream.getTracks().forEach(function(t){t.stop()});
+        clearInterval(recTimer);mic.classList.remove('rec');mic.textContent='🎤';
+        var blob=new Blob(recChunks,{type:rec.mimeType||'audio/webm'});
+        var ext=(rec.mimeType||'').includes('mp4')?'m4a':(rec.mimeType||'').includes('ogg')?'ogg':'webm';
+        var dt=new DataTransfer();dt.items.add(new File([blob],'voice-note.'+ext,{type:blob.type}));
+        fileInp2.files=dt.files;fileInp2.dispatchEvent(new Event('change'));
+        chip2.textContent='🎤 voice note ('+Math.round((Date.now()-recStart)/1000)+'s)';
+      };
+      rec.start();recStart=Date.now();mic.classList.add('rec');mic.textContent='⏹';
+      chip2.hidden=false;chip2.textContent='⏺ recording…';
+      recTimer=setInterval(function(){chip2.textContent='⏺ '+Math.round((Date.now()-recStart)/1000)+'s — tap 🎤 to stop';},1000);
+    }).catch(function(){toast('Microphone permission denied',true);});
+  });
+
+  // view-once open: stream the bytes once, show them, then it's gone
+  box.addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-viewonce]');if(!b)return;
+    var mid=b.getAttribute('data-viewonce'),kind=b.getAttribute('data-kind');
+    b.disabled=true;b.textContent='opening…';
+    fetch('/media.php?m='+mid,{credentials:'same-origin'})
+      .then(function(r){if(!r.ok)throw 0;return r.blob();})
+      .then(function(blob){
+        var url=URL.createObjectURL(blob),el;
+        if(kind==='video'){el=document.createElement('video');el.controls=true;el.playsInline=true;el.className='attach-video';}
+        else if(kind==='audio'){el=document.createElement('audio');el.controls=true;el.className='attach-audio';}
+        else{el=document.createElement('img');el.className='attach-img';el.alt='view once photo';}
+        el.src=url;b.replaceWith(el);
+        if(el.play)el.play().catch(function(){});
+      })
+      .catch(function(){b.disabled=false;b.textContent='🔥 '+voLabel(kind)+' — tap to open';toast('Could not open — it may already be viewed',true);});
   });
 })();
 </script>

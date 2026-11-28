@@ -193,37 +193,98 @@ function upload_image(string $field): string {
     return $name;
 }
 
-// chat attachment: images go through upload_image (compresses when GD is
-// present); documents are whitelisted by extension + sniffed MIME, stored as-is.
+// Private media dir (view-once files): denied to the web via .htaccess,
+// streamed only through media.php / the api media route after auth checks.
+function private_upload_dir(): string {
+    $dir = dirname(__DIR__) . '/uploads-private';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+        @file_put_contents("$dir/.htaccess", "Require all denied\nDeny from all\n");
+    }
+    return $dir;
+}
+
+// Sanitize an audio/video/file ext: keep it only if whitelisted, else pick by mime.
+function media_safe_ext(string $ext, string $mime, string $kind): string {
+    $ok = [
+        'image' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
+        'audio' => ['m4a', 'mp3', 'aac', 'ogg', 'opus', 'wav', 'webm', 'caf'],
+        'video' => ['mp4', 'webm', 'mov', '3gp', 'mkv'],
+        'file'  => ['pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip'],
+    ][$kind] ?? [];
+    if (in_array($ext, $ok, true)) return $ext;
+    $byMime = [
+        'audio/mp4' => 'm4a', 'audio/x-m4a' => 'm4a', 'audio/mpeg' => 'mp3',
+        'audio/aac' => 'aac', 'audio/ogg' => 'ogg', 'application/ogg' => 'ogg',
+        'audio/opus' => 'opus', 'audio/wav' => 'wav', 'audio/x-wav' => 'wav',
+        'audio/webm' => 'webm', 'audio/x-caf' => 'caf',
+        'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp',
+        'image/gif' => 'gif', 'image/avif' => 'avif',
+        'video/mp4' => 'mp4', 'video/webm' => 'webm', 'video/quicktime' => 'mov',
+        'video/3gpp' => '3gp', 'video/x-matroska' => 'mkv',
+    ];
+    return $byMime[$mime] ?? 'bin';
+}
+
 // Returns [filename, display_name, kind] or "!<error>".
-function upload_attachment(string $field): array|string {
+// kind: image | audio | video | file. $private stores outside web reach
+// (view-once media — served only via the gated media route).
+function upload_attachment(string $field, bool $private = false): array|string {
     if (empty($_FILES[$field]) || $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE) return '';
     $f = $_FILES[$field];
     if ($f['error'] !== UPLOAD_ERR_OK) return '!Upload failed — try a smaller file.';
-    if ($f['size'] > 10 * 1024 * 1024) return '!File must be under 10 MB.';
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
-    if (str_starts_with($mime, 'image/')) {
+    $kind = str_starts_with($mime, 'image/') ? 'image'
+        : (str_starts_with($mime, 'audio/') || $mime === 'application/ogg' ? 'audio'
+        : (str_starts_with($mime, 'video/') ? 'video' : 'file'));
+    $cap = ['image' => 10, 'audio' => 15, 'video' => 60, 'file' => 10][$kind] * 1024 * 1024;
+    if ($f['size'] > $cap) return '!File must be under ' . intdiv($cap, 1048576) . ' MB.';
+    if ($kind === 'image' && !$private) {
         $r = upload_image($field);
         if (str_starts_with($r, '!')) return $r;
         return [$r, basename($f['name']), 'image'];
     }
-    $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
-    $allowed = ['pdf' => 'application/pdf', 'txt' => 'text/plain', 'csv' => 'text/csv',
-                'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'ppt' => 'application/vnd.ms-powerpoint', 'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                'zip' => 'application/zip'];
-    // office/pdf mimes can vary; accept the sniffed type OR octet-stream for office/zip
-    $mimeOk = isset($allowed[$ext]) && ($mime === $allowed[$ext]
-        || in_array($mime, ['application/octet-stream', 'application/x-zip-compressed',
-                            'text/plain', 'application/zip', 'application/x-empty'], true)
-        || str_starts_with($mime, 'application/vnd.'));
-    if (!$mimeOk) return '!Only images, PDFs and Office documents.';
+    $ext = media_safe_ext(strtolower(pathinfo($f['name'], PATHINFO_EXTENSION)), $mime, $kind);
+    if ($kind === 'file') {
+        $allowed = ['pdf' => 'application/pdf', 'txt' => 'text/plain', 'csv' => 'text/csv',
+                    'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'ppt' => 'application/vnd.ms-powerpoint', 'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'zip' => 'application/zip'];
+        $origExt = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+        // office/pdf mimes can vary; accept the sniffed type OR octet-stream for office/zip
+        $mimeOk = isset($allowed[$origExt]) && ($mime === $allowed[$origExt]
+            || in_array($mime, ['application/octet-stream', 'application/x-zip-compressed',
+                                'text/plain', 'application/zip', 'application/x-empty'], true)
+            || str_starts_with($mime, 'application/vnd.'));
+        if (!$mimeOk) return '!Only images, PDFs, Office documents, audio and video.';
+        $ext = $origExt;
+    }
     $name = bin2hex(random_bytes(10)) . '.' . $ext;
-    $dir = dirname(__DIR__) . '/uploads';
+    $dir = $private ? private_upload_dir() : dirname(__DIR__) . '/uploads';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     if (!move_uploaded_file($f['tmp_name'], "$dir/$name")) return '!Could not store the file.';
-    return [$name, mb_substr(basename($f['name']), 0, 180), 'file'];
+    return [$name, mb_substr(basename($f['name']), 0, 180), $kind];
+}
+
+// Stream a view-once attachment to $uid, marking it consumed on first
+// authorized fetch. Sends its own headers and exits.
+function serve_view_once(int $mid, int $uid): never {
+    $m = $mid ? message_media($mid, $uid) : null;
+    if (!$m) { http_response_code(404); exit('gone'); }
+    $isSender = (int) $m['sender_id'] === $uid;
+    if ($isSender || $m['consumed_at']) { http_response_code(410); exit('gone'); }
+    $path = private_upload_dir() . '/' . basename((string) $m['attachment']);
+    if (!is_file($path)) { http_response_code(410); exit('gone'); }
+    db()->prepare('UPDATE messages SET consumed_at = NOW() WHERE id = :i AND consumed_at IS NULL')
+        ->execute([':i' => $m['id']]);
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: no-store');
+    header('Content-Disposition: inline; filename="' . basename($path) . '"');
+    readfile($path);
+    exit;
 }
 
 function whatsapp_share(string $title, string $url): string {

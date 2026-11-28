@@ -49,6 +49,7 @@ STATUS=$DEPLOYPATH/deploy-status.txt
     if [ -n "$PHP_BIN" ]; then
         "$PHP_BIN" -v | head -1
         NIP_DEPLOY=1 "$PHP_BIN" -d display_errors=1 -d error_reporting=E_ALL $DEPLOYPATH/migrate-push.php
+        NIP_DEPLOY=1 "$PHP_BIN" -d display_errors=1 -d error_reporting=E_ALL $DEPLOYPATH/migrate-media.php
 
         # Cron on this host: CLI PHP can't reach the app's MySQL (wrong socket /
         # credentials under the cli SAPI), so the scripts run over HTTP through

@@ -48,7 +48,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#faf8f2"
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-video"
     ],
     "scheme": "nipange",
     "extra": {

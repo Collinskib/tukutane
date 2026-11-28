@@ -684,15 +684,30 @@ function conversation_for(int $convId, int $me): ?array {
     return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-function send_message(int $convId, int $me, string $body, ?array $att = null): int {
-    db()->prepare('INSERT INTO messages (conversation_id, sender_id, body, attachment, attachment_name, attachment_kind)
-                   VALUES (:c, :s, :b, :a, :an, :ak)')
+function send_message(int $convId, int $me, string $body, ?array $att = null, int $viewOnce = 0): int {
+    db()->prepare('INSERT INTO messages (conversation_id, sender_id, body, attachment, attachment_name, attachment_kind, view_once)
+                   VALUES (:c, :s, :b, :a, :an, :ak, :vo)')
         ->execute([':c' => $convId, ':s' => $me, ':b' => mb_substr($body, 0, 1000),
-                   ':a' => $att[0] ?? null, ':an' => $att[1] ?? null, ':ak' => $att[2] ?? null]);
+                   ':a' => $att[0] ?? null, ':an' => $att[1] ?? null, ':ak' => $att[2] ?? null,
+                   ':vo' => $viewOnce ? 1 : 0]);
     $id = (int) db()->lastInsertId();
     db()->prepare('UPDATE conversations SET last_message_at = NOW() WHERE id = :c')
         ->execute([':c' => $convId]);
     return $id;
+}
+
+// View-once media gate: the recipient (never the sender) may stream the
+// private file exactly once — first authorized fetch marks it consumed.
+function message_media(int $mid, int $me): ?array {
+    $stmt = db()->prepare(
+        'SELECT m.*, c.user_one, c.user_two FROM messages m
+         JOIN conversations c ON c.id = m.conversation_id WHERE m.id = :i'
+    );
+    $stmt->execute([':i' => $mid]);
+    $m = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$m || !$m['attachment'] || !$m['view_once']) return null;
+    if ((int) $m['user_one'] !== $me && (int) $m['user_two'] !== $me) return null;
+    return $m;
 }
 
 function mark_conversation_read(int $convId, int $me): void {

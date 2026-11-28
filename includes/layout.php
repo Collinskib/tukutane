@@ -16,7 +16,7 @@ function page_head(string $title, string $head = '', string $bodyClass = ''): vo
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<link rel="stylesheet" href="/assets/style.css?v=36">
+<link rel="stylesheet" href="/assets/style.css?v=37">
 <?= $head ?>
 <script defer src="/assets/alpine.min.js?v=1"></script>
 <script defer src="/assets/app.js?v=13"></script>

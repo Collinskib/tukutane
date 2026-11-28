@@ -21,12 +21,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_typing((int) $conv['id'], $uid);
         exit(json_encode(['ok' => true]));
     }
-    $att = upload_attachment('attach');
+    $viewOnce = !empty($_POST['view_once']) ? 1 : 0;
+    $att = upload_attachment('attach', $viewOnce === 1);
     if (is_string($att) && str_starts_with($att, '!')) {
         http_response_code(422); exit(json_encode(['error' => substr($att, 1)]));
     }
     if ($body === '' && !$att) exit(json_encode(['error' => 'empty']));
-    $id = send_message((int) $conv['id'], $uid, $body, $att ?: null);
+    if (!$att) $viewOnce = 0; // view-once only applies to media
+    $id = send_message((int) $conv['id'], $uid, $body, $att ?: null, $viewOnce);
     set_typing((int) $conv['id'], $uid, false);
     // notify the other party (once per unread burst, unless they muted the chat)
     $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id = :c AND sender_id = :s AND read_at IS NULL');
@@ -39,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'time' => date('g:i A'),
         'attachment' => $att[0] ?? null, 'attachment_name' => $att[1] ?? null,
         'attachment_kind' => $att[2] ?? null,
+        'view_once' => $viewOnce, 'consumed_at' => null,
     ]]);
     exit;
 }
@@ -58,4 +61,5 @@ echo json_encode(['typing' => peer_typing((int) $conv['id'], $otherId), 'message
     'body' => $m['body'], 'time' => date('g:i A', strtotime($m['created_at'])),
     'attachment' => $m['attachment'], 'attachment_name' => $m['attachment_name'],
     'attachment_kind' => $m['attachment_kind'],
+    'view_once' => (int) ($m['view_once'] ?? 0), 'consumed_at' => $m['consumed_at'] ?? null,
 ], $rows)]);

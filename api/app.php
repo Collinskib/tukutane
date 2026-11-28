@@ -426,10 +426,14 @@ case 'messages': {
         $rel = friendship($uid, $otherId);
         if ((!$rel || $rel['status'] !== 'accepted') && !is_business_owner($otherId) && !is_business_owner($uid)) jerr('Messages are for friends.', 403);
         $body = trim((string) pin('body'));
-        $att = api_store_attachment((string) pin('att_b64'), (string) pin('att_name'));
+        $viewOnce = !empty(pin('view_once')) ? 1 : 0;
+        // Multipart media (audio/video/large) or legacy base64 attach.
+        if (!empty($_FILES['attach'])) $att = upload_attachment('attach', $viewOnce === 1);
+        else $att = api_store_attachment((string) pin('att_b64'), (string) pin('att_name'), $viewOnce === 1);
         if (is_string($att) && str_starts_with($att, '!')) jerr(substr($att, 1), 422);
         if ($body === '' && !$att) jerr('Say something or attach a file.');
-        $id = send_message((int) $conv['id'], $uid, $body, $att ?: null);
+        if (!$att) $viewOnce = 0; // view-once only applies to media
+        $id = send_message((int) $conv['id'], $uid, $body, $att ?: null, $viewOnce);
         set_typing((int) $conv['id'], $uid, false);
         $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id=:c AND sender_id=:s AND read_at IS NULL');
         $pending->execute([':c' => $conv['id'], ':s' => $uid]);
@@ -440,6 +444,7 @@ case 'messages': {
             'id' => $id, 'conv' => (int) $conv['id'], 'mine' => true, 'body' => mb_substr($body, 0, 1000),
             'time' => date('g:i A'), 'at' => date('Y-m-d H:i:s'),
             'att' => $att[0] ?? null, 'attName' => $att[1] ?? null, 'attKind' => $att[2] ?? null,
+            'viewOnce' => $viewOnce, 'opened' => false,
         ]]);
     }
 
@@ -708,6 +713,13 @@ case 'push/unregister': {
     db()->prepare('DELETE FROM push_tokens WHERE user_id = :u AND token = :t')
         ->execute([':u' => (int) $u['id'], ':t' => $token]);
     jout(['ok' => true]);
+}
+
+case 'media': {
+    // View-once media gate (Bearer auth). Streams bytes, not JSON —
+    // serve_view_once sends its own headers and exits.
+    $u = api_need();
+    serve_view_once((int) pin('m'), (int) $u['id']);
 }
 
 case 'auth/logout': {

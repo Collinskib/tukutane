@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
 
 function pin(string $k, $d = '') {
     global $API_IN;
-    return $API_IN[$k] ?? ($_GET[$k] ?? $d);
+    return $API_IN[$k] ?? ($_GET[$k] ?? ($_POST[$k] ?? $d));
 }
 
 function jout(array $d): never { echo json_encode($d, JSON_UNESCAPED_UNICODE); exit; }
@@ -109,7 +109,8 @@ function api_store_image(string $b64): string {
 }
 
 // Returns [filename, display_name, kind] or "!<error>".
-function api_store_attachment(string $b64, string $name): array|string {
+// $private stores the file outside web reach (view-once media).
+function api_store_attachment(string $b64, string $name, bool $private = false): array|string {
     if ($b64 === '') return '';
     if (str_contains($b64, ',')) $b64 = substr($b64, strrpos($b64, ',') + 1);
     $bin = base64_decode($b64, true);
@@ -118,11 +119,21 @@ function api_store_attachment(string $b64, string $name): array|string {
     $tmp = tempnam(sys_get_temp_dir(), 'up');
     file_put_contents($tmp, $bin);
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp);
-    if (str_starts_with($mime, 'image/')) {
+    if (str_starts_with($mime, 'image/') && !$private) {
         $r = api_store_image($b64);
         unlink($tmp);
         if (str_starts_with($r, '!')) return $r;
         return [$r, mb_substr(basename($name) ?: 'photo', 0, 180), 'image'];
+    }
+    $kind = str_starts_with($mime, 'image/') ? 'image'
+        : (str_starts_with($mime, 'audio/') || $mime === 'application/ogg' ? 'audio'
+        : (str_starts_with($mime, 'video/') ? 'video' : 'file'));
+    if ($kind !== 'file') {
+        $fname = bin2hex(random_bytes(10)) . '.' . media_safe_ext(strtolower(pathinfo($name, PATHINFO_EXTENSION)), $mime, $kind);
+        $dir = $private ? private_upload_dir() : dirname(__DIR__) . '/uploads';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        if (!rename($tmp, "$dir/$fname")) { unlink($tmp); return '!Could not store the file.'; }
+        return [$fname, mb_substr(basename($name), 0, 180), $kind];
     }
     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
     $allowed = ['pdf' => 'application/pdf', 'txt' => 'text/plain', 'csv' => 'text/csv',
@@ -190,6 +201,8 @@ function msg_out(array $m, int $me): array {
         'photo' => $m['photo'] ?? ($m['sender_photo'] ?? ''),
         'att' => $m['attachment'] ?? null, 'attName' => $m['attachment_name'] ?? null,
         'attKind' => $m['attachment_kind'] ?? null,
+        'viewOnce' => (bool) ($m['view_once'] ?? 0),
+        'opened' => !empty($m['consumed_at']),
         'pinned' => (bool) ($m['pinned'] ?? 0),
         'read' => !empty($m['read_at']),
     ];
