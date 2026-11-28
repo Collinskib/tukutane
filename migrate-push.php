@@ -3,8 +3,11 @@
 // pushed_at column on notifications so cron/push.php can drain new rows.
 // Admin-gated; safe to re-run. Delete from the docroot after it runs.
 require_once __DIR__ . '/includes/bootstrap.php';
-require_login();
-require_admin();
+$deployCli = PHP_SAPI === 'cli' || getenv('NIP_DEPLOY') === '1';
+if (!$deployCli) {
+    require_login('migrate-push.php');
+    if (!is_admin()) exit('admin only');
+}
 
 header('Content-Type: text/plain');
 echo "migrating...\n";
