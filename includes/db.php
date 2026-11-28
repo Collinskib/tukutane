@@ -512,6 +512,17 @@ function shared_interests(array $mine, string $theirs): array {
 
 // ---------- friendships ----------
 
+// Accepted friends shared by both users — used to enrich notifications.
+function mutual_friend_count(int $a, int $b): int {
+    $friends = 'SELECT CASE WHEN requester_id=:u THEN addressee_id ELSE requester_id END AS f
+                FROM friendships WHERE status="accepted" AND (requester_id=:u OR addressee_id=:u)';
+    $stmt = db()->prepare(
+        "SELECT COUNT(*) FROM ($friends) fa JOIN (" . str_replace(':u', ':v', $friends) . ") fb ON fa.f = fb.f"
+    );
+    $stmt->execute([':u' => $a, ':v' => $b]);
+    return (int) $stmt->fetchColumn();
+}
+
 function friendship(int $a, int $b): ?array {
     $stmt = db()->prepare(
         'SELECT * FROM friendships WHERE
@@ -529,7 +540,11 @@ function friend_action(string $action, int $me, int $other): string {
             if ($rel) return 'exists';
             $pdo->prepare('INSERT INTO friendships (requester_id, addressee_id) VALUES (:m, :o)')
                 ->execute([':m' => $me, ':o' => $other]);
-            notify($other, 'friend_request', user()['name'] . ' sent you a friend request.', 'friends.php');
+            $me_ = user();
+            $bits = array_filter([place_label($me_), ($n = mutual_friend_count($me, $other)) ? "$n mutual friends" : '']);
+            notify($other, 'friend_request',
+                $me_['name'] . ' sent you a friend request' . ($bits ? ' — ' . implode(' · ', $bits) : '') . '.',
+                'friends.php');
             return 'sent';
         case 'accept':
             if (!$rel || $rel['status'] !== 'pending' || (int) $rel['addressee_id'] !== $me) return 'invalid';
@@ -724,6 +739,16 @@ function unread_messages(int $me): int {
 }
 
 // ---------- notifications / saves / invites / reports ----------
+
+// Short human preview of a message for notification bodies.
+function message_preview(string $body, ?array $att): string {
+    if (trim($body) !== '') return mb_strimwidth(trim($body), 0, 80, '…');
+    return match ($att[2] ?? '') {
+        'image' => 'sent you a photo', 'audio' => 'sent you a voice note',
+        'video' => 'sent you a video', 'file'  => 'sent you a file',
+        default => 'sent you a message',
+    };
+}
 
 function notify(int $uid, string $type, string $body, string $link = ''): void {
     db()->prepare('INSERT INTO notifications (user_id, type, body, link) VALUES (:u, :t, :b, :l)')

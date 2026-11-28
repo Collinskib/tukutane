@@ -37,9 +37,11 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/push-drain.php';
+require_once __DIR__ . '/reminders.php';
 
 auth_refresh();
 
 // Crond doesn't run user crontabs on this host — piggyback the push queue
-// drain on real traffic (flock-throttled, never throws).
-if (PHP_SAPI !== 'cli') maybe_drain_push();
+// drain and hourly event reminders on real traffic (flock-throttled,
+// never throw).
+if (PHP_SAPI !== 'cli') { maybe_drain_push(); maybe_run_reminders(); }

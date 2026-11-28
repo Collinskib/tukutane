@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../lib/store';
-import { listenForPushTaps } from '../lib/push';
+import { listenForPushTaps, setupNotificationActions } from '../lib/push';
 import { C } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -13,7 +13,7 @@ function Gate() {
   const { user, loading, incomplete, justJoined, clearJoin } = useAuth();
   const segments = useSegments();
 
-  useEffect(() => listenForPushTaps(), []);
+  useEffect(() => { setupNotificationActions(); return listenForPushTaps(); }, []);
 
   useEffect(() => {
     if (loading) return;

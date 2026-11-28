@@ -28,6 +28,11 @@ export async function registerForPush(): Promise<void> {
         name: 'Nipange',
         // eslint-disable-next-line import/namespace -- runtime enum exists; rule can't see export * chains
         importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        enableVibrate: true,
+        vibrationPattern: [0, 250, 250, 250],
+        enableLights: true,
+        lightColor: '#163e31',
       });
     }
     const { status: existing } = await Notifications.getPermissionsAsync();
@@ -73,10 +78,37 @@ export function routeForLink(link: string): string | null {
   return null;
 }
 
+// Register notification action categories. Message pushes carry
+// categoryId 'msg-reply' → Android shows an inline-reply field.
+export async function setupNotificationActions(): Promise<void> {
+  try {
+    await Notifications.setNotificationCategoryAsync('msg-reply', [
+      {
+        identifier: 'reply',
+        buttonTitle: 'Reply',
+        textInput: { submitButtonTitle: 'Send', placeholder: 'Message…' },
+        options: { opensAppToForeground: false },
+      },
+    ]);
+  } catch { /* best-effort */ }
+}
+
+function convFromLink(link: unknown): number | null {
+  const m = typeof link === 'string' ? link.match(/messages\.php\?.*c=(\d+)/) : null;
+  return m ? Number(m[1]) : null;
+}
+
 // Mount the response listener once; returns an unsubscribe for cleanup.
 export function listenForPushTaps(): () => void {
   const sub = Notifications.addNotificationResponseReceivedListener((res) => {
     const link = res.notification.request.content.data?.link;
+    // Inline reply action — send straight to the conversation, stay in shade.
+    if (res.actionIdentifier === 'reply') {
+      const conv = convFromLink(link);
+      const text = (res.userText ?? '').trim();
+      if (conv && text) api('messages', {}, { conv, body: text }).catch(() => {});
+      return;
+    }
     if (typeof link !== 'string' || !link) return;
     const route = routeForLink(link);
     if (route) router.push(route as any);
@@ -84,6 +116,12 @@ export function listenForPushTaps(): () => void {
   // Cold start: app opened by tapping a notification.
   Notifications.getLastNotificationResponseAsync().then((res) => {
     const link = res?.notification.request.content.data?.link;
+    if (res?.actionIdentifier === 'reply') {
+      const conv = convFromLink(link);
+      const text = (res.userText ?? '').trim();
+      if (conv && text) api('messages', {}, { conv, body: text }).catch(() => {});
+      return;
+    }
     if (typeof link !== 'string' || !link) return;
     const route = routeForLink(link);
     if (route) router.push(route as any);

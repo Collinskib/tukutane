@@ -434,7 +434,7 @@ case 'messages': {
         $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id=:c AND sender_id=:s AND read_at IS NULL');
         $pending->execute([':c' => $conv['id'], ':s' => $uid]);
         if ((int) $pending->fetchColumn() === 1 && !conversation_muted((int) $conv['id'], $otherId)) {
-            notify($otherId, 'message', $u['name'] . ' sent you a message.', 'messages.php?c=' . $conv['id']);
+            notify($otherId, 'message', $u['name'] . ': ' . message_preview($body, $att), 'messages.php?c=' . $conv['id']);
         }
         jout(['ok' => true, 'message' => [
             'id' => $id, 'conv' => (int) $conv['id'], 'mine' => true, 'body' => mb_substr($body, 0, 1000),

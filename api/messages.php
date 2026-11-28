@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pending = db()->prepare('SELECT COUNT(*) FROM messages WHERE conversation_id = :c AND sender_id = :s AND read_at IS NULL');
     $pending->execute([':c' => $conv['id'], ':s' => $uid]);
     if ((int) $pending->fetchColumn() === 1 && !conversation_muted((int) $conv['id'], $otherId)) {
-        notify($otherId, 'message', user()['name'] . ' sent you a message.', 'messages.php?c=' . $conv['id']);
+        notify($otherId, 'message', user()['name'] . ': ' . message_preview($body, $att), 'messages.php?c=' . $conv['id']);
     }
     echo json_encode(['ok' => true, 'message' => [
         'id' => $id, 'sender_id' => $uid, 'body' => mb_substr($body, 0, 1000),

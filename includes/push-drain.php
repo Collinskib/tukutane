@@ -32,13 +32,18 @@ function drain_push_notifications(): array {
         $notifIds[] = (int) $n['id'];
         $tokStmt->execute([':u' => $n['user_id']]);
         foreach ($tokStmt->fetchAll(PDO::FETCH_COLUMN) as $t) {
-            $messages[] = [
-                'to'    => $t,
-                'title' => 'Nipange',
-                'body'  => $n['body'],
-                'sound' => 'default',
-                'data'  => ['link' => $n['link'] ?: '', 'type' => $n['type']],
+            $msg = [
+                'to'        => $t,
+                'title'     => 'Nipange',
+                'body'      => $n['body'],
+                'sound'     => 'default',
+                'channelId' => 'default',
+                'data'      => ['link' => $n['link'] ?: '', 'type' => $n['type']],
             ];
+            // Message pushes carry the reply category so Android shows an
+            // inline-reply field; the client reads conv id from data.link.
+            if ($n['type'] === 'message') $msg['categoryId'] = 'msg-reply';
+            $messages[] = $msg;
         }
         // Always mark pushed — in-app delivery already happened; a user with
         // no devices simply gets no push.
