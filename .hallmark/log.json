@@ -1,0 +1,43 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "polish",
+  "prompt": "Hallmark redesign of the logged-out landing page, polish depth: keep the Nipange system, layout and wiring; fix what reads as generated",
+  "genre": "editorial",
+  "scope": "page",
+  "theme": "nipange (project system, mandatory)",
+  "shape": "kept (Solid State structure)",
+  "hero": "kept (photo slideshow, centred head + search pill + CTA pair)",
+  "nav": "kept (wordmark, links, join; burger under 940px)",
+  "footer": "kept (brand column, three link groups, fine line)",
+  "imagery": "kept photographs (Unsplash stand-ins, credited in footer)",
+  "signature": "kept (angled cream section seams over dark forest hero)",
+  "sections": [
+   "hero",
+   "cards",
+   "split",
+   "steps",
+   "cta",
+   "footer"
+  ],
+  "photos": [
+   "hero.jpg",
+   "students.jpg",
+   "spots.jpg",
+   "festival.jpg",
+   "stage.jpg",
+   "street.jpg",
+   "market.jpg",
+   "crowd.jpg",
+   "duo-a.jpg",
+   "duo-b.jpg",
+   "cta.jpg"
+  ],
+  "entry": "assets/landing.css via includes/landing.php",
+  "fingerprint": "cream/forest/burnt-orange, Georgia display, pill geometry, angled clip seams",
+  "waived": [],
+  "kept": "links 11/11, fields 2/2, hooks 5/5, headings 5/8 (3 on record), figures 1/1",
+  "result": "before 115 FAIL/58 REFLEX, after 0/0; finish-review fix: scroll cue, tagline, ordinals cut, pause control added",
+  "date": "2026-11-27"
+ }
+]

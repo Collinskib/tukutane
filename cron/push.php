@@ -8,6 +8,14 @@
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
 if (PHP_SAPI !== 'cli' && !is_admin()) exit('cli only');
 
+$statusFile = (getenv('HOME') ?: '/home/nipangec') . '/public_html/push-status.txt';
+$writeStatus = function (string $line) use ($statusFile) {
+    @file_put_contents($statusFile, date('Y-m-d H:i:s') . " $line\n");
+};
+
+$tokens = (int) db()->query('SELECT COUNT(*) FROM push_tokens')->fetchColumn();
+$users  = (int) db()->query('SELECT COUNT(DISTINCT user_id) FROM push_tokens')->fetchColumn();
+
 $rows = db()->query(
     'SELECT n.id, n.user_id, n.type, n.body, n.link
      FROM notifications n
@@ -15,7 +23,7 @@ $rows = db()->query(
      ORDER BY n.id LIMIT 200'
 )->fetchAll(PDO::FETCH_ASSOC);
 
-if (!$rows) { echo "nothing queued\n"; exit; }
+if (!$rows) { $writeStatus("idle tokens=$tokens users=$users"); echo "nothing queued\n"; exit; }
 
 $tokStmt  = db()->prepare('SELECT token FROM push_tokens WHERE user_id = :u');
 $sentStmt = db()->prepare('UPDATE notifications SET pushed_at = NOW() WHERE id = :i');
@@ -60,6 +68,7 @@ foreach (array_chunk($messages, 100, true) as $chunk) {
     curl_close($ch);
     $res = $raw ? json_decode($raw, true) : null;
     if ($code !== 200 || !is_array($res) || !isset($res['data'])) {
+        $writeStatus("expo-fail http=$code tokens=$tokens users=$users");
         echo "expo push send failed (http $code)\n";
         continue;
     }
@@ -71,4 +80,5 @@ foreach (array_chunk($messages, 100, true) as $chunk) {
     }
 }
 
+$writeStatus('drained ' . count($notifIds) . " queued=$sent tokens=$tokens users=$users");
 echo 'drained ' . count($notifIds) . " notification(s), pushed $sent message(s)\n";
