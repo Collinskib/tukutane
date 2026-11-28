@@ -17,6 +17,9 @@ describe('routeForLink()', () => {
     expect(routeForLink('group.php?id=9')).toBe('/group/9');
     expect(routeForLink('venue.php?id=3')).toBe('/venue/3');
     expect(routeForLink('user.php?id=11')).toBe('/user/11');
+    expect(routeForLink('friends.php')).toBe('/friends');
+    expect(routeForLink('people.php')).toBe('/(tabs)/people');
+    expect(routeForLink('index.php')).toBe('/(tabs)/discover');
   });
 
   it('handles extra query params', () => {

@@ -67,6 +67,9 @@ export function routeForLink(link: string): string | null {
   if ((id = m(/group\.php\?.*id=(\d+)/))) return `/group/${id}`;
   if ((id = m(/venue\.php\?.*id=(\d+)/))) return `/venue/${id}`;
   if ((id = m(/user\.php\?.*id=(\d+)/))) return `/user/${id}`;
+  if (link.includes('friends.php')) return '/friends';
+  if (link.includes('people.php')) return '/(tabs)/people';
+  if (link.includes('index.php')) return '/(tabs)/discover';
   return null;
 }
 
