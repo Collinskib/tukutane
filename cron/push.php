@@ -5,10 +5,15 @@
 //   php /home/nipangec/repositories/tukutane/cron/push.php
 // (runs from the repo clone so it never sits in the docroot)
 
+$statusFile = (getenv('HOME') ?: '/home/nipangec') . '/public_html/push-status.txt';
+@file_put_contents($statusFile, date('Y-m-d H:i:s') . ' start sapi=' . PHP_SAPI . "\n");
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
+
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
 if (PHP_SAPI !== 'cli' && !is_admin()) exit('cli only');
+@file_put_contents($statusFile, date('Y-m-d H:i:s') . " bootstrapped\n");
 
-$statusFile = (getenv('HOME') ?: '/home/nipangec') . '/public_html/push-status.txt';
 $writeStatus = function (string $line) use ($statusFile) {
     @file_put_contents($statusFile, date('Y-m-d H:i:s') . " $line\n");
 };
