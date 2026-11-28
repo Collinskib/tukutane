@@ -11,7 +11,8 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
-if (PHP_SAPI !== 'cli' && !is_admin()) exit('cli only');
+// Allowed from: real cron (cli), admin session, or the key-gated api cron/run route.
+if (PHP_SAPI !== 'cli' && !defined('NIP_CRON_WEB') && !is_admin()) exit('cli only');
 @file_put_contents($statusFile, date('Y-m-d H:i:s') . " bootstrapped\n");
 
 $writeStatus = function (string $line) use ($statusFile) {

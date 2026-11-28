@@ -24,6 +24,7 @@ cp -rf api/. $DEPLOYPATH/api/
 cp -rf admin/. $DEPLOYPATH/admin/
 cp -rf assets/. $DEPLOYPATH/assets/
 cp -f uploads/.htaccess $DEPLOYPATH/uploads/
+mkdir -p $DEPLOYPATH/cron && cp -rf cron/. $DEPLOYPATH/cron/
 
 # Removed pages/features — cp only adds, so deleted repo files need
 # explicit removal or they stay live in the docroot.
@@ -49,26 +50,25 @@ STATUS=$DEPLOYPATH/deploy-status.txt
         "$PHP_BIN" -v | head -1
         NIP_DEPLOY=1 "$PHP_BIN" -d display_errors=1 -d error_reporting=E_ALL $DEPLOYPATH/migrate-push.php
 
-        # Ensure the app's cron jobs exist (only adds lines that are missing —
-        # never touches existing entries).
-        if command -v crontab >/dev/null 2>&1; then
+        # Cron on this host: CLI PHP can't reach the app's MySQL (wrong socket /
+        # credentials under the cli SAPI), so the scripts run over HTTP through
+        # the key-gated api cron/run route instead. Key lives only on the server.
+        KEYFILE=/home/nipangec/.push-drain-key
+        [ -f "$KEYFILE" ] || "$PHP_BIN" -r 'file_put_contents($argv[1], bin2hex(random_bytes(20)));' "$KEYFILE" 2>/dev/null || true
+        CRONKEY=""
+        [ -f "$KEYFILE" ] && CRONKEY=$(cat "$KEYFILE")
+        if command -v crontab >/dev/null 2>&1 && [ -n "$CRONKEY" ]; then
             CURRENT=$(crontab -l 2>/dev/null || true)
             {
-                [ -n "$CURRENT" ] && echo "$CURRENT"
-                echo "$CURRENT" | grep -q 'cron/reminders.php' || \
-                    echo "7 * * * * $PHP_BIN /home/nipangec/repositories/tukutane/cron/reminders.php >/dev/null 2>&1"
-                echo "$CURRENT" | grep -q 'cron/push.php' || \
-                    echo "* * * * * $PHP_BIN /home/nipangec/repositories/tukutane/cron/push.php >/dev/null 2>&1"
+                echo "$CURRENT" | grep -v 'cron/push\.php\|cron/reminders\.php\|cron%2Frun\|cron/run'
+                echo "7 * * * * curl -sm 30 'https://nipange.co.ke/api/app.php?r=cron%2Frun&job=reminders&key=$CRONKEY' >/dev/null 2>&1"
+                echo "* * * * * curl -sm 30 'https://nipange.co.ke/api/app.php?r=cron%2Frun&job=push&key=$CRONKEY' >/dev/null 2>&1"
             } | crontab - 2>/dev/null && echo "cron entries ensured" || echo "crontab write failed"
         else
-            echo "crontab unavailable — add cron/reminders.php + cron/push.php via cPanel > Cron Jobs"
+            echo "crontab/keyfile unavailable — add the cron/run curls via cPanel > Cron Jobs"
         fi
-        # Cron scripts bootstrap from the repo clone, which lacks the gitignored
-        # config.php — copy it over from the docroot so they can connect.
-        cp -f "$DEPLOYPATH/config.php" "$PWD/config.php" 2>/dev/null || true
-        # Also run the push drain once inline so deploy-status shows whether the
-        # script itself works (crontab may exist but never fire on this host).
-        [ -n "$PHP_BIN" ] && "$PHP_BIN" "$PWD/cron/push.php" 2>&1 || true
+        # Run the push drain once inline so deploy-status proves the pipeline.
+        [ -n "$CRONKEY" ] && curl -sm 30 "https://nipange.co.ke/api/app.php?r=cron%2Frun&job=push&key=$CRONKEY" || true
     fi
     echo
 } > $STATUS 2>&1 || true

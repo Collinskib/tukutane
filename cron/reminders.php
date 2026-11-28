@@ -5,7 +5,7 @@
 // (runs from the repo clone so it never sits in the docroot)
 
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
-if (PHP_SAPI !== 'cli' && !is_admin()) exit('cli only');
+if (PHP_SAPI !== 'cli' && !defined('NIP_CRON_WEB') && !is_admin()) exit('cli only');
 
 $rows = db()->query(
     'SELECT r.id AS rsvp_id, r.user_id, g.id AS gid, g.title, g.event_at

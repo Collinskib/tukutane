@@ -80,6 +80,24 @@ case 'auth/forgot': {
     jout(['ok' => true]); // never reveal whether the email exists
 }
 
+case 'cron/run': {
+    // Key-gated entry point for scheduled jobs — cPanel cron can't run these
+    // scripts under CLI (bootstrap needs the docroot config / correct MySQL
+    // socket), so the crontab curls this route instead. Key lives server-side
+    // only at ~/.push-drain-key, written once by deploy.sh.
+    $keyFile = rtrim((string) (getenv('HOME') ?: ''), '/') . '/.push-drain-key';
+    $expect  = is_file($keyFile) ? trim((string) file_get_contents($keyFile)) : '';
+    $given   = (string) pin('key');
+    if ($expect === '' || !hash_equals($expect, $given)) jerr('Forbidden.', 403);
+    $job  = (string) pin('job');
+    $jobs = ['push' => 'cron/push.php', 'reminders' => 'cron/reminders.php'];
+    if (!isset($jobs[$job])) jerr('No such job.', 404);
+    define('NIP_CRON_WEB', 1);
+    header('Content-Type: text/plain');
+    include dirname(__DIR__) . '/' . $jobs[$job];
+    exit;
+}
+
 case 'feed': {
     $f = [
         'view' => (string) pin('view', 'discover'), 'interest' => (string) pin('interest'),
