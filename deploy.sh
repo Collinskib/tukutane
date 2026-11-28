@@ -63,6 +63,9 @@ STATUS=$DEPLOYPATH/deploy-status.txt
         else
             echo "crontab unavailable — add cron/reminders.php + cron/push.php via cPanel > Cron Jobs"
         fi
+        # Cron scripts bootstrap from the repo clone, which lacks the gitignored
+        # config.php — copy it over from the docroot so they can connect.
+        cp -f "$DEPLOYPATH/config.php" "$PWD/config.php" 2>/dev/null || true
         # Also run the push drain once inline so deploy-status shows whether the
         # script itself works (crontab may exist but never fire on this host).
         [ -n "$PHP_BIN" ] && "$PHP_BIN" "$PWD/cron/push.php" 2>&1 || true
