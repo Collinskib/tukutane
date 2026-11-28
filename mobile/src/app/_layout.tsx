@@ -19,9 +19,12 @@ function Gate() {
     if (loading) return;
     const inAuth = segments[0] === 'auth';
     const inComplete = segments[0] === 'complete-profile';
+    // A cached user can land on `/` (index) — treat it like auth/complete so
+    // logged-in users are routed into the app instead of sitting on the splash.
+    const atIndex = !segments[0] || segments[0] === 'index';
     if (!user && !inAuth) router.replace('/auth');
     else if (user && incomplete && !inComplete) router.replace('/complete-profile');
-    else if (user && !incomplete && (inAuth || inComplete)) {
+    else if (user && !incomplete && (inAuth || inComplete || atIndex)) {
       if (justJoined) { clearJoin(); router.replace('/welcome'); }
       else router.replace('/(tabs)/discover');
     }
