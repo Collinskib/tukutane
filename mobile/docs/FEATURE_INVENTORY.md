@@ -74,9 +74,11 @@ Status legend: ✅ implemented & wired to live API · ◐ partial · ❌ not imp
 | Read receipts / unread | ✅ | `read_at`, `unread` counts, `mark_conversation_read` |
 | Typing indicator | ✅ | `set_typing`/`peer_typing` |
 | Image attachments | ✅ | `att_b64` → `api_store_attachment` |
+| Audio/video attachments | ✅ | multipart `attach` → `upload_attachment`; expo-audio recording, expo-video playback |
+| View-once media | ✅ | `view_once` flag; gated `r=media` route streams once to recipient then 410s |
 | Mute conversation | ✅ | `do=mute` |
 | In-app notifications | ✅ | `notifications` list + mark-read; `notifications.tsx` |
-| **Push notifications** | ❌ | No device-token storage or transport — biggest gap |
+| **Push notifications** | ✅ | Expo push → FCM; token register on boot/login, inline reply, deep links |
 
 ## Campus/institutions
 

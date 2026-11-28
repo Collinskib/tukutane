@@ -58,7 +58,8 @@ county→area→estates), `venues`.
 | `friends` | GET | ✓ | Friends + pending | — |
 | `conversation` | POST | ✓ | Get-or-create 1:1 conv | `user` → `{id}` |
 | `conversations` | GET | ✓ | Conv list w/ unread/muted | — |
-| `messages` | GET/POST | ✓ | History + send | `conv`, `after`; POST `do`=typing\|mute, `body`, `att_b64` |
+| `messages` | GET/POST | ✓ | History + send | `conv`, `after`; POST `do`=typing\|mute, `body`, `att_b64` or multipart `attach`, `view_once` |
+| `media` | GET | ✓ | Stream view-once attachment | `m` (message id); 410 after first recipient fetch |
 | `groups` | GET | ✓ | Group directory | `view, category, county, area, q` |
 | `group` | GET/POST | ✓ | Detail + membership ops | `id`; POST `do`=join\|leave\|cancel_request\|approve\|decline\|remove\|delete |
 | `group-save` | POST | ✓ | Create/edit group | `id?`, `name, category, county, area, description, join_policy` |
@@ -77,6 +78,14 @@ Images are uploaded as base64 in the JSON body (`photo_b64`, `cover_b64`,
 `att_b64` + `att_name`) and stored by `api_store_image()` /
 `api_store_attachment()` under `uploads/`. Responses return the bare filename;
 the app builds URLs via `imgUrl()` → `{BASE}/uploads/<file>`.
+
+Chat media larger than the 10MB base64 cap (voice notes, videos) goes up as
+`multipart/form-data` via `apiUpload()` — PHP populates `$_FILES['attach']` and
+`upload_attachment()` handles per-kind caps (image 10MB, audio 15MB, video
+60MB). View-once attachments (`view_once=1`) are stored in `uploads-private/`
+(deny-all `.htaccess`) and only stream through `r=media&m=<id>`, which marks
+`consumed_at` on the first authorized fetch by the recipient — sender and
+repeat fetches get 410.
 
 ## Real-time model
 
