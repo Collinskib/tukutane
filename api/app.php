@@ -444,15 +444,17 @@ case 'messages': {
             'id' => $id, 'conv' => (int) $conv['id'], 'mine' => true, 'body' => mb_substr($body, 0, 1000),
             'time' => date('g:i A'), 'at' => date('Y-m-d H:i:s'),
             'att' => $att[0] ?? null, 'attName' => $att[1] ?? null, 'attKind' => $att[2] ?? null,
-            'viewOnce' => $viewOnce, 'opened' => false,
+            'viewOnce' => $viewOnce, 'opened' => false, 'status' => 'sent',
         ]]);
     }
 
+    mark_delivered((int) $conv['id'], $uid);
     $rows = messages_since((int) $conv['id'], (int) pin('after', 0));
     mark_conversation_read((int) $conv['id'], $uid);
     $other = find_user($otherId);
     jout([
         'items'  => array_map(fn($m) => msg_out($m, $uid), $rows),
+        'receipts' => receipts_for((int) $conv['id'], $uid),
         'typing' => peer_typing((int) $conv['id'], $otherId),
         'other'  => pub_user($other),
         'presence' => presence_out($other),

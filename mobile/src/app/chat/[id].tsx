@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAudioRecorder, useAudioPlayer, useAudioPlayerStatus, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio';
@@ -126,8 +127,20 @@ export default function ChatThread() {
     try {
       const d = await api('messages', { conv: id, after: lastId.current });
       if (d.items.length) {
-        lastId.current = d.items[d.items.length - 1].id;
-        setItems((old) => [...old, ...d.items]);
+        lastId.current = Math.max(lastId.current, d.items[d.items.length - 1].id);
+        // An in-flight poll can re-return a message an optimistic send just
+        // appended — dedupe by id or React hits duplicate keys.
+        setItems((old) => {
+          const seen = new Set(old.map((m: any) => m.id));
+          const fresh = d.items.filter((m: any) => !seen.has(m.id));
+          return fresh.length ? [...old, ...fresh] : old;
+        });
+      }
+      // Upgrade ticks on already-rendered outgoing bubbles.
+      if (d.receipts) {
+        setItems((old) => old.map((m: any) =>
+          m.mine && d.receipts[m.id] && d.receipts[m.id] !== m.status
+            ? { ...m, status: d.receipts[m.id] } : m));
       }
       setOther(d.other); setTyping(!!d.typing); setMuted(!!d.muted);
       if (d.presence) setPresence(d.presence);
@@ -269,7 +282,10 @@ export default function ChatThread() {
 
   return (
     <Screen pad={false} bottom>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Standalone builds get android:softwareKeyboardLayoutMode=resize; Expo Go's
+          own manifest doesn't resize, so fall back to height-based KAV there. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding'
+        : Constants.executionEnvironment === 'storeClient' ? 'height' : undefined}>
         <View style={s.head}>
           <Pressable onPress={() => router.back()} hitSlop={10} style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.6 }]}>
             <Text style={s.back}>‹</Text>
@@ -314,7 +330,14 @@ export default function ChatThread() {
                 <View style={[s.bubble, m.mine ? s.mine : s.theirs, r.last && (m.mine ? s.mineTail : s.theirsTail)]}>
                   {renderAttachment(m)}
                   {m.body ? <Text style={m.mine ? s.mineTxt : s.theirTxt}>{m.body}</Text> : null}
-                  <Text style={[s.time, m.mine ? s.timeMine : s.timeTheirs]}>{m.time}</Text>
+                  <Text style={[s.time, m.mine ? s.timeMine : s.timeTheirs]}>
+                    {m.time}
+                    {m.mine && (
+                      <Text style={m.status === 'read' ? s.tickRead : undefined}>
+                        {'  '}{m.status === 'sent' ? '✓' : '✓✓'}
+                      </Text>
+                    )}
+                  </Text>
                 </View>
               </View>
             );
@@ -414,6 +437,7 @@ const s = StyleSheet.create({
   theirTxt: { color: C.ink, fontSize: 15.5, lineHeight: 21 },
   time: { fontSize: 10, marginTop: 2, alignSelf: 'flex-end', marginLeft: 30 },
   timeMine: { color: 'rgba(255,255,255,.65)' },
+  tickRead: { color: '#f4ab77' },
   timeTheirs: { color: '#9aa294' },
   attImg: { width: 210, height: 210, borderRadius: 12, marginBottom: 4, backgroundColor: C.line },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingBottom: 60 },

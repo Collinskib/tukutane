@@ -206,5 +206,6 @@ function msg_out(array $m, int $me): array {
         'opened' => !empty($m['consumed_at']),
         'pinned' => (bool) ($m['pinned'] ?? 0),
         'read' => !empty($m['read_at']),
+        'status' => !empty($m['read_at']) ? 'read' : (!empty($m['delivered_at'] ?? null) ? 'delivered' : 'sent'),
     ];
 }

@@ -129,7 +129,7 @@ site_header();
         <?php elseif ($m['attachment']): ?>
         <a class="attach-file" href="uploads/<?= e($m['attachment']) ?>" target="_blank" download="<?= e($m['attachment_name'] ?? 'file') ?>">📄 <?= e($m['attachment_name'] ?? 'attachment') ?></a>
         <?php endif; ?>
-        <?= nl2br(e($m['body'])) ?><small><?= e(date('g:i A', strtotime($m['created_at']))) ?><?php if ((int) $m['sender_id'] !== $uid): ?><button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="<?= (int) $m['id'] ?>" title="Report this message">⚑</button><?php endif; ?></small>
+        <?= nl2br(e($m['body'])) ?><small><?= e(date('g:i A', strtotime($m['created_at']))) ?><?php if ((int) $m['sender_id'] === $uid): ?><?php $st = !empty($m['read_at']) ? 'read' : (!empty($m['delivered_at'] ?? null) ? 'delivered' : 'sent'); ?><span class="tick <?= $st === 'read' ? 'read' : '' ?>" title="<?= $st ?>"><?= $st === 'sent' ? '✓' : '✓✓' ?></span><?php else: ?><button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="<?= (int) $m['id'] ?>" title="Report this message">⚑</button><?php endif; ?></small>
       </div>
       <?php endforeach; ?>
       <?php if (!$messages): ?><div class="empty" style="margin:auto"><span class="big">👋</span><p>Say hi to <?= e($other['name']) ?>!</p></div><?php endif; ?>
@@ -217,12 +217,17 @@ site_header();
       return '<video class="attach-video" controls preload="metadata" playsinline src="uploads/'+m.attachment+'"></video>';
     return '<a class="attach-file" href="uploads/'+m.attachment+'" target="_blank" download="'+escAttr(m.attachment_name||'file')+'">📄 '+esc(m.attachment_name||'attachment')+'</a>';
   }
+  function tickHtml(m){
+    if(!m.status||m.status==='sent')return '<span class="tick" title="sent">✓</span>';
+    if(m.status==='read')return '<span class="tick read" title="read">✓✓</span>';
+    return '<span class="tick" title="delivered">✓✓</span>';
+  }
   function add(m){
     var b=document.createElement('div');
     var mine = m.sender_id==<?= $uid ?>;
     b.className='bubble '+(mine?'me':'them');
     b.dataset.mid=m.id;
-    b.innerHTML=attachHtml(m)+esc(m.body)+'<small>'+m.time+(mine?'':'<button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="'+m.id+'" title="Report this message">⚑</button>')+'</small>';
+    b.innerHTML=attachHtml(m)+esc(m.body)+'<small>'+m.time+(mine?tickHtml(m):'<button class="msg-flag" type="button" data-dialog="#reportdlg" data-report-msg="'+m.id+'" title="Report this message">⚑</button>')+'</small>';
     b.style.opacity='0';b.style.transform='translateY(6px)';
     box.insertBefore(b, tind);
     requestAnimationFrame(function(){b.style.transition='opacity .2s ease-out,transform .2s ease-out';b.style.opacity='1';b.style.transform='none';});
@@ -244,6 +249,10 @@ site_header();
       .then(function(r){return r.json()})
       .then(function(j){
         (j.messages||[]).forEach(function(m){if(+m.id>last){last=+m.id;add(m);}});
+        if(j.receipts)Object.keys(j.receipts).forEach(function(mid){
+          var el=box.querySelector('.bubble.me[data-mid="'+mid+'"] .tick');
+          if(el){var st=j.receipts[mid];el.textContent=st==='sent'?'✓':'✓✓';el.classList.toggle('read',st==='read');el.title=st;}
+        });
         var was = !tind.hidden;
         tind.hidden = !j.typing;
         if(j.typing&&!was)box.scrollTop=box.scrollHeight;

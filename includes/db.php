@@ -710,6 +710,28 @@ function message_media(int $mid, int $me): ?array {
     return $m;
 }
 
+// Recipient's client fetched these messages → delivered. Read stays a
+// separate stamp so "delivered ≠ seen" is recorded honestly.
+function mark_delivered(int $convId, int $me): void {
+    db()->prepare('UPDATE messages SET delivered_at = NOW()
+                   WHERE conversation_id = :c AND sender_id != :m AND delivered_at IS NULL')
+        ->execute([':c' => $convId, ':m' => $me]);
+}
+
+// id → sent|delivered|read for my recent outgoing messages, so the sender's
+// UI can upgrade ticks on bubbles rendered before the recipient saw them.
+function receipts_for(int $convId, int $me, int $limit = 30): array {
+    $stmt = db()->prepare('SELECT id, read_at, delivered_at FROM messages
+                           WHERE conversation_id = :c AND sender_id = :s
+                           ORDER BY id DESC LIMIT ' . (int) $limit);
+    $stmt->execute([':c' => $convId, ':s' => $me]);
+    $out = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $out[(int) $r['id']] = $r['read_at'] ? 'read' : ($r['delivered_at'] ? 'delivered' : 'sent');
+    }
+    return $out;
+}
+
 function mark_conversation_read(int $convId, int $me): void {
     db()->prepare('UPDATE messages SET read_at = NOW()
                    WHERE conversation_id = :c AND sender_id != :m AND read_at IS NULL')

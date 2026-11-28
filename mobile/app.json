@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "googleServicesFile": "./google-services.json",
-      "package": "ke.co.nipange"
+      "package": "ke.co.nipange",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"

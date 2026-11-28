@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'time' => date('g:i A'),
         'attachment' => $att[0] ?? null, 'attachment_name' => $att[1] ?? null,
         'attachment_kind' => $att[2] ?? null,
-        'view_once' => $viewOnce, 'consumed_at' => null,
+        'view_once' => $viewOnce, 'consumed_at' => null, 'status' => 'sent',
     ]]);
     exit;
 }
@@ -51,6 +51,7 @@ $conv = conversation_for((int) ($_GET['conv'] ?? 0), $uid);
 if (!$conv) { http_response_code(403); exit(json_encode(['error' => 'no conversation'])); }
 $otherIdGet = (int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_one']);
 if (is_blocked($uid, $otherIdGet)) { http_response_code(403); exit(json_encode(['error' => 'blocked'])); }
+mark_delivered((int) $conv['id'], $uid);
 $rows = messages_since((int) $conv['id'], (int) ($_GET['after'] ?? 0), 50);
 // mark incoming as read when fetched
 db()->prepare('UPDATE messages SET read_at = NOW() WHERE conversation_id = :c AND sender_id != :u AND read_at IS NULL')
@@ -59,10 +60,12 @@ $otherId = (int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_o
 touch_presence($uid);
 echo json_encode(['typing' => peer_typing((int) $conv['id'], $otherId),
     'presence' => presence_out(find_user($otherId)),
+    'receipts' => receipts_for((int) $conv['id'], $uid),
     'messages' => array_map(fn($m) => [
     'id' => (int) $m['id'], 'sender_id' => (int) $m['sender_id'],
     'body' => $m['body'], 'time' => date('g:i A', strtotime($m['created_at'])),
     'attachment' => $m['attachment'], 'attachment_name' => $m['attachment_name'],
     'attachment_kind' => $m['attachment_kind'],
     'view_once' => (int) ($m['view_once'] ?? 0), 'consumed_at' => $m['consumed_at'] ?? null,
+    'status' => !empty($m['read_at']) ? 'read' : (!empty($m['delivered_at'] ?? null) ? 'delivered' : 'sent'),
 ], $rows)]);
