@@ -27,11 +27,19 @@
       "expo-web-browser",
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "color": "#163e31"
+        }
+      ],
+      "expo-secure-store",
+      [
         "react-native-nitro-google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.101117355999-qdhmag4bi9na6vfqr7ko3rjrcpn5i0ph"
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "scheme": "nipange",
     "extra": {

@@ -1,0 +1,91 @@
+name: Release
+
+# Controlled release builds: production AAB (Play Store) and production iOS
+# via EAS. Trigger by pushing a `mobile-v*` tag or dispatching manually.
+#
+# Required secrets: EXPO_TOKEN. iOS additionally needs APPLE_TEAM_ID and
+# signing credentials on EAS (see ios-build.yml header).
+#
+# Store submission is intentionally manual for now — download artifacts or
+# `eas submit` once store listings exist.
+
+on:
+  push:
+    tags: ['mobile-v*']
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Production builds (EAS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::Set the EXPO_TOKEN repo secret (https://expo.dev/settings/access-tokens)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Expo and EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Verify (typecheck, lint, tests)
+        working-directory: mobile
+        run: |
+          npx tsc --noEmit
+          npx expo lint
+          npx jest --ci
+
+      - name: Link EAS project
+        working-directory: mobile
+        run: npx eas-cli project:init --non-interactive --force
+
+      - name: Build Android AAB
+        working-directory: mobile
+        run: npx eas-cli build -p android --profile production --non-interactive --wait --json > ../eas-android.json
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-build-info
+          path: eas-android.json
+          if-no-files-found: warn
+
+      - name: Download AAB
+        run: |
+          URL=$(jq -r '(.[0] // .).artifacts.buildUrl // empty' eas-android.json)
+          if [ -n "$URL" ]; then curl -fSL "$URL" -o nipange.aab; fi
+
+      - name: Upload AAB file
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipange-aab
+          path: nipange.aab
+          if-no-files-found: warn
+
+      - name: iOS build (skipped without Apple credentials)
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        working-directory: mobile
+        run: |
+          if [ -z "$APPLE_TEAM_ID" ]; then
+            echo "Skipping iOS — no Apple Developer credentials yet."
+            exit 0
+          fi
+          EXPO_APPLE_TEAM_ID="$APPLE_TEAM_ID" \
+            npx eas-cli build -p ios --profile production --non-interactive --wait

@@ -668,6 +668,30 @@ case 'report': {
     jout(['ok' => true]);
 }
 
+case 'push/register': {
+    $u = api_need();
+    if ($method !== 'POST') jerr('POST only', 405);
+    $token = trim((string) pin('token'));
+    if (!preg_match('/^ExponentPushToken\[[A-Za-z0-9_\-]+\]$/', $token)) jerr('Bad token.');
+    $platform = in_array(pin('platform'), ['android', 'ios', 'web'], true) ? pin('platform') : '';
+    db()->prepare('INSERT INTO push_tokens (user_id, token, platform, last_used)
+                   VALUES (:u, :t, :p, NOW())
+                   ON DUPLICATE KEY UPDATE user_id = VALUES(user_id),
+                                           platform = VALUES(platform),
+                                           last_used = NOW()')
+        ->execute([':u' => (int) $u['id'], ':t' => $token, ':p' => $platform]);
+    jout(['ok' => true]);
+}
+
+case 'push/unregister': {
+    $u = api_need();
+    if ($method !== 'POST') jerr('POST only', 405);
+    $token = trim((string) pin('token'));
+    db()->prepare('DELETE FROM push_tokens WHERE user_id = :u AND token = :t')
+        ->execute([':u' => (int) $u['id'], ':t' => $token]);
+    jout(['ok' => true]);
+}
+
 case 'auth/logout': {
     $h = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     if (preg_match('/Bearer\s+([a-f0-9]{64})/i', $h, $m)) {

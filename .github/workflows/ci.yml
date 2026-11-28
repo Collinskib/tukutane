@@ -1,0 +1,62 @@
+name: CI
+
+# Static checks + unit tests for the mobile app. Runs on any PR and on
+# pushes that touch the app or the API it talks to (api/ changes can break
+# the client contract).
+#
+# No secrets required.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+    paths: ['mobile/**', 'api/**', '.github/workflows/ci.yml']
+
+jobs:
+  mobile:
+    name: Typecheck · lint · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: mobile
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: mobile
+        run: npx expo lint
+
+      - name: Unit tests
+        working-directory: mobile
+        run: npx jest --ci
+
+      - name: Expo doctor
+        working-directory: mobile
+        run: npx expo-doctor || true
+
+  api:
+    name: PHP syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Lint PHP
+        run: |
+          set -e
+          for f in api/*.php includes/*.php *.php cron/*.php; do php -l "$f" > /dev/null; done
+          echo "all PHP files OK"

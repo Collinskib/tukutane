@@ -1,14 +1,31 @@
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { BASE } from './theme';
 
 const TOKEN_KEY = 'nipange.token';
 
+// SecureStore on native (Keystore/Keychain-backed); AsyncStorage on web.
 export async function getToken(): Promise<string | null> {
-  return AsyncStorage.getItem(TOKEN_KEY);
+  if (Platform.OS === 'web') return AsyncStorage.getItem(TOKEN_KEY);
+  const t = await SecureStore.getItemAsync(TOKEN_KEY);
+  if (t !== null) return t;
+  // Migrate tokens stored before the SecureStore swap.
+  const legacy = await AsyncStorage.getItem(TOKEN_KEY);
+  if (legacy) {
+    await SecureStore.setItemAsync(TOKEN_KEY, legacy).catch(() => {});
+    await AsyncStorage.removeItem(TOKEN_KEY).catch(() => {});
+  }
+  return legacy;
 }
 export async function setToken(t: string | null) {
-  if (t) await AsyncStorage.setItem(TOKEN_KEY, t);
-  else await AsyncStorage.removeItem(TOKEN_KEY);
+  if (Platform.OS === 'web') {
+    if (t) await AsyncStorage.setItem(TOKEN_KEY, t);
+    else await AsyncStorage.removeItem(TOKEN_KEY);
+    return;
+  }
+  if (t) await SecureStore.setItemAsync(TOKEN_KEY, t);
+  else await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
 export class ApiError extends Error {

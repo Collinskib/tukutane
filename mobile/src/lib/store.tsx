@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api, getToken, setToken } from './api';
+import { registerForPush, unregisterPush } from './push';
 
 export type User = {
   id: number; name: string; email: string; photo: string; place: string;
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const d = await api('profile');
           setUser(d.user);
           setIncomplete(!!d.incomplete);
+          registerForPush();
         }
       } catch (e: any) {
         // Only drop the token on a real auth rejection, not a flaky network.
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setToken(d.token);
       setUser(d.user);
       setIncomplete(!!d.incomplete);
+      registerForPush();
     },
     refreshUser: async () => {
       try {
@@ -74,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch { /* keep stale */ }
     },
     logout: async () => {
+      await unregisterPush();
       try { await api('auth/logout', {}, {}); } catch { /* token may be dead */ }
       await setToken(null);
       setUser(null);
