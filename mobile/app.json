@@ -17,6 +17,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "googleServicesFile": "./google-services.json",
       "package": "ke.co.nipange"
     },
     "web": {
@@ -53,7 +54,15 @@
     "extra": {
       "googleWebClientId": "101117355999-s0ftf8kh122732didonknm2mscmpem0j.apps.googleusercontent.com",
       "googleAndroidClientId": "101117355999-u87iq0f6nbnenintcqfgvt49m3446ltk.apps.googleusercontent.com",
-      "googleIosClientId": "101117355999-qdhmag4bi9na6vfqr7ko3rjrcpn5i0ph.apps.googleusercontent.com"
+      "googleIosClientId": "101117355999-qdhmag4bi9na6vfqr7ko3rjrcpn5i0ph.apps.googleusercontent.com",
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "039fe77e-90a7-4f3b-a684-83f2df0ccd01"
+      }
     }
   }
 }
