@@ -244,17 +244,19 @@ export default function ChatThread() {
     );
   };
 
-  // Day separators + sender grouping (tighten tails inside a run).
-  const rows = useMemo(() => {
-    const out: { msg: Msg; sep?: string; last: boolean }[] = [];
+  // Day separators + sender grouping (tighten tails inside a run) — sep rows
+  // are first-class items; fragments in renderItem trip key warnings.
+  type Row = { key: string; sep: string } | { key: string; msg: Msg; last: boolean };
+  const rows = useMemo<Row[]>(() => {
+    const out: Row[] = [];
     items.forEach((m, i) => {
       const sep = dayLabel(m.at);
       const prev = items[i - 1];
-      const newDay = !prev || dayLabel(prev.at) !== sep;
       const next = items[i + 1];
+      const newDay = !prev || dayLabel(prev.at) !== sep;
+      if (newDay && sep) out.push({ key: `sep-${m.id}`, sep });
       const last = !next || next.mine !== m.mine || dayLabel(next.at) !== sep;
-      if (newDay) out.push({ msg: m, sep: sep ?? undefined, last });
-      else out.push({ msg: m, last });
+      out.push({ key: `m-${m.id}`, msg: m, last });
     });
     return out;
   }, [items]);
@@ -292,7 +294,7 @@ export default function ChatThread() {
 
         <FlatList
           ref={flat} data={rows}
-          keyExtractor={(r) => String(r.msg.id)}
+          keyExtractor={(r) => r.key}
           contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10, flexGrow: 1 }}
           onContentSizeChange={() => flat.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
@@ -302,18 +304,16 @@ export default function ChatThread() {
             </View>
           }
           renderItem={({ item: r }) => {
+            if ('sep' in r) return <View style={s.dayWrap}><Text style={s.day}>{r.sep}</Text></View>;
             const m = r.msg;
             return (
-              <>
-                {r.sep && <View style={s.dayWrap}><Text style={s.day}>{r.sep}</Text></View>}
-                <View style={[s.row, m.mine && { justifyContent: 'flex-end' }, r.last ? { marginBottom: 8 } : { marginBottom: 2 }]}>
-                  <View style={[s.bubble, m.mine ? s.mine : s.theirs, r.last && (m.mine ? s.mineTail : s.theirsTail)]}>
-                    {renderAttachment(m)}
-                    {m.body ? <Text style={m.mine ? s.mineTxt : s.theirTxt}>{m.body}</Text> : null}
-                    <Text style={[s.time, m.mine ? s.timeMine : s.timeTheirs]}>{m.time}</Text>
-                  </View>
+              <View style={[s.row, m.mine && { justifyContent: 'flex-end' }, r.last ? { marginBottom: 8 } : { marginBottom: 2 }]}>
+                <View style={[s.bubble, m.mine ? s.mine : s.theirs, r.last && (m.mine ? s.mineTail : s.theirsTail)]}>
+                  {renderAttachment(m)}
+                  {m.body ? <Text style={m.mine ? s.mineTxt : s.theirTxt}>{m.body}</Text> : null}
+                  <Text style={[s.time, m.mine ? s.timeMine : s.timeTheirs]}>{m.time}</Text>
                 </View>
-              </>
+              </View>
             );
           }}
         />
