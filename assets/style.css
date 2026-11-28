@@ -200,6 +200,7 @@ a.brand{text-decoration:none}
 .thread-head .back{display:none;align-items:center;justify-content:center;align-self:stretch;margin-left:-8px;padding:0 6px;font-size:28px;line-height:1;text-decoration:none;color:var(--green-3)}
 .thread-head .who{flex:1;min-width:0}
 .thread-head .who small{display:block;color:var(--ink-soft)}
+.thread-head .who .presence.online{color:var(--green-3);font-weight:600}
 .msgs{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
 .bubble{max-width:72%;padding:9px 13px;border-radius:16px;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
 .bubble.me{align-self:flex-end;background:var(--green-3);color:var(--cream);border-bottom-right-radius:4px}

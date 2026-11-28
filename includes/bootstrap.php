@@ -41,6 +41,9 @@ require_once __DIR__ . '/reminders.php';
 
 auth_refresh();
 
+// Presence stamp (throttled ~45s) for logged-in web traffic.
+if (PHP_SAPI !== 'cli' && user_id()) touch_presence(user_id());
+
 // Crond doesn't run user crontabs on this host — piggyback the push queue
 // drain and hourly event reminders on real traffic (flock-throttled,
 // never throw).

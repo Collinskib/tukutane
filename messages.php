@@ -95,7 +95,7 @@ site_header();
     <div class="thread-head">
       <a class="back" href="messages.php" aria-label="Back to chats">‹</a>
       <?= avatar_html($other) ?>
-      <div class="who"><b><?= e($other['name']) ?></b><?php if ($convMuted): ?><small>🔇 muted</small><?php endif; ?></div>
+      <div class="who"><b><?= e($other['name']) ?></b><small id="presence" class="presence"><?= e(last_seen_label($other['last_seen_at'] ?? null)) ?></small><?php if ($convMuted): ?><small>🔇 muted</small><?php endif; ?></div>
       <form method="post" style="display:inline"><?= csrf_field() ?>
         <input type="hidden" name="do" value="<?= $convMuted ? 'unmute' : 'mute' ?>">
         <button class="btn-mini" type="submit"><?= $convMuted ? 'Unmute' : 'Mute' ?></button></form>
@@ -228,7 +228,16 @@ site_header();
     requestAnimationFrame(function(){b.style.transition='opacity .2s ease-out,transform .2s ease-out';b.style.opacity='1';b.style.transform='none';});
     box.scrollTop=box.scrollHeight;
   }
-  var tind = document.getElementById('tind');
+  var tind = document.getElementById('tind'), pres = document.getElementById('presence');
+  function seenLabel(ts){
+    if(!ts)return '';
+    var d = new Date(ts.replace(' ','T')), diff = (Date.now()-d.getTime())/1000;
+    if(diff<90)return 'online';
+    var today = new Date().toDateString()===d.toDateString();
+    var yday = new Date(Date.now()-864e5).toDateString()===d.toDateString();
+    var hm = d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    return 'last seen ' + (today?'':(yday?'yesterday ':d.toLocaleDateString([],{weekday:'short'})+' ')) + hm;
+  }
   function poll(){
     if(document.hidden)return;
     fetch('/api/messages.php?conv='+conv+'&after='+last,{headers:{'X-Requested-With':'fetch'}})
@@ -238,6 +247,8 @@ site_header();
         var was = !tind.hidden;
         tind.hidden = !j.typing;
         if(j.typing&&!was)box.scrollTop=box.scrollHeight;
+        if(pres&&j.presence)pres.textContent = j.typing ? 'typing…' : (j.presence.online ? 'online' : seenLabel(j.presence.lastSeen));
+        if(pres)pres.classList.toggle('online', !!(j.typing || (j.presence&&j.presence.online)));
       })
       .catch(function(){});
   }

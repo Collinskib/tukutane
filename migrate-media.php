@@ -25,4 +25,11 @@ if (!col_exists('messages', 'view_once')) {
 } else {
     echo "skip messages.view_once already present\n";
 }
+
+if (!col_exists('users', 'last_seen_at')) {
+    db()->exec('ALTER TABLE users ADD COLUMN last_seen_at DATETIME NULL');
+    echo "OK   users.last_seen_at\n";
+} else {
+    echo "skip users.last_seen_at already present\n";
+}
 echo "done\n";

@@ -287,6 +287,30 @@ function serve_view_once(int $mid, int $uid): never {
     exit;
 }
 
+// Presence: stamp last_seen_at, throttled to one write per ~45s per user.
+function touch_presence(int $uid): void {
+    try {
+        db()->prepare('UPDATE users SET last_seen_at = NOW() WHERE id = :i
+                       AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL 45 SECOND)')
+            ->execute([':i' => $uid]);
+    } catch (Throwable) { /* column may not exist on un-migrated dev DBs */ }
+}
+
+// Presence payload for a user row: online if seen in the last 90s.
+function presence_out(?array $u): array {
+    $seen = $u['last_seen_at'] ?? null;
+    return ['online' => $seen ? (time() - strtotime($seen) < 90) : false, 'lastSeen' => $seen];
+}
+
+// Human label: "online" | "last seen 8:15 PM" | "last seen yesterday 8:15 PM" | "last seen Mon 8:15 PM"
+function last_seen_label(?string $seen): string {
+    if (!$seen) return '';
+    $t = strtotime($seen);
+    if (time() - $t < 90) return 'online';
+    $day = date('Y-m-d') === date('Y-m-d', $t) ? '' : (date('Y-m-d', strtotime('-1 day')) === date('Y-m-d', $t) ? 'yesterday ' : date('D ', $t));
+    return 'last seen ' . $day . date('g:i A', $t);
+}
+
 function whatsapp_share(string $title, string $url): string {
     return 'https://wa.me/?text=' . rawurlencode($title . ' — ' . $url);
 }

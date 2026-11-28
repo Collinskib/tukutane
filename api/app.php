@@ -455,6 +455,7 @@ case 'messages': {
         'items'  => array_map(fn($m) => msg_out($m, $uid), $rows),
         'typing' => peer_typing((int) $conv['id'], $otherId),
         'other'  => pub_user($other),
+        'presence' => presence_out($other),
         'muted'  => conversation_muted((int) $conv['id'], $uid),
     ]);
 }

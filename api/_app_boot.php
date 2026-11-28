@@ -52,6 +52,7 @@ function api_user(): ?array {
 function api_need(): array {
     $u = api_user();
     if (!$u) jerr('Login required.', 401);
+    touch_presence((int) $u['id']);
     return $u;
 }
 

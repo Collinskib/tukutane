@@ -56,7 +56,10 @@ $rows = messages_since((int) $conv['id'], (int) ($_GET['after'] ?? 0), 50);
 db()->prepare('UPDATE messages SET read_at = NOW() WHERE conversation_id = :c AND sender_id != :u AND read_at IS NULL')
     ->execute([':c' => $conv['id'], ':u' => $uid]);
 $otherId = (int) ($conv['user_one'] === $uid ? $conv['user_two'] : $conv['user_one']);
-echo json_encode(['typing' => peer_typing((int) $conv['id'], $otherId), 'messages' => array_map(fn($m) => [
+touch_presence($uid);
+echo json_encode(['typing' => peer_typing((int) $conv['id'], $otherId),
+    'presence' => presence_out(find_user($otherId)),
+    'messages' => array_map(fn($m) => [
     'id' => (int) $m['id'], 'sender_id' => (int) $m['sender_id'],
     'body' => $m['body'], 'time' => date('g:i A', strtotime($m['created_at'])),
     'attachment' => $m['attachment'], 'attachment_name' => $m['attachment_name'],
