@@ -63,6 +63,9 @@ STATUS=$DEPLOYPATH/deploy-status.txt
         else
             echo "crontab unavailable — add cron/reminders.php + cron/push.php via cPanel > Cron Jobs"
         fi
+        # Also run the push drain once inline so deploy-status shows whether the
+        # script itself works (crontab may exist but never fire on this host).
+        [ -n "$PHP_BIN" ] && "$PHP_BIN" "$PWD/cron/push.php" 2>&1 || true
     fi
     echo
 } > $STATUS 2>&1 || true
