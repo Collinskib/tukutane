@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAudioRecorder, useAudioPlayer, useAudioPlayerStatus, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio';
@@ -282,10 +281,9 @@ export default function ChatThread() {
 
   return (
     <Screen pad={false} bottom>
-      {/* Standalone builds get android:softwareKeyboardLayoutMode=resize; Expo Go's
-          own manifest doesn't resize, so fall back to height-based KAV there. */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding'
-        : Constants.executionEnvironment === 'storeClient' ? 'height' : undefined}>
+      {/* android:softwareKeyboardLayoutMode=pan in app.json so KAV height
+          doesn't double-adjust on standalone; Expo Go relies on it fully. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.head}>
           <Pressable onPress={() => router.back()} hitSlop={10} style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.6 }]}>
             <Text style={s.back}>‹</Text>

@@ -19,7 +19,7 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "ke.co.nipange",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
