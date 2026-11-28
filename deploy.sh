@@ -34,7 +34,7 @@ rm -f $DEPLOYPATH/institution.php $DEPLOYPATH/institutions.php \
 
 # One-off DB migrations — idempotent; drop these lines (and the status file)
 # after they've run. Status lands in the docroot for a quick remote check.
-STATUS=$DEPLOYPATH/deploy-status.txt $DEPLOYPATH/push-status.txt
+STATUS=$DEPLOYPATH/deploy-status.txt
 {
     echo "deploy $(git rev-parse --short HEAD) $(date -Iseconds) reexec=$DEPLOY_REEXEC"
     PHP_BIN=""
