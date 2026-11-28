@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!alive) return;
         setMeta(m);
         AsyncStorage.setItem('nipange.cache.meta', JSON.stringify(m)).catch(() => {});
-      }).catch(() => {});
+      }).catch((e) => console.warn('[boot] meta fetch failed:', e?.message ?? e));
       if (!tok) return;
       try {
         const d = await api('profile');

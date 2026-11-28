@@ -1,12 +1,23 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { api } from './api';
 
+// expo-notifications transitively imports expo-application, whose native
+// module isn't bundled in Expo Go — require lazily so a missing native
+// module can't take down every route that imports this file.
+type NotifMod = typeof import('expo-notifications');
+let Notifications: NotifMod | null = null;
+let isDevice = false;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Notifications = require('expo-notifications');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  isDevice = Boolean(require('expo-device').isDevice);
+} catch { /* Expo Go — push unavailable */ }
+
 // Foreground behavior: show the banner/list, keep sound on.
-Notifications.setNotificationHandler({
+Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
     shouldSetBadge: true,
@@ -20,13 +31,16 @@ let currentToken: string | null = null;
 // Register this device's Expo push token with the API (api/app.php?r=push/register).
 // Safe to call repeatedly — the server upserts on the token.
 // No-ops on web, simulators, and Expo Go (remote push needs a dev build).
+// Remote push is unavailable in Expo Go on Android (SDK 53+) — the JS loads
+// but the native managers NPE, so skip registration there entirely.
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
 export async function registerForPush(): Promise<void> {
-  if (Platform.OS === 'web' || !Device.isDevice) return;
+  if (Platform.OS === 'web' || !Notifications || !isDevice || isExpoGo) return;
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Nipange',
-        // eslint-disable-next-line import/namespace -- runtime enum exists; rule can't see export * chains
         importance: Notifications.AndroidImportance.HIGH,
         sound: 'default',
         enableVibrate: true,
@@ -81,6 +95,7 @@ export function routeForLink(link: string): string | null {
 // Register notification action categories. Message pushes carry
 // categoryId 'msg-reply' → Android shows an inline-reply field.
 export async function setupNotificationActions(): Promise<void> {
+  if (!Notifications) return;
   try {
     await Notifications.setNotificationCategoryAsync('msg-reply', [
       {
@@ -100,6 +115,7 @@ function convFromLink(link: unknown): number | null {
 
 // Mount the response listener once; returns an unsubscribe for cleanup.
 export function listenForPushTaps(): () => void {
+  if (!Notifications) return () => {};
   const sub = Notifications.addNotificationResponseReceivedListener((res) => {
     const link = res.notification.request.content.data?.link;
     // Inline reply action — send straight to the conversation, stay in shade.

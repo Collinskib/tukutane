@@ -35,7 +35,7 @@ export default function Auth() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const [f, setF] = useState({ email: '', password: '', name: '', gender: '', age_bracket: '', fun_fact: '' });
+  const [f, setF] = useState({ email: '', password: '', name: '', gender: '', fun_fact: '' });
   const [loc, setLoc] = useState({ county: '', area: '', estate: '' });
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -80,7 +80,7 @@ export default function Auth() {
       } else {
         const d = await api('auth/register', {}, {
           email: f.email.trim(), password: f.password, name: f.name.trim(),
-          gender: f.gender, age_bracket: f.age_bracket, fun_fact: f.fun_fact.trim(),
+          gender: f.gender, fun_fact: f.fun_fact.trim(),
           county: loc.county, area: loc.area,
           estate: loc.estate === '__new' ? '__new' : loc.estate,
           estate_new: (loc as any).estate_new,
@@ -145,14 +145,7 @@ export default function Auth() {
 
         {mode === 'register' && (
           <>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Select label="Gender" value={f.gender} options={meta?.genders ?? []} onChange={(v) => set('gender', v)} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Select label="Age bracket" value={f.age_bracket} options={meta?.ages ?? []} onChange={(v) => set('age_bracket', v)} />
-              </View>
-            </View>
+            <Select label="Gender" value={f.gender} options={meta?.genders ?? []} onChange={(v) => set('gender', v)} />
             <View style={{ marginTop: 14 }}>
               <Field label="My fun fact or silly joke (optional)">
                 <Input value={f.fun_fact} onChangeText={(v) => set('fun_fact', v)} maxLength={160}

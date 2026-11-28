@@ -11,7 +11,7 @@ export function Screen({ children, pad = true, bottom = false }: {
 }) {
   return (
     <SafeAreaView style={s.screen} edges={bottom ? ['top', 'left', 'right', 'bottom'] : ['top', 'left', 'right']}>
-      <View style={pad && s.pad}>{children}</View>
+      <View style={[s.screenInner, pad && s.pad]}>{children}</View>
     </SafeAreaView>
   );
 }
@@ -137,6 +137,7 @@ export function Card({ children, style }: { children: React.ReactNode; style?: a
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.cream },
+  screenInner: { flex: 1 },
   pad: { flex: 1, padding: 16 },
   title: { fontFamily: serif, fontSize: 30, color: C.ink, marginBottom: 4 },
   sub: { color: C.soft, marginBottom: 14 },
