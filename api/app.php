@@ -85,7 +85,7 @@ case 'cron/run': {
     // scripts under CLI (bootstrap needs the docroot config / correct MySQL
     // socket), so the crontab curls this route instead. Key lives server-side
     // only at ~/.push-drain-key, written once by deploy.sh.
-    $keyFile = rtrim((string) (getenv('HOME') ?: ''), '/') . '/.push-drain-key';
+    $keyFile = '/home/nipangec/.push-drain-key';
     $expect  = is_file($keyFile) ? trim((string) file_get_contents($keyFile)) : '';
     $given   = (string) pin('key');
     if ($expect === '' || !hash_equals($expect, $given)) jerr('Forbidden.', 403);

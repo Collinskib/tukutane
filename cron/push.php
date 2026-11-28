@@ -5,7 +5,7 @@
 //   php /home/nipangec/repositories/tukutane/cron/push.php
 // (runs from the repo clone so it never sits in the docroot)
 
-$statusFile = (getenv('HOME') ?: '/home/nipangec') . '/public_html/push-status.txt';
+$statusFile = dirname(__DIR__) . '/push-status.txt';
 @file_put_contents($statusFile, date('Y-m-d H:i:s') . ' start sapi=' . PHP_SAPI . "\n");
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
