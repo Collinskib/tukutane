@@ -133,7 +133,9 @@ export default function Auth() {
           </>
         )}
 
-        <Btn label={busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'} onPress={submit} disabled={busy} />
+        <View style={{ marginTop: 18 }}>
+          <Btn label={busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'} onPress={submit} disabled={busy} />
+        </View>
 
         {mode === 'login' && (
           <Pressable onPress={() => router.push('/forgot')} style={{ marginTop: 12 }}>

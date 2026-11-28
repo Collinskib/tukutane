@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#163e31",
+        "backgroundColor": "#faf8f2",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -39,7 +39,15 @@
           "iosUrlScheme": "com.googleusercontent.apps.101117355999-qdhmag4bi9na6vfqr7ko3rjrcpn5i0ph"
         }
       ],
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 300,
+          "resizeMode": "contain",
+          "backgroundColor": "#faf8f2"
+        }
+      ]
     ],
     "scheme": "nipange",
     "extra": {
