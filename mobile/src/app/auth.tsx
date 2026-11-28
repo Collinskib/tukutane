@@ -1,22 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
-import {
-  GoogleOneTapSignIn, isCancelledResponse, isNoSavedCredentialFoundResponse, isSuccessResponse,
-} from 'react-native-nitro-google-signin';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/store';
 import { Btn, Err, Field, Input, Select } from '../components/ui';
 import LocationPicker from '../components/LocationPicker';
 import { C, serif } from '../lib/theme';
 
+// nitro-google-signin is a third-party native module absent from Expo Go —
+// load it lazily so dev sessions in Expo Go don't crash on import.
+type GSign = typeof import('react-native-nitro-google-signin');
+let GSignin: GSign | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  GSignin = require('react-native-nitro-google-signin') as GSign;
+} catch { /* Expo Go: Google button hides below */ }
+
 const G = (Constants.expoConfig?.extra as any) ?? {};
-const GOOGLE_OK: boolean = !!G.googleWebClientId;
+const GOOGLE_OK: boolean = !!G.googleWebClientId && !!GSignin;
 
 if (GOOGLE_OK) {
-  GoogleOneTapSignIn.configure({
+  GSignin!.GoogleOneTapSignIn.configure({
     webClientId: G.googleWebClientId,
     iosClientId: G.googleIosClientId,
   });
@@ -30,23 +37,34 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [f, setF] = useState({ email: '', password: '', name: '', gender: '', age_bracket: '', fun_fact: '' });
   const [loc, setLoc] = useState({ county: '', area: '', estate: '' });
+  const [showPw, setShowPw] = useState(false);
+  const [remember, setRemember] = useState(true);
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  // Pre-fill a remembered email (sessions persist via SecureStore token;
+  // "Remember me" keeps your email ready so login is one tap).
+  useEffect(() => {
+    AsyncStorage.getItem('nipange.remember.email')
+      .then((e) => { if (e) setF((p) => ({ ...p, email: e })); })
+      .catch(() => {});
+  }, []);
 
   const googleSignIn = async () => {
     setErr(''); setBusy(true);
     try {
-      await GoogleOneTapSignIn.checkPlayServices();
-      let res = await GoogleOneTapSignIn.signIn();
-      if (isNoSavedCredentialFoundResponse(res)) res = await GoogleOneTapSignIn.createAccount();
-      if (isNoSavedCredentialFoundResponse(res)) res = await GoogleOneTapSignIn.presentExplicitSignIn();
-      if (isSuccessResponse(res) && res.data.idToken) {
+      const gs = GSignin!;
+      await gs.GoogleOneTapSignIn.checkPlayServices();
+      let res = await gs.GoogleOneTapSignIn.signIn();
+      if (gs.isNoSavedCredentialFoundResponse(res)) res = await gs.GoogleOneTapSignIn.createAccount();
+      if (gs.isNoSavedCredentialFoundResponse(res)) res = await gs.GoogleOneTapSignIn.presentExplicitSignIn();
+      if (gs.isSuccessResponse(res) && res.data.idToken) {
         const d = await api('auth/google', {}, { id_token: res.data.idToken });
         await applyAuth(d);
-      } else if (!isCancelledResponse(res)) {
+      } else if (!gs.isCancelledResponse(res)) {
         setErr('Google sign-in returned no token.');
       }
     } catch (e: any) {
-      if (!isCancelledResponse(e)) setErr(e?.message ?? 'Google sign-in failed.');
+      if (!GSignin?.isCancelledResponse(e)) setErr(e?.message ?? 'Google sign-in failed.');
     }
     setBusy(false);
   };
@@ -56,6 +74,8 @@ export default function Auth() {
     try {
       if (mode === 'login') {
         const d = await api('auth/login', {}, { email: f.email.trim(), password: f.password });
+        if (remember) AsyncStorage.setItem('nipange.remember.email', f.email.trim()).catch(() => {});
+        else AsyncStorage.removeItem('nipange.remember.email').catch(() => {});
         await applyAuth(d);
       } else {
         const d = await api('auth/register', {}, {
@@ -104,8 +124,24 @@ export default function Auth() {
           <Input value={f.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
         </Field>
         <Field label={mode === 'register' ? 'Password (8+ characters)' : 'Password'}>
-          <Input value={f.password} onChangeText={(v) => set('password', v)} secureTextEntry />
+          <View>
+            <Input
+              value={f.password} onChangeText={(v) => set('password', v)}
+              secureTextEntry={!showPw} style={{ paddingRight: 56 }} />
+            <Pressable style={s.eye} onPress={() => setShowPw((v) => !v)} hitSlop={8}>
+              <Text style={{ color: C.green, fontWeight: '600' }}>{showPw ? 'Hide' : 'Show'}</Text>
+            </Pressable>
+          </View>
         </Field>
+
+        {mode === 'login' && (
+          <Pressable style={s.remember} onPress={() => setRemember((v) => !v)} hitSlop={6}>
+            <View style={[s.box, remember && s.boxOn]}>
+              {remember && <Text style={s.check}>✓</Text>}
+            </View>
+            <Text style={{ color: C.ink, fontSize: 15 }}>Remember me</Text>
+          </Pressable>
+        )}
 
         {mode === 'register' && (
           <>
@@ -162,4 +198,12 @@ const s = StyleSheet.create({
   },
   tabOn: { backgroundColor: C.green, borderColor: C.green },
   tabTxt: { color: C.ink, fontWeight: '600' },
+  eye: { position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' },
+  remember: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: -2, marginBottom: 4 },
+  box: {
+    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: '#b9c4b3',
+    backgroundColor: C.card, alignItems: 'center', justifyContent: 'center',
+  },
+  boxOn: { backgroundColor: C.green, borderColor: C.green },
+  check: { color: '#fff', fontSize: 13, fontWeight: '700', marginTop: -1 },
 });
